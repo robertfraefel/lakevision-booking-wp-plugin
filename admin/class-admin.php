@@ -253,6 +253,12 @@ class LVB_Admin {
         if ( isset( $_POST['lvb_email_confirmation_text'] ) ) {
             update_option( 'lvb_email_confirmation_text', sanitize_textarea_field( wp_unslash( $_POST['lvb_email_confirmation_text'] ) ) );
         }
+        // Checkbox options
+        update_option( 'lvb_reminder_enabled', isset( $_POST['lvb_reminder_enabled'] ) ? 1 : 0 );
+        // Number options
+        if ( isset( $_POST['lvb_reminder_hours'] ) ) {
+            update_option( 'lvb_reminder_hours', max( 1, (int) $_POST['lvb_reminder_hours'] ) );
+        }
         foreach ( $text_options as $opt ) {
             if ( isset( $_POST[ $opt ] ) ) {
                 update_option( $opt, sanitize_text_field( wp_unslash( $_POST[ $opt ] ) ) );

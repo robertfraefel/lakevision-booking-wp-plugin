@@ -176,6 +176,31 @@ $disconnect_url = wp_nonce_url(
             </table>
         </div>
 
+        <!-- Email Reminder -->
+        <div class="lvb-settings-section">
+            <h2>Email Reminder</h2>
+            <table class="form-table">
+                <tr>
+                    <th><label for="lvb_reminder_enabled">Erinnerung aktivieren</label></th>
+                    <td>
+                        <input type="checkbox" id="lvb_reminder_enabled" name="lvb_reminder_enabled" value="1"
+                               <?php checked( 1, get_option( 'lvb_reminder_enabled', 0 ) ); ?>>
+                        <p class="description">Sendet dem Kunden automatisch eine Erinnerungs-E-Mail vor dem Termin.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="lvb_reminder_hours">Erinnerung senden</label></th>
+                    <td>
+                        <input type="number" id="lvb_reminder_hours" name="lvb_reminder_hours" class="small-text"
+                               min="1" max="168"
+                               value="<?php echo esc_attr( get_option( 'lvb_reminder_hours', 24 ) ); ?>">
+                        <span> Stunden vor dem Termin</span>
+                        <p class="description">Z.B. 24 = einen Tag vorher, 48 = zwei Tage vorher.</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
         <!-- Shortcode Help -->
         <div class="lvb-settings-section lvb-help-section">
             <h2>Shortcode Usage</h2>

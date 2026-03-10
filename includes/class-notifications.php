@@ -105,6 +105,79 @@ class LVB_Notifications {
     }
 
     /**
+     * Schedule a reminder email for a booking via WordPress Cron.
+     *
+     * @param int      $booking_id
+     * @param DateTime $start  Booking start time (in WP timezone).
+     */
+    public static function schedule_reminder( $booking_id, $start ) {
+        if ( ! get_option( 'lvb_reminder_enabled' ) ) {
+            return;
+        }
+
+        $hours  = (int) get_option( 'lvb_reminder_hours', 24 );
+        $send_at = clone $start;
+        $send_at->modify( '-' . $hours . ' hours' );
+
+        // Only schedule if the reminder time is still in the future
+        if ( $send_at->getTimestamp() <= time() ) {
+            return;
+        }
+
+        wp_schedule_single_event(
+            $send_at->getTimestamp(),
+            'lvb_send_reminder',
+            [ $booking_id ]
+        );
+    }
+
+    /**
+     * Send a reminder email to the customer. Called by WordPress Cron.
+     *
+     * @param int $booking_id
+     */
+    public static function send_reminder( $booking_id ) {
+        global $wpdb;
+
+        $booking  = LVB_Database::get_by_id( 'bookings',  $booking_id );
+        $service  = $booking ? LVB_Database::get_by_id( 'services',  $booking['service_id'] )  : null;
+        $customer = $booking ? LVB_Database::get_by_id( 'customers', $booking['customer_id'] ) : null;
+
+        if ( ! $booking || ! $service || ! $customer ) {
+            return;
+        }
+
+        // Don't send if already sent or booking is cancelled
+        if ( $booking['reminder_sent'] || $booking['status'] === 'cancelled' ) {
+            return;
+        }
+
+        $tz    = wp_timezone();
+        $start = new DateTime( $booking['start_datetime'], $tz );
+        $end   = new DateTime( $booking['end_datetime'], $tz );
+
+        $subject = sprintf( __( 'Erinnerung: Dein Termin morgen – %s', 'lakevision-booking' ), get_bloginfo( 'name' ) );
+        $body    = self::render( 'reminder', [
+            'customer_name' => trim( $customer['first_name'] . ' ' . $customer['last_name'] ),
+            'service_name'  => $service['name'],
+            'date'          => $start->format( get_option( 'date_format' ) ),
+            'time'          => $start->format( get_option( 'time_format' ) ) . ' – ' . $end->format( get_option( 'time_format' ) ),
+            'site_name'     => get_bloginfo( 'name' ),
+        ] );
+
+        self::send( $customer['email'], $subject, $body );
+
+        // Mark as sent
+        $wpdb->update(
+            $wpdb->prefix . 'lvb_bookings',
+            [ 'reminder_sent' => 1 ],
+            [ 'id' => $booking_id ],
+            [ '%d' ],
+            [ '%d' ]
+        );
+    }
+
+    /**
      * Send a cancellation notice to the customer.
      *
      * @param int $booking_id
@@ -306,6 +379,25 @@ class LVB_Notifications {
                         <a href="' . esc_url( $admin_url ) . '" style="' . $btn_style . '">View in Dashboard</a>
                     </div>
                     <div style="' . $footer_style . '">' . $site . ' Admin</div>
+                </div>';
+
+            case 'reminder':
+                $rows = self::detail_rows( [
+                    'Service' => esc_html( $vars['service_name'] ),
+                    'Datum'   => esc_html( $vars['date'] ),
+                    'Zeit'    => esc_html( $vars['time'] ),
+                ], $row_style );
+
+                return '<div style="' . $wrap_style . '">
+                    <div style="' . $header_style . '">' . $logo . '</div>
+                    <div style="' . $body_style . '">
+                        <h2 style="color:' . $dark . ';margin-top:0;">&#128337; Erinnerung an deinen Termin</h2>
+                        <p>Hallo ' . esc_html( $vars['customer_name'] ) . ',</p>
+                        <p>Dies ist eine freundliche Erinnerung an deinen bevorstehenden Termin bei <strong>' . $site . '</strong>.</p>
+                        <table style="width:100%;border-collapse:collapse;">' . $rows . '</table>
+                        <p style="margin-top:24px;">Bei Fragen oder falls du absagen möchtest, melde dich bitte so früh wie möglich bei uns.</p>
+                    </div>
+                    <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '. All rights reserved.</div>
                 </div>';
 
             case 'cancellation':

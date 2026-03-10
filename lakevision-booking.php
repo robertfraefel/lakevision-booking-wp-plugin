@@ -133,6 +133,9 @@ final class LakeVision_Booking {
         // Water temperature proxy
         LVB_Water_Temp::register();
 
+        // Email reminder cron
+        add_action( 'lvb_send_reminder', [ 'LVB_Notifications', 'send_reminder' ] );
+
         // Google OAuth callback
         add_action( 'admin_post_lvb_google_callback', [ 'LVB_Google_Calendar', 'oauth_callback' ] );
 

@@ -137,8 +137,9 @@ class LVB_Booking_Manager {
             return new WP_Error( 'db_insert_fail', __( 'Could not save booking to database.', 'lakevision-booking' ) );
         }
 
-        // 8. Send notifications
+        // 8. Send notifications + schedule reminder
         LVB_Notifications::send_booking_confirmation( $booking_id );
+        LVB_Notifications::schedule_reminder( $booking_id, $start_dt );
 
         return $booking_id;
     }
@@ -215,6 +216,12 @@ class LVB_Booking_Manager {
             if ( $calendar_id ) {
                 LVB_Google_Calendar::delete_event( $calendar_id, $booking['google_event_id'] );
             }
+        }
+
+        // Remove scheduled reminder if not yet sent
+        $timestamp = wp_next_scheduled( 'lvb_send_reminder', [ $booking_id ] );
+        if ( $timestamp ) {
+            wp_unschedule_event( $timestamp, 'lvb_send_reminder', [ $booking_id ] );
         }
 
         return LVB_Database::update( 'bookings', [ 'status' => 'cancelled' ], [ 'id' => $booking_id ] );

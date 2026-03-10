@@ -94,6 +94,7 @@ class LVB_Database {
             google_event_id  VARCHAR(255)    DEFAULT NULL,
             price            DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
             notes            TEXT            DEFAULT NULL,
+            reminder_sent    TINYINT(1)      NOT NULL DEFAULT 0,
             created_at       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             KEY idx_service  (service_id),
