@@ -44,6 +44,7 @@ class LVB_Shortcode {
      */
     public static function register() {
         add_shortcode( 'lvb_booking', [ __CLASS__, 'render' ] );
+        add_shortcode( 'lvb_reviews', [ 'LVB_Google_Reviews', 'render_shortcode' ] );
     }
 
     // -----------------------------------------------------------------------
