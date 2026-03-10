@@ -63,8 +63,9 @@ class LVB_Notifications {
         $customer_name    = trim( $customer['first_name'] . ' ' . $customer['last_name'] );
         $customer_subject = sprintf( __( 'Your Booking Confirmation – %s', 'lakevision-booking' ), $site_name );
         $customer_body    = self::customer_email_body( [
-            'customer_name' => $customer_name,
-            'service_name'  => $service['name'],
+            'customer_name'       => $customer_name,
+            'customer_first_name' => $customer['first_name'],
+            'service_name'        => $service['name'],
             'staff_name'    => $staff ? $staff['name'] : '',
             'date'          => $date_str,
             'time'          => $time_str,
@@ -158,7 +159,8 @@ class LVB_Notifications {
 
         $subject = sprintf( __( 'Erinnerung: Dein Termin morgen – %s', 'lakevision-booking' ), get_bloginfo( 'name' ) );
         $body    = self::render( 'reminder', [
-            'customer_name' => trim( $customer['first_name'] . ' ' . $customer['last_name'] ),
+            'customer_name'       => trim( $customer['first_name'] . ' ' . $customer['last_name'] ),
+            'customer_first_name' => $customer['first_name'],
             'service_name'  => $service['name'],
             'date'          => $start->format( get_option( 'date_format' ) ),
             'time'          => $start->format( get_option( 'time_format' ) ) . ' – ' . $end->format( get_option( 'time_format' ) ),
@@ -334,25 +336,27 @@ class LVB_Notifications {
         switch ( $template ) {
             case 'customer_confirmation':
                 $rows = self::detail_rows( [
-                    'Service'       => esc_html( $vars['service_name'] ),
-                    $staff_label    => esc_html( $vars['staff_name'] ?: 'TBD' ),
-                    'Date'       => esc_html( $vars['date'] ),
-                    'Time'       => esc_html( $vars['time'] ),
-                    'Price'      => esc_html( $vars['price'] ),
-                    'Booking #'  => esc_html( $vars['booking_id'] ),
+                    'Service'    => esc_html( $vars['service_name'] ),
+                    $staff_label => esc_html( $vars['staff_name'] ?: 'TBD' ),
+                    'Datum'      => esc_html( $vars['date'] ),
+                    'Zeit'       => esc_html( $vars['time'] ),
+                    'Preis'      => esc_html( $vars['price'] ),
+                    'Buchung #'  => esc_html( $vars['booking_id'] ),
                 ], $row_style );
+
+                $first_name = esc_html( $vars['customer_first_name'] ?? $vars['customer_name'] );
 
                 return '<div style="' . $wrap_style . '">
                     <div style="' . $header_style . '">' . $logo . '</div>
                     <div style="' . $body_style . '">
-                        <h2 style="color:' . $dark . ';margin-top:0;">Booking Confirmed!</h2>
-                        <p>Hi ' . esc_html( $vars['customer_name'] ) . ',</p>
+                        <h2 style="color:' . $dark . ';margin-top:0;">Buchung bestätigt!</h2>
+                        <p>Hi ' . $first_name . ',</p>
                         <p>' . esc_html( $confirm_text ) . '</p>
                         <table style="width:100%;border-collapse:collapse;">' . $rows . '</table>
-                        ' . ( $vars['notes'] ? '<p><strong>Notes:</strong> ' . esc_html( $vars['notes'] ) . '</p>' : '' ) . '
-                        <p style="margin-top:24px;">If you need to reschedule or cancel, please contact us as soon as possible.</p>
+                        ' . ( $vars['notes'] ? '<p><strong>Notiz:</strong> ' . esc_html( $vars['notes'] ) . '</p>' : '' ) . '
+                        <p style="margin-top:24px;">Falls du absagen oder umbuchen möchtest, melde dich bitte so früh wie möglich bei uns.</p>
                     </div>
-                    <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '. All rights reserved.</div>
+                    <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '. Alle Rechte vorbehalten.</div>
                 </div>';
 
             case 'admin_notification':
@@ -392,7 +396,7 @@ class LVB_Notifications {
                     <div style="' . $header_style . '">' . $logo . '</div>
                     <div style="' . $body_style . '">
                         <h2 style="color:' . $dark . ';margin-top:0;">&#128337; Erinnerung an deinen Termin</h2>
-                        <p>Hallo ' . esc_html( $vars['customer_name'] ) . ',</p>
+                        <p>Hallo ' . esc_html( $vars['customer_first_name'] ?? $vars['customer_name'] ) . ',</p>
                         <p>Dies ist eine freundliche Erinnerung an deinen bevorstehenden Termin bei <strong>' . $site . '</strong>.</p>
                         <table style="width:100%;border-collapse:collapse;">' . $rows . '</table>
                         <p style="margin-top:24px;">Bei Fragen oder falls du absagen möchtest, melde dich bitte so früh wie möglich bei uns.</p>
@@ -401,15 +405,16 @@ class LVB_Notifications {
                 </div>';
 
             case 'cancellation':
+                $first_name_c = esc_html( $vars['customer_first_name'] ?? $vars['customer_name'] );
                 return '<div style="' . $wrap_style . '">
                     <div style="' . $header_style . '">' . $logo . '</div>
                     <div style="' . $body_style . '">
-                        <h2 style="color:' . $dark . ';margin-top:0;">Booking Cancelled</h2>
-                        <p>Hi ' . esc_html( $vars['customer_name'] ) . ',</p>
-                        <p>Your booking for <strong>' . esc_html( $vars['service_name'] ) . '</strong> on
-                           <strong>' . esc_html( $vars['date'] ) . '</strong> at <strong>' . esc_html( $vars['time'] ) . '</strong>
-                           has been cancelled.</p>
-                        <p>If this was unexpected or you\'d like to rebook, please contact us.</p>
+                        <h2 style="color:' . $dark . ';margin-top:0;">Buchung storniert</h2>
+                        <p>Hi ' . $first_name_c . ',</p>
+                        <p>Deine Buchung für <strong>' . esc_html( $vars['service_name'] ) . '</strong> am
+                           <strong>' . esc_html( $vars['date'] ) . '</strong> um <strong>' . esc_html( $vars['time'] ) . '</strong>
+                           wurde storniert.</p>
+                        <p>Falls du neu buchen möchtest, melde dich gerne bei uns.</p>
                     </div>
                     <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '.</div>
                 </div>';
