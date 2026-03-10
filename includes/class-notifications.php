@@ -74,7 +74,15 @@ class LVB_Notifications {
             'site_name'     => $site_name,
         ] );
 
-        self::send( $customer_email, $customer_subject, $customer_body );
+        // ---- ICS calendar attachment ----
+        $ics_content = self::generate_ics( $booking_id, $start, $end, $service['name'], $site_name, $booking['notes'] );
+        $ics_file    = wp_tempnam( 'lvb-booking-' . $booking_id );
+        file_put_contents( $ics_file, $ics_content );
+        rename( $ics_file, $ics_file . '.ics' );
+        $ics_file .= '.ics';
+
+        self::send( $customer_email, $customer_subject, $customer_body, [ $ics_file ] );
+        @unlink( $ics_file );
 
         // ---- Admin email ----
         $admin_email   = get_option( 'lvb_admin_notification_email', get_option( 'admin_email' ) );
@@ -140,12 +148,54 @@ class LVB_Notifications {
      * @param string $body    HTML email body.
      * @return void
      */
-    private static function send( $to, $subject, $body ) {
+    private static function send( $to, $subject, $body, $attachments = [] ) {
         $headers = [ 'Content-Type: text/html; charset=UTF-8' ];
         $from    = get_option( 'lvb_email_from', get_bloginfo( 'name' ) );
         $from_email = get_option( 'lvb_email_from_address', get_option( 'admin_email' ) );
         $headers[] = 'From: ' . $from . ' <' . $from_email . '>';
-        wp_mail( $to, $subject, $body, $headers );
+        wp_mail( $to, $subject, $body, $headers, $attachments );
+    }
+
+    /**
+     * Generate an iCalendar (.ics) string for a booking.
+     *
+     * @param int      $booking_id
+     * @param DateTime $start
+     * @param DateTime $end
+     * @param string   $service_name
+     * @param string   $site_name
+     * @param string   $notes
+     * @return string  ICS file contents.
+     */
+    private static function generate_ics( $booking_id, $start, $end, $service_name, $site_name, $notes = '' ) {
+        $utc       = new DateTimeZone( 'UTC' );
+        $start_utc = ( clone $start )->setTimezone( $utc );
+        $end_utc   = ( clone $end )->setTimezone( $utc );
+
+        $uid     = 'booking-' . $booking_id . '@' . wp_parse_url( home_url(), PHP_URL_HOST );
+        $dtstamp = gmdate( 'Ymd\THis\Z' );
+        $dtstart = $start_utc->format( 'Ymd\THis\Z' );
+        $dtend   = $end_utc->format( 'Ymd\THis\Z' );
+        $summary = $service_name . ' – ' . $site_name;
+
+        $lines = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//LakeVision Booking//EN',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+            'BEGIN:VEVENT',
+            'UID:' . $uid,
+            'DTSTAMP:' . $dtstamp,
+            'DTSTART:' . $dtstart,
+            'DTEND:' . $dtend,
+            'SUMMARY:' . $summary,
+            'DESCRIPTION:' . str_replace( [ "\r", "\n" ], ' ', $notes ),
+            'END:VEVENT',
+            'END:VCALENDAR',
+        ];
+
+        return implode( "\r\n", $lines );
     }
 
     /**
