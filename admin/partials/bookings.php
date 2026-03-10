@@ -101,6 +101,7 @@ $status_labels = [
                 <th>Staff</th>
                 <th><?php echo $sort_url( 'price' ); ?></th>
                 <th><?php echo $sort_url( 'status' ); ?></th>
+                <th>Erinnerung</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -127,6 +128,13 @@ $status_labels = [
                 <td><?php echo esc_html( $b['staff_name']   ?? '—' ); ?></td>
                 <td><?php echo esc_html( get_option( 'lvb_currency_symbol', '$' ) . number_format( (float) $b['price'], 2 ) ); ?></td>
                 <td><?php echo wp_kses_post( $status_labels[ $b['status'] ] ?? esc_html( $b['status'] ) ); ?></td>
+                <td>
+                    <?php if ( ! empty( $b['reminder_sent'] ) ) : ?>
+                        <span class="dashicons dashicons-yes-alt" style="color:#46b450" title="Erinnerung gesendet"></span>
+                    <?php else : ?>
+                        <span class="lvb-muted">—</span>
+                    <?php endif; ?>
+                </td>
                 <td>
                     <?php if ( $b['status'] !== 'cancelled' ) : ?>
                         <a href="<?php echo esc_url( $cancel_url ); ?>"
