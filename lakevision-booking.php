@@ -1,13 +1,50 @@
 <?php
 /**
  * Plugin Name: LakeVision Booking
- * Plugin URI:  https://github.com/robertfraefel/lakevision-booking-wp-plugin
- * Description: Flexible booking system with Google Calendar integration, time-slot management and email notifications.
- * Version:     1.1.0
+ * Plugin URI:  https://lakevision.com
+ * Description: Complete booking system for WakeSurf businesses with Google Calendar integration.
+ * Version:     1.0.0
  * Author:      LakeVision
- * Author URI:  https://lakevision.ch
+ * Author URI:  https://lakevision.com
  * License:     GPL-2.0+
  * Text Domain: lakevision-booking
+ *
+ * @package LakeVision_Booking
+ *
+ * Overview
+ * --------
+ * LakeVision Booking is a self-contained WordPress plugin that provides a full
+ * end-to-end booking workflow for WakeSurf (and similar water-sport) businesses:
+ *
+ *  - Frontend: a multi-step booking widget rendered via the [lvb_booking] shortcode.
+ *    Customers pick a date on an interactive calendar, choose an available time slot
+ *    sourced from Google Calendar, select a service, and submit their contact details.
+ *
+ *  - Backend: a dedicated admin section (LV Booking menu) for managing bookings,
+ *    customers, services, and staff members, plus a Settings page for Google OAuth
+ *    credentials and email configuration.
+ *
+ *  - Google Calendar integration: OAuth 2.0 flow (no Composer dependency) to read
+ *    availability slots and write confirmed-booking events to one or more calendars.
+ *
+ *  - Notifications: HTML emails sent to both the customer and the admin on booking
+ *    confirmation and cancellation.
+ *
+ *  - Water temperature widget: optional AJAX proxy that fetches and caches the
+ *    current Bodensee water temperature from the Swiss federal BAFU API.
+ *
+ * Architecture
+ * ------------
+ * The plugin uses a simple singleton entry-point (LakeVision_Booking) that wires up
+ * WordPress hooks and delegates all domain logic to dedicated static classes:
+ *
+ *   LVB_Database          – DB install, generic CRUD helpers, booking queries.
+ *   LVB_Google_Calendar   – OAuth flow, Calendar API wrapper, slot helpers.
+ *   LVB_Booking_Manager   – High-level booking/service/staff business logic.
+ *   LVB_Notifications     – Email generation and delivery.
+ *   LVB_Shortcode         – Frontend shortcode rendering and AJAX endpoints.
+ *   LVB_Water_Temp        – Water-temperature fetch, cache, and AJAX proxy.
+ *   LVB_Admin             – Admin menu registration, asset enqueue, form handling.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -31,11 +68,27 @@ require_once LVB_PLUGIN_DIR . 'admin/class-admin.php';
 
 /**
  * Main plugin class (singleton).
+ *
+ * Bootstraps the plugin by registering all WordPress action/filter hooks and
+ * instantiating subsystems. Only a single instance is ever created (via
+ * {@see LakeVision_Booking::instance()}).
+ *
+ * @package LakeVision_Booking
  */
 final class LakeVision_Booking {
 
+    /**
+     * Holds the single instance of this class.
+     *
+     * @var LakeVision_Booking|null
+     */
     private static $instance = null;
 
+    /**
+     * Return (and lazily create) the singleton instance.
+     *
+     * @return LakeVision_Booking
+     */
     public static function instance() {
         if ( null === self::$instance ) {
             self::$instance = new self();
@@ -43,10 +96,25 @@ final class LakeVision_Booking {
         return self::$instance;
     }
 
+    /**
+     * Private constructor – call {@see instance()} instead.
+     *
+     * Immediately delegates to {@see init_hooks()} so all WordPress hooks are
+     * registered at instantiation time.
+     */
     private function __construct() {
         $this->init_hooks();
     }
 
+    /**
+     * Register all WordPress hooks required by the plugin.
+     *
+     * Covers activation/deactivation lifecycle hooks, frontend asset enqueue,
+     * AJAX handlers for the booking widget, the water-temperature proxy, the
+     * Google OAuth redirect handler, and the admin subsystem.
+     *
+     * @return void
+     */
     private function init_hooks() {
         register_activation_hook( LVB_PLUGIN_FILE, [ 'LVB_Database', 'install' ] );
         register_deactivation_hook( LVB_PLUGIN_FILE, [ __CLASS__, 'deactivate' ] );
@@ -54,7 +122,7 @@ final class LakeVision_Booking {
         add_action( 'init', [ $this, 'init' ] );
         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_frontend_assets' ] );
 
-        // AJAX handlers
+        // AJAX handlers – available to both logged-in and guest users.
         add_action( 'wp_ajax_lvb_get_slots',          [ 'LVB_Shortcode', 'ajax_get_slots' ] );
         add_action( 'wp_ajax_nopriv_lvb_get_slots',   [ 'LVB_Shortcode', 'ajax_get_slots' ] );
         add_action( 'wp_ajax_lvb_submit_booking',     [ 'LVB_Shortcode', 'ajax_submit_booking' ] );
@@ -74,11 +142,28 @@ final class LakeVision_Booking {
         }
     }
 
+    /**
+     * WordPress `init` action callback.
+     *
+     * Loads the plugin text domain for i18n and registers the booking shortcode.
+     *
+     * @return void
+     */
     public function init() {
         load_plugin_textdomain( 'lakevision-booking', false, dirname( plugin_basename( LVB_PLUGIN_FILE ) ) . '/languages' );
         LVB_Shortcode::register();
     }
 
+    /**
+     * Enqueue frontend CSS and JS only on pages that contain the booking shortcode.
+     *
+     * Uses file modification time as the asset version to bust browser caches
+     * automatically whenever a file changes in development.
+     * The `lvbData` JS object exposes the AJAX URL and a security nonce to the
+     * booking script.
+     *
+     * @return void
+     */
     public function enqueue_frontend_assets() {
         global $post;
         if ( is_a( $post, 'WP_Post' ) && has_shortcode( $post->post_content, 'lvb_booking' ) ) {
@@ -102,6 +187,14 @@ final class LakeVision_Booking {
         }
     }
 
+    /**
+     * Plugin deactivation callback.
+     *
+     * Currently a no-op placeholder. Future implementations may flush rewrite
+     * rules or clean up scheduled events here.
+     *
+     * @return void
+     */
     public static function deactivate() {
         // Future: flush rewrite rules, etc.
     }

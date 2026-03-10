@@ -1,12 +1,31 @@
 <?php
 /**
  * LVB_Database – installs and manages database tables.
+ *
+ * This class is responsible for:
+ *  - Creating (and migrating) all custom database tables on plugin activation.
+ *  - Providing a thin generic CRUD layer (get_all, get_by_id, insert, update,
+ *    delete, count) that prefixes table names automatically and returns plain
+ *    associative arrays.
+ *  - Offering specialised query methods for cross-table lookups such as
+ *    fetching bookings with joined customer/service/staff data.
+ *
+ * All table names follow the pattern `{wpdb->prefix}lvb_{table}`, e.g.
+ * `wp_lvb_bookings`. The generic helpers accept the short name without the
+ * prefix or `lvb_` segment (e.g. 'bookings', 'services').
+ *
+ * @package LakeVision_Booking
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Provides database installation and generic CRUD helpers for all LVB tables.
+ *
+ * @package LakeVision_Booking
+ */
 class LVB_Database {
 
     /**
@@ -104,7 +123,16 @@ class LVB_Database {
     }
 
     /**
-     * Generic get-all with optional WHERE clause.
+     * Fetch all rows from an LVB table with an optional WHERE clause.
+     *
+     * @param string $table    Short table name without the `{prefix}lvb_` portion
+     *                         (e.g. 'services', 'bookings').
+     * @param array  $where    Associative array of column => value equality conditions.
+     *                         All conditions are AND-ed together. Pass an empty array
+     *                         to return every row.
+     * @param string $order_by ORDER BY clause appended verbatim (not user-supplied
+     *                         at runtime, so no additional escaping is needed).
+     * @return array[]  Array of associative row arrays, or an empty array.
      */
     public static function get_all( $table, $where = [], $order_by = 'id DESC' ) {
         global $wpdb;
@@ -122,7 +150,11 @@ class LVB_Database {
     }
 
     /**
-     * Get a single row by ID.
+     * Fetch a single row by its primary key.
+     *
+     * @param string $table  Short table name (e.g. 'bookings', 'customers').
+     * @param int    $id     The primary key value to look up.
+     * @return array|null    Associative row array, or null if no row is found.
      */
     public static function get_by_id( $table, $id ) {
         global $wpdb;
@@ -131,7 +163,11 @@ class LVB_Database {
     }
 
     /**
-     * Insert a row and return the new ID (or false).
+     * Insert a row into an LVB table and return the new auto-increment ID.
+     *
+     * @param string  $table  Short table name (e.g. 'bookings').
+     * @param array   $data   Associative array of column => value pairs to insert.
+     * @return int|false      The new row ID on success, or false if the insert failed.
      */
     public static function insert( $table, $data ) {
         global $wpdb;
@@ -141,7 +177,14 @@ class LVB_Database {
     }
 
     /**
-     * Update rows matching $where.
+     * Update rows in an LVB table that match the given WHERE conditions.
+     *
+     * @param string $table  Short table name (e.g. 'bookings').
+     * @param array  $data   Associative array of column => value pairs to set.
+     * @param array  $where  Associative array of column => value equality conditions
+     *                       used to identify rows to update.
+     * @return int|false     Number of rows updated, 0 if no rows matched, or false
+     *                       on database error.
      */
     public static function update( $table, $data, $where ) {
         global $wpdb;
@@ -150,7 +193,11 @@ class LVB_Database {
     }
 
     /**
-     * Delete rows matching $where.
+     * Delete rows from an LVB table that match the given WHERE conditions.
+     *
+     * @param string $table  Short table name (e.g. 'bookings').
+     * @param array  $where  Associative array of column => value equality conditions.
+     * @return int|false     Number of rows deleted, or false on database error.
      */
     public static function delete( $table, $where ) {
         global $wpdb;
@@ -159,7 +206,12 @@ class LVB_Database {
     }
 
     /**
-     * Count rows in a table with optional where.
+     * Count rows in an LVB table with optional WHERE conditions.
+     *
+     * @param string $table  Short table name (e.g. 'bookings').
+     * @param array  $where  Associative array of column => value equality conditions.
+     *                       Pass an empty array to count all rows.
+     * @return int  The number of matching rows.
      */
     public static function count( $table, $where = [] ) {
         global $wpdb;
@@ -176,7 +228,13 @@ class LVB_Database {
     }
 
     /**
-     * Get services assigned to a staff member.
+     * Get all active services assigned to a specific staff member.
+     *
+     * Performs an INNER JOIN on the staff_services pivot table and filters to
+     * only services with status = 'active', ordered by name ascending.
+     *
+     * @param int $staff_id  The staff member ID.
+     * @return array[]       Array of service row arrays, or an empty array.
      */
     public static function get_services_for_staff( $staff_id ) {
         global $wpdb;
@@ -191,7 +249,13 @@ class LVB_Database {
     }
 
     /**
-     * Get staff assigned to a service.
+     * Get all active staff members assigned to a specific service.
+     *
+     * Performs an INNER JOIN on the staff_services pivot table and filters to
+     * only staff with status = 'active', ordered by name ascending.
+     *
+     * @param int $service_id  The service ID.
+     * @return array[]         Array of staff row arrays, or an empty array.
      */
     public static function get_staff_for_service( $service_id ) {
         global $wpdb;
@@ -206,7 +270,25 @@ class LVB_Database {
     }
 
     /**
-     * Full bookings query with joins, search and pagination.
+     * Fetch bookings with joined service, staff, and customer data.
+     *
+     * Supports optional status filtering, a free-text search against customer
+     * name/email, and full pagination. Intended for the admin bookings list view.
+     *
+     * @param array $args {
+     *     Optional query arguments.
+     *
+     *     @type string $status   Filter by booking status ('pending', 'confirmed',
+     *                            'cancelled'). Empty string = all statuses.
+     *     @type string $search   Free-text search against customer first_name,
+     *                            last_name, and email.
+     *     @type int    $per_page Number of results per page. Default 20.
+     *     @type int    $page     1-based page number. Default 1.
+     *     @type string $order_by Column expression to sort by. Default 'b.start_datetime'.
+     *     @type string $order    Sort direction: 'ASC' or 'DESC'. Default 'DESC'.
+     * }
+     * @return array[]  Array of booking row arrays enriched with service_name,
+     *                  staff_name, first_name, last_name, customer_email columns.
      */
     public static function get_bookings( $args = [] ) {
         global $wpdb;
@@ -264,7 +346,18 @@ class LVB_Database {
     }
 
     /**
-     * Count bookings (for pagination).
+     * Count bookings matching the given filter arguments (for pagination).
+     *
+     * Accepts the same `status` and `search` keys as {@see get_bookings()} so
+     * callers can derive the total page count without fetching all rows.
+     *
+     * @param array $args {
+     *     Optional filter arguments.
+     *
+     *     @type string $status  Filter by booking status.
+     *     @type string $search  Free-text search against customer fields.
+     * }
+     * @return int  Total number of bookings matching the filters.
      */
     public static function count_bookings( $args = [] ) {
         global $wpdb;

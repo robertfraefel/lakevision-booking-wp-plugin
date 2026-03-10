@@ -2,15 +2,46 @@
 /**
  * LVB_Shortcode – frontend booking calendar & form.
  *
- * Usage: [lvb_booking]
+ * Registers and renders the [lvb_booking] shortcode and handles all related
+ * AJAX endpoints called by the booking.js frontend script.
+ *
+ * Shortcode usage:
+ *   [lvb_booking]
+ *   [lvb_booking service_id="3"]          – Pre-select a service.
+ *   [lvb_booking service_id="3" staff_id="1"] – Pre-select service and staff.
+ *
+ * The rendered widget is a four-step booking flow:
+ *   Step 1 – Month calendar: highlights days that have available slots.
+ *   Step 2 – Time slot list for the selected day, filtered by service duration.
+ *   Step 3 – Customer contact form with disclaimer checkbox.
+ *   Step 4 – Success / confirmation screen.
+ *
+ * AJAX actions (available to both authenticated and guest users):
+ *   lvb_get_slots           – Return available Google Calendar slots for a date range.
+ *   lvb_submit_booking      – Validate and create a new booking.
+ *   lvb_get_staff_for_service – Return active staff members for a given service.
+ *
+ * @package LakeVision_Booking
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Renders the frontend booking widget shortcode and handles its AJAX requests.
+ *
+ * @package LakeVision_Booking
+ */
 class LVB_Shortcode {
 
+    /**
+     * Register the [lvb_booking] shortcode with WordPress.
+     *
+     * Should be called on the `init` action (after WordPress is fully loaded).
+     *
+     * @return void
+     */
     public static function register() {
         add_shortcode( 'lvb_booking', [ __CLASS__, 'render' ] );
     }
@@ -19,6 +50,23 @@ class LVB_Shortcode {
     // Shortcode output
     // -----------------------------------------------------------------------
 
+    /**
+     * Render the [lvb_booking] shortcode output.
+     *
+     * Outputs the full four-step booking widget HTML. Active services are
+     * loaded from the database and injected into the service dropdown (Step 2)
+     * at render time to avoid an extra AJAX request.
+     *
+     * @param array $atts {
+     *     Shortcode attributes.
+     *
+     *     @type string $service_id  Optional service ID to pre-select in the
+     *                               service dropdown. Empty string = no pre-selection.
+     *     @type string $staff_id    Optional staff ID to pre-select. Forwarded to JS
+     *                               for slot filtering. Empty string = no pre-selection.
+     * }
+     * @return string  The shortcode HTML output (captured via output buffering).
+     */
     public static function render( $atts ) {
         $atts = shortcode_atts( [
             'service_id' => '',
@@ -62,11 +110,10 @@ class LVB_Shortcode {
                     <button class="lvb-back" data-target="1">&#8592; Zurück</button>
                     <h3 id="lvb-selected-date-label" class="lvb-date-label"></h3>
                 </div>
-                <?php $service_label = get_option( 'lvb_service_label', 'Sportart' ); ?>
                 <div class="lvb-form-group lvb-service-picker">
-                    <label for="lvb-service-select" class="lvb-label"><?php echo esc_html( $service_label ); ?> <span class="req">*</span></label>
+                    <label for="lvb-service-select" class="lvb-label">Sportart <span class="req">*</span></label>
                     <select id="lvb-service-select" class="lvb-select" required>
-                        <option value="">— <?php echo esc_html( $service_label ); ?> wählen —</option>
+                        <option value="">— Sportart wählen —</option>
                         <?php foreach ( $services as $svc ) : ?>
                             <option value="<?php echo esc_attr( $svc['id'] ); ?>"
                                     data-duration="<?php echo esc_attr( $svc['duration'] ); ?>"
@@ -160,16 +207,13 @@ class LVB_Shortcode {
                         </div>
                     </div>
 
-                    <?php $wa_url = get_option( 'lvb_whatsapp_url', '' ); ?>
-                    <?php if ( $wa_url ) : ?>
                     <div class="lvb-wa-hint">
                         <p>📢 <strong>Tipp:</strong> Folge unserem WhatsApp-Kanal – dort informieren wir kurzfristig über Änderungen, Ausfälle oder besondere Bedingungen.</p>
-                        <a class="lvb-wa-btn" href="<?php echo esc_url( $wa_url ); ?>" target="_blank" rel="noopener">
+                        <a class="lvb-wa-btn" href="https://whatsapp.com/channel/0029VbCM8fmJJhzatdRnEH3M" target="_blank" rel="noopener">
                             <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                             WhatsApp Kanal folgen
                         </a>
                     </div>
-                    <?php endif; ?>
                     <button class="lvb-btn-primary" id="lvb-book-another">Weitere Session buchen</button>
                 </div>
             </div>
@@ -183,6 +227,27 @@ class LVB_Shortcode {
     // AJAX: get available slots for a date range + optional service/staff
     // -----------------------------------------------------------------------
 
+    /**
+     * AJAX handler: return available Google Calendar slots for a date range.
+     *
+     * Reads availability events from the appropriate Google Calendar (staff
+     * calendar if staff_id is provided, otherwise the default plugin calendar),
+     * merges with confirmed bookings from the database, and returns the data
+     * grouped by date for the JS calendar widget.
+     *
+     * Expected POST parameters (all optional):
+     *   date_from   string  Y-m-d  Start of the date range (defaults to today).
+     *   date_to     string  Y-m-d  End of the date range (defaults to +30 days).
+     *   service_id  int     Filter slots to those long enough for the service duration.
+     *   staff_id    int     Use the staff member's own Google Calendar.
+     *
+     * Sends a JSON success response with:
+     *   slots          array  All availability slot objects.
+     *   by_date        array  Availability slots keyed by date string (Y-m-d).
+     *   booked_by_date array  Booking/buffer blocks keyed by date string.
+     *
+     * @return void  Terminates via wp_send_json_success() or wp_send_json_error().
+     */
     public static function ajax_get_slots() {
         check_ajax_referer( 'lvb_booking_nonce', 'nonce' );
 
@@ -285,6 +350,21 @@ class LVB_Shortcode {
     // AJAX: get staff for a service
     // -----------------------------------------------------------------------
 
+    /**
+     * AJAX handler: return active staff members assigned to a service.
+     *
+     * Used by the booking widget to populate the optional instructor dropdown
+     * after the customer selects a service. If service_id is 0 or missing, an
+     * empty array is returned immediately.
+     *
+     * Expected POST parameters:
+     *   service_id  int  The service ID to look up staff for.
+     *
+     * Sends a JSON success response with:
+     *   staff  array  Array of staff row arrays (id, name, email, …).
+     *
+     * @return void  Terminates via wp_send_json_success().
+     */
     public static function ajax_get_staff_for_service() {
         check_ajax_referer( 'lvb_booking_nonce', 'nonce' );
 
@@ -302,6 +382,37 @@ class LVB_Shortcode {
     // AJAX: submit booking
     // -----------------------------------------------------------------------
 
+    /**
+     * AJAX handler: validate and create a new booking from the frontend form.
+     *
+     * Verifies the nonce, validates required fields and email format, sanitises
+     * all inputs, and delegates to {@see LVB_Booking_Manager::create_booking()}.
+     * On success, returns a confirmation payload consumed by booking.js to
+     * render the Step 4 success screen.
+     *
+     * Required POST parameters:
+     *   first_name      string  Customer's first name.
+     *   last_name       string  Customer's last name.
+     *   email           string  Customer's email address (validated with is_email()).
+     *   start_datetime  string  Booking start in 'Y-m-d H:i' format (WP timezone).
+     *   service_id      int     ID of the selected service.
+     *
+     * Optional POST parameters:
+     *   phone           string  Customer phone number.
+     *   notes           string  Freeform notes from the customer.
+     *   staff_id        int     Requested staff member ID (0 = auto-assign).
+     *   slot_event_id   string  Google Calendar event ID of the availability slot.
+     *   slot_win_end    string  End of the availability window (used for overlap check).
+     *
+     * Sends a JSON success response with:
+     *   booking_id    int     New booking ID.
+     *   service_name  string  Name of the booked service.
+     *   date          string  Formatted date string (WP date_format option).
+     *   time          string  Formatted time range string (e.g. '10:00 – 11:30').
+     *   message       string  Localised success message.
+     *
+     * @return void  Terminates via wp_send_json_success() or wp_send_json_error().
+     */
     public static function ajax_submit_booking() {
         check_ajax_referer( 'lvb_booking_nonce', 'nonce' );
 

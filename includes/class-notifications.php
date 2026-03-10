@@ -1,12 +1,33 @@
 <?php
 /**
  * LVB_Notifications – email confirmation & admin alert.
+ *
+ * Generates and sends HTML emails for the two main notification events:
+ *  - Booking confirmation: one email to the customer and one alert to the admin.
+ *  - Booking cancellation: one email to the customer.
+ *
+ * Email templates are rendered inline (no external template files) to keep the
+ * plugin self-contained. Brand colours, layout, and copy are all defined within
+ * the {@see LVB_Notifications::render()} method.
+ *
+ * Configuration (stored as WP options):
+ *   lvb_admin_notification_email  – Address for admin alerts (falls back to admin_email).
+ *   lvb_email_from                – "From" display name for sent emails.
+ *   lvb_email_from_address        – "From" email address (falls back to admin_email).
+ *   lvb_currency_symbol           – Currency symbol prepended to price values.
+ *
+ * @package LakeVision_Booking
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Sends HTML email notifications to customers and the admin on booking events.
+ *
+ * @package LakeVision_Booking
+ */
 class LVB_Notifications {
 
     /**
@@ -108,6 +129,17 @@ class LVB_Notifications {
     // Internal helpers
     // -----------------------------------------------------------------------
 
+    /**
+     * Send an HTML email via wp_mail().
+     *
+     * Sets Content-Type to text/html and builds the From header from the
+     * `lvb_email_from` and `lvb_email_from_address` options.
+     *
+     * @param string $to      Recipient email address.
+     * @param string $subject Email subject line.
+     * @param string $body    HTML email body.
+     * @return void
+     */
     private static function send( $to, $subject, $body ) {
         $headers = [ 'Content-Type: text/html; charset=UTF-8' ];
         $from    = get_option( 'lvb_email_from', get_bloginfo( 'name' ) );
@@ -116,16 +148,47 @@ class LVB_Notifications {
         wp_mail( $to, $subject, $body, $headers );
     }
 
+    /**
+     * Build the HTML body for the customer booking-confirmation email.
+     *
+     * Delegates to {@see render()} with the 'customer_confirmation' template.
+     *
+     * @param array $vars  Template variables (customer_name, service_name, date,
+     *                     time, price, booking_id, staff_name, notes, site_name).
+     * @return string  Rendered HTML string.
+     */
     private static function customer_email_body( $vars ) {
         return self::render( 'customer_confirmation', $vars );
     }
 
+    /**
+     * Build the HTML body for the admin new-booking notification email.
+     *
+     * Delegates to {@see render()} with the 'admin_notification' template.
+     *
+     * @param array $vars  Template variables (customer_name, customer_email,
+     *                     customer_phone, service_name, staff_name, date, time,
+     *                     price, notes, booking_id, site_name).
+     * @return string  Rendered HTML string.
+     */
     private static function admin_email_body( $vars ) {
         return self::render( 'admin_notification', $vars );
     }
 
     /**
-     * Very simple template engine – keeps HTML inline to avoid file deps.
+     * Render an inline HTML email template and return the resulting string.
+     *
+     * All HTML is generated in-memory rather than from separate template files,
+     * making the plugin fully self-contained. Supported template names are:
+     *   - 'customer_confirmation' – booking details sent to the customer.
+     *   - 'admin_notification'    – new-booking alert sent to the admin.
+     *   - 'cancellation'          – cancellation notice sent to the customer.
+     *
+     * All output is run through esc_html() / esc_url() before inclusion.
+     *
+     * @param string $template  Template identifier (see above).
+     * @param array  $vars      Associative array of variables available to the template.
+     * @return string  Rendered HTML string, or an empty string for an unknown template.
      */
     private static function render( $template, $vars ) {
         $primary   = '#00F5C4';
@@ -139,21 +202,19 @@ class LVB_Notifications {
         $btn_style    = "display:inline-block;background:$primary;color:$dark;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;margin-top:16px;";
         $row_style    = 'padding:8px 0;border-bottom:1px solid #eeeeee;';
 
-        $site         = esc_html( $vars['site_name'] );
-        $logo_url     = get_option( 'lvb_email_logo_url', plugins_url( 'assets/img/logo.svg', LVB_PLUGIN_FILE ) );
-        $logo         = '<img src="' . esc_url( $logo_url ) . '" alt="' . $site . '" width="200" style="display:block;margin:0 auto;max-width:200px;">';
-        $staff_label  = get_option( 'lvb_staff_label', 'Instructor' );
-        $confirm_text = get_option( 'lvb_email_confirmation_text', 'Your booking is confirmed. We look forward to seeing you!' );
+        $site     = esc_html( $vars['site_name'] );
+        $logo_url = plugins_url( 'assets/img/logo.svg', LVB_PLUGIN_FILE );
+        $logo     = '<img src="' . esc_url( $logo_url ) . '" alt="' . $site . '" width="200" style="display:block;margin:0 auto;max-width:200px;">';
 
         switch ( $template ) {
             case 'customer_confirmation':
                 $rows = self::detail_rows( [
-                    'Service'       => esc_html( $vars['service_name'] ),
-                    $staff_label    => esc_html( $vars['staff_name'] ?: 'TBD' ),
-                    'Date'          => esc_html( $vars['date'] ),
-                    'Time'          => esc_html( $vars['time'] ),
-                    'Price'         => esc_html( $vars['price'] ),
-                    'Booking #'     => esc_html( $vars['booking_id'] ),
+                    'Service'    => esc_html( $vars['service_name'] ),
+                    'Instructor' => esc_html( $vars['staff_name'] ?: 'TBD' ),
+                    'Date'       => esc_html( $vars['date'] ),
+                    'Time'       => esc_html( $vars['time'] ),
+                    'Price'      => esc_html( $vars['price'] ),
+                    'Booking #'  => esc_html( $vars['booking_id'] ),
                 ], $row_style );
 
                 return '<div style="' . $wrap_style . '">
@@ -161,7 +222,7 @@ class LVB_Notifications {
                     <div style="' . $body_style . '">
                         <h2 style="color:' . $dark . ';margin-top:0;">Booking Confirmed!</h2>
                         <p>Hi ' . esc_html( $vars['customer_name'] ) . ',</p>
-                        <p>' . esc_html( $confirm_text ) . '</p>
+                        <p>Your WakeSurf session is confirmed. We can\'t wait to see you on the water!</p>
                         <table style="width:100%;border-collapse:collapse;">' . $rows . '</table>
                         ' . ( $vars['notes'] ? '<p><strong>Notes:</strong> ' . esc_html( $vars['notes'] ) . '</p>' : '' ) . '
                         <p style="margin-top:24px;">If you need to reschedule or cancel, please contact us as soon as possible.</p>
@@ -214,6 +275,17 @@ class LVB_Notifications {
         }
     }
 
+    /**
+     * Convert a key-value map into HTML table rows for the email templates.
+     *
+     * Rows with an empty value are skipped to avoid cluttering the email with
+     * blank lines. Each value should already be run through esc_html() by the
+     * caller; this method trusts the value as safe HTML.
+     *
+     * @param array  $pairs      Associative array of label => value pairs.
+     * @param string $row_style  Inline CSS string applied to each <tr> element.
+     * @return string  HTML string containing zero or more <tr> elements.
+     */
     private static function detail_rows( $pairs, $row_style ) {
         $html = '';
         foreach ( $pairs as $label => $value ) {

@@ -1,12 +1,26 @@
 <?php
 /**
  * LVB_Booking_Manager – CRUD logic for bookings, customers, services, staff.
+ *
+ * This class is the central business-logic layer of the plugin. It orchestrates
+ * the complete booking workflow (customer upsert → conflict check → DB insert →
+ * Google Calendar event → email notification) and provides CRUD helpers for the
+ * services and staff entities managed in the admin area.
+ *
+ * All public methods are static; the class is never instantiated.
+ *
+ * @package LakeVision_Booking
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Handles booking creation, cancellation, and management of services and staff.
+ *
+ * @package LakeVision_Booking
+ */
 class LVB_Booking_Manager {
 
     // -----------------------------------------------------------------------
@@ -135,6 +149,21 @@ class LVB_Booking_Manager {
 
     /**
      * Insert or update a customer record, returning the customer ID.
+     *
+     * Looks up the customer by email address. If a matching record exists it is
+     * updated with the supplied data and the existing ID is returned. If no
+     * record is found a new customer row is inserted.
+     *
+     * @param array $data {
+     *     Customer fields to save.
+     *
+     *     @type string $first_name Customer's first name.
+     *     @type string $last_name  Customer's last name.
+     *     @type string $email      Customer's email address (used as the unique key).
+     *     @type string $phone      Optional phone number.
+     *     @type string $notes      Optional freeform notes.
+     * }
+     * @return int|false  The customer ID on success, or false on insert failure.
      */
     public static function upsert_customer( $data ) {
         global $wpdb;
@@ -159,6 +188,17 @@ class LVB_Booking_Manager {
     // Booking status updates
     // -----------------------------------------------------------------------
 
+    /**
+     * Cancel a booking by ID.
+     *
+     * Sets the booking status to 'cancelled' in the database and removes the
+     * associated Google Calendar event (if one exists). The staff member's own
+     * calendar is preferred; the plugin default calendar is used as a fallback.
+     *
+     * @param int $booking_id  The ID of the booking to cancel.
+     * @return int|false       Number of rows updated (1) on success, or false on failure
+     *                         (booking not found, DB error).
+     */
     public static function cancel_booking( $booking_id ) {
         $booking = LVB_Database::get_by_id( 'bookings', $booking_id );
         if ( ! $booking ) {
@@ -184,6 +224,26 @@ class LVB_Booking_Manager {
     // Service CRUD
     // -----------------------------------------------------------------------
 
+    /**
+     * Create or update a service record.
+     *
+     * Sanitises and validates all fields before writing to the database. When
+     * creating a new service the next available sort_order value is assigned
+     * automatically so the service appears last in the listing.
+     *
+     * @param array $data {
+     *     Service fields (raw, will be sanitised internally).
+     *
+     *     @type string $name        Service display name.
+     *     @type string $description Optional longer description.
+     *     @type int    $duration    Duration in minutes (minimum 1).
+     *     @type float  $price       Price in the configured currency.
+     *     @type int    $buffer_time Buffer time in minutes added after the booking end.
+     *     @type string $status      'active' or 'inactive'.
+     * }
+     * @param int $id  Existing service ID to update, or 0 to create a new record.
+     * @return int     The service ID (new or existing).
+     */
     public static function save_service( $data, $id = 0 ) {
         $clean = [
             'name'        => sanitize_text_field( $data['name'] ),
@@ -205,6 +265,17 @@ class LVB_Booking_Manager {
         return LVB_Database::insert( 'services', $clean );
     }
 
+    /**
+     * Swap the sort_order of a service with its nearest neighbour.
+     *
+     * Used by the admin UI to let operators reorder how services are presented
+     * to customers in the booking widget dropdown.
+     *
+     * @param int    $id        Service ID to move.
+     * @param string $direction 'up' to decrease sort order (move towards top),
+     *                          'down' to increase sort order (move towards bottom).
+     * @return void
+     */
     public static function move_service( $id, $direction ) {
         global $wpdb;
         $tbl     = $wpdb->prefix . 'lvb_services';
@@ -229,6 +300,15 @@ class LVB_Booking_Manager {
         $wpdb->update( $tbl, [ 'sort_order' => $current['sort_order'] ], [ 'id' => $neighbor['id'] ] );
     }
 
+    /**
+     * Permanently delete a service and its staff pivot rows.
+     *
+     * Removes entries from the staff_services pivot table first to avoid orphaned
+     * records, then deletes the service itself.
+     *
+     * @param int $id  Service ID to delete.
+     * @return int|false  Number of rows deleted from the services table, or false on failure.
+     */
     public static function delete_service( $id ) {
         LVB_Database::delete( 'staff_services', [ 'service_id' => $id ] );
         return LVB_Database::delete( 'services', [ 'id' => $id ] );
@@ -238,6 +318,25 @@ class LVB_Booking_Manager {
     // Staff CRUD
     // -----------------------------------------------------------------------
 
+    /**
+     * Create or update a staff member record.
+     *
+     * Sanitises all fields and writes the staff record, then synchronises the
+     * staff–service pivot table via {@see update_staff_services()}.
+     *
+     * @param array $data {
+     *     Staff fields (raw, will be sanitised internally).
+     *
+     *     @type string   $name        Staff member's display name.
+     *     @type string   $email       Optional email address.
+     *     @type string   $phone       Optional phone number.
+     *     @type string   $calendar_id Optional Google Calendar ID for this staff member.
+     *     @type string   $status      'active' or 'inactive'.
+     *     @type int[]    $service_ids Array of service IDs assigned to this staff member.
+     * }
+     * @param int $id  Existing staff ID to update, or 0 to create a new record.
+     * @return int|false  The staff ID on success, or false on DB failure.
+     */
     public static function save_staff( $data, $id = 0 ) {
         $clean = [
             'name'        => sanitize_text_field( $data['name'] ),
@@ -261,6 +360,18 @@ class LVB_Booking_Manager {
         return $id;
     }
 
+    /**
+     * Synchronise the staff–service pivot table for a given staff member.
+     *
+     * Deletes all existing pivot rows for the staff member and inserts fresh rows
+     * for each valid service ID in $service_ids. Using DELETE + INSERT (via
+     * wpdb::replace) is simpler than a diff and acceptable given the small row
+     * counts expected in this table.
+     *
+     * @param int   $staff_id    Staff member ID.
+     * @param int[] $service_ids Array of service IDs to assign (already cast to int).
+     * @return void
+     */
     private static function update_staff_services( $staff_id, $service_ids ) {
         global $wpdb;
         $wpdb->delete( $wpdb->prefix . 'lvb_staff_services', [ 'staff_id' => $staff_id ] );
@@ -274,6 +385,14 @@ class LVB_Booking_Manager {
         }
     }
 
+    /**
+     * Permanently delete a staff member and their service pivot rows.
+     *
+     * Removes the staff_services pivot entries first, then the staff record itself.
+     *
+     * @param int $id  Staff member ID to delete.
+     * @return int|false  Number of rows deleted from the staff table, or false on failure.
+     */
     public static function delete_staff( $id ) {
         LVB_Database::delete( 'staff_services', [ 'staff_id' => $id ] );
         return LVB_Database::delete( 'staff', [ 'id' => $id ] );

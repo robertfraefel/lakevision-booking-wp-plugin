@@ -1,16 +1,48 @@
 <?php
 /**
  * LVB_Admin – admin menu, asset enqueueing, and page routing.
+ *
+ * This class is the WordPress admin layer for the LakeVision Booking plugin. It:
+ *  - Registers the top-level "LV Booking" menu and its five sub-pages
+ *    (Bookings, Customers, Services, Staff, Settings).
+ *  - Enqueues the admin stylesheet only on the plugin's own pages to avoid
+ *    polluting other admin screens.
+ *  - Handles all admin form submissions and GET-action URLs in a single
+ *    `admin_init` callback:
+ *      Settings save, Google OAuth disconnect, service/staff CRUD,
+ *      service reordering, and booking cancellation.
+ *  - Displays admin notices based on URL parameters set after redirects.
+ *  - Delegates actual page rendering to PHP partials in admin/partials/.
+ *
+ * The class is a singleton to prevent duplicate hook registrations if
+ * {@see LVB_Admin::instance()} is called more than once.
+ *
+ * @package LakeVision_Booking
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Manages the WordPress admin interface for the LakeVision Booking plugin.
+ *
+ * @package LakeVision_Booking
+ */
 class LVB_Admin {
 
+    /**
+     * Holds the single instance of this class.
+     *
+     * @var LVB_Admin|null
+     */
     private static $instance = null;
 
+    /**
+     * Return (and lazily create) the singleton instance.
+     *
+     * @return LVB_Admin
+     */
     public static function instance() {
         if ( null === self::$instance ) {
             self::$instance = new self();
@@ -18,6 +50,11 @@ class LVB_Admin {
         return self::$instance;
     }
 
+    /**
+     * Private constructor – call {@see instance()} instead.
+     *
+     * Registers all required WordPress admin hooks at instantiation time.
+     */
     private function __construct() {
         add_action( 'admin_menu',            [ $this, 'register_menus' ] );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
@@ -29,6 +66,16 @@ class LVB_Admin {
     // Menus
     // -----------------------------------------------------------------------
 
+    /**
+     * Register the top-level admin menu and all sub-menu pages.
+     *
+     * Hooked to `admin_menu`. Adds a "LV Booking" entry to the WordPress
+     * sidebar (at position 30, after Comments) with five sub-pages:
+     * Bookings, Customers, Services, Staff, and Settings. Each sub-page
+     * requires the `manage_options` capability.
+     *
+     * @return void
+     */
     public function register_menus() {
         add_menu_page(
             __( 'LakeVision Booking', 'lakevision-booking' ),
@@ -51,6 +98,17 @@ class LVB_Admin {
     // Assets
     // -----------------------------------------------------------------------
 
+    /**
+     * Enqueue admin CSS on this plugin's pages only.
+     *
+     * Hooked to `admin_enqueue_scripts`. Compares the current screen hook
+     * against the known hook slugs for the plugin's pages and returns early
+     * on any other admin screen to avoid loading unnecessary styles.
+     *
+     * @param string $hook  The current admin page hook suffix (e.g.
+     *                      'toplevel_page_lvb-bookings').
+     * @return void
+     */
     public function enqueue_assets( $hook ) {
         $lvb_pages = [
             'toplevel_page_lvb-bookings',
@@ -69,6 +127,27 @@ class LVB_Admin {
     // Form submission handler (Settings + CRUD)
     // -----------------------------------------------------------------------
 
+    /**
+     * Process all admin form submissions and GET-action URLs for this plugin.
+     *
+     * Hooked to `admin_init`. Returns immediately if the current user does not
+     * have the `manage_options` capability. Otherwise checks for known POST
+     * fields and GET action parameters, verifies nonces, calls the appropriate
+     * manager method, and redirects back to the relevant admin page.
+     *
+     * Handled operations:
+     *   - Settings form save (`lvb_save_settings` POST field).
+     *   - Google Calendar disconnect (`lvb_action=disconnect_google` GET param).
+     *   - Service create/update (`lvb_save_service` POST field).
+     *   - Service reorder up/down (`lvb_action=move_service_up|down` GET param).
+     *   - Service delete (`lvb_action=delete_service` GET param).
+     *   - Staff create/update (`lvb_save_staff` POST field).
+     *   - Staff delete (`lvb_action=delete_staff` GET param).
+     *   - Booking cancel (`lvb_action=cancel_booking` GET param) – also sends
+     *     a cancellation notification to the customer.
+     *
+     * @return void
+     */
     public function handle_form_submissions() {
         if ( ! current_user_can( 'manage_options' ) ) {
             return;
@@ -147,6 +226,15 @@ class LVB_Admin {
         }
     }
 
+    /**
+     * Persist plugin settings from the Settings form to the WordPress options table.
+     *
+     * Iterates over a hard-coded whitelist of option names, sanitises each value
+     * with sanitize_text_field(), and calls update_option(). Only options present
+     * in the $_POST array are updated, so partial form submissions are safe.
+     *
+     * @return void
+     */
     private function save_settings() {
         $text_options = [
             'lvb_google_client_id',
@@ -156,15 +244,7 @@ class LVB_Admin {
             'lvb_email_from',
             'lvb_email_from_address',
             'lvb_currency_symbol',
-            'lvb_email_logo_url',
-            'lvb_staff_label',
-            'lvb_service_label',
-            'lvb_whatsapp_url',
         ];
-        // Textarea options
-        if ( isset( $_POST['lvb_email_confirmation_text'] ) ) {
-            update_option( 'lvb_email_confirmation_text', sanitize_textarea_field( wp_unslash( $_POST['lvb_email_confirmation_text'] ) ) );
-        }
         foreach ( $text_options as $opt ) {
             if ( isset( $_POST[ $opt ] ) ) {
                 update_option( $opt, sanitize_text_field( wp_unslash( $_POST[ $opt ] ) ) );
@@ -176,6 +256,21 @@ class LVB_Admin {
     // Admin notices
     // -----------------------------------------------------------------------
 
+    /**
+     * Render WordPress admin notice banners based on URL query parameters.
+     *
+     * Hooked to `admin_notices`. After a form submission the handler redirects
+     * back to the page with a status parameter in the URL. This method reads
+     * those parameters and outputs the appropriate dismissible notice:
+     *   lvb_saved        – green "Settings saved" or "Item saved" notice.
+     *   lvb_deleted      – green "Item deleted" notice.
+     *   lvb_cancelled    – green "Booking cancelled" notice.
+     *   lvb_connected    – green "Google Calendar connected" notice.
+     *   lvb_disconnected – blue "Google Calendar disconnected" notice.
+     *   lvb_error        – red error notice (URL-decoded error message string).
+     *
+     * @return void
+     */
     public function show_notices() {
         if ( isset( $_GET['lvb_saved'] ) ) {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved.', 'lakevision-booking' ) . '</p></div>';
@@ -201,18 +296,61 @@ class LVB_Admin {
     // Page renderers – delegate to partials
     // -----------------------------------------------------------------------
 
+    /**
+     * Render the Bookings admin page.
+     *
+     * Delegates to the bookings partial which handles listing, search, and
+     * pagination of booking records.
+     *
+     * @return void
+     */
     public function page_bookings() {
         require LVB_PLUGIN_DIR . 'admin/partials/bookings.php';
     }
+
+    /**
+     * Render the Customers admin page.
+     *
+     * Delegates to the customers partial which lists all customer records.
+     *
+     * @return void
+     */
     public function page_customers() {
         require LVB_PLUGIN_DIR . 'admin/partials/customers.php';
     }
+
+    /**
+     * Render the Services admin page.
+     *
+     * Delegates to the services partial which handles the service list and the
+     * add/edit form.
+     *
+     * @return void
+     */
     public function page_services() {
         require LVB_PLUGIN_DIR . 'admin/partials/services.php';
     }
+
+    /**
+     * Render the Staff admin page.
+     *
+     * Delegates to the staff partial which handles the staff list and the
+     * add/edit form including the service assignment checkboxes.
+     *
+     * @return void
+     */
     public function page_staff() {
         require LVB_PLUGIN_DIR . 'admin/partials/staff.php';
     }
+
+    /**
+     * Render the Settings admin page.
+     *
+     * Delegates to the settings partial which contains the Google OAuth
+     * configuration and email settings forms.
+     *
+     * @return void
+     */
     public function page_settings() {
         require LVB_PLUGIN_DIR . 'admin/partials/settings.php';
     }

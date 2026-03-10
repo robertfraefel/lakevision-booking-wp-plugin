@@ -2,13 +2,32 @@
 /**
  * LVB_Google_Calendar – OAuth2 flow + Google Calendar API wrapper.
  *
- * All HTTP calls use wp_remote_get / wp_remote_post (no Composer).
+ * Implements the full Google OAuth 2.0 authorisation code flow without any
+ * Composer dependencies. Token exchange and refresh use wp_remote_post() and
+ * the access token is cached in a WP transient (keyed `lvb_google_access_token`)
+ * so only one token refresh is needed per expiry period (~60 minutes).
+ *
+ * Calendar API calls (list events, create event, delete event) are plain REST
+ * requests to the Google Calendar v3 API using wp_remote_get/post/request().
+ *
+ * Stored WP options:
+ *   lvb_google_client_id      – OAuth client ID from Google Cloud Console.
+ *   lvb_google_client_secret  – OAuth client secret.
+ *   lvb_google_refresh_token  – Long-lived refresh token saved after first auth.
+ *   lvb_google_calendar_id    – Default calendar ID used when no staff calendar is set.
+ *
+ * @package LakeVision_Booking
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+/**
+ * Handles Google OAuth 2.0 authentication and Google Calendar API interactions.
+ *
+ * @package LakeVision_Booking
+ */
 class LVB_Google_Calendar {
 
     const AUTH_URL    = 'https://accounts.google.com/o/oauth2/v2/auth';
@@ -22,7 +41,14 @@ class LVB_Google_Calendar {
     // -----------------------------------------------------------------------
 
     /**
-     * Build the Google authorisation URL and redirect the browser to it.
+     * Build and return the Google OAuth 2.0 authorisation URL.
+     *
+     * The URL includes a nonce in the `state` parameter which is verified in
+     * {@see oauth_callback()} to prevent CSRF attacks. The `access_type=offline`
+     * and `prompt=consent` parameters ensure Google issues a refresh token even
+     * when the user has previously authorised the application.
+     *
+     * @return string  The full authorisation URL to redirect the admin user to.
      */
     public static function get_auth_url() {
         $client_id    = get_option( 'lvb_google_client_id', '' );
@@ -42,7 +68,12 @@ class LVB_Google_Calendar {
     }
 
     /**
-     * Callback URL used as the OAuth redirect_uri.
+     * Return the OAuth redirect_uri registered with Google Cloud Console.
+     *
+     * Must exactly match the URI configured in the Google Cloud project's
+     * authorised redirect URIs list, otherwise Google will reject the callback.
+     *
+     * @return string  The absolute admin-post.php URL for the OAuth callback action.
      */
     public static function callback_url() {
         return admin_url( 'admin-post.php?action=lvb_google_callback' );
@@ -92,7 +123,15 @@ class LVB_Google_Calendar {
     }
 
     /**
-     * Exchange the one-time authorisation code for access + refresh tokens.
+     * Exchange the one-time authorisation code for access and refresh tokens.
+     *
+     * Sends a POST request to the Google token endpoint with the authorisation
+     * code received during the OAuth callback, and returns the parsed token
+     * response array.
+     *
+     * @param string $code  The one-time authorisation code from Google's callback.
+     * @return array|WP_Error  Token array (access_token, refresh_token, expires_in, …)
+     *                         or WP_Error on HTTP or API failure.
      */
     private static function exchange_code_for_tokens( $code ) {
         $response = wp_remote_post( self::TOKEN_URL, [
@@ -109,7 +148,14 @@ class LVB_Google_Calendar {
     }
 
     /**
-     * Get a valid access token, refreshing if necessary.
+     * Return a valid Google API access token, refreshing from the stored refresh
+     * token if the cached token has expired.
+     *
+     * The access token is cached as a WP transient for (expires_in − 60) seconds
+     * to ensure it is refreshed before it actually expires.
+     *
+     * @return string|WP_Error  A valid Bearer access token string, or WP_Error if
+     *                          no refresh token is stored or the refresh request fails.
      */
     public static function get_access_token() {
         $cached = get_transient( 'lvb_google_access_token' );
@@ -142,7 +188,13 @@ class LVB_Google_Calendar {
     }
 
     /**
-     * Revoke & remove stored tokens (disconnect).
+     * Revoke the stored refresh token with Google and delete all stored credentials.
+     *
+     * Sends a revocation request to Google (best-effort; failure is silently
+     * ignored) and then removes both the `lvb_google_refresh_token` option and
+     * the `lvb_google_access_token` transient from WordPress.
+     *
+     * @return void
      */
     public static function disconnect() {
         $refresh_token = get_option( 'lvb_google_refresh_token', '' );
@@ -156,7 +208,14 @@ class LVB_Google_Calendar {
     }
 
     /**
-     * Parse the token endpoint response into an array or WP_Error.
+     * Parse a Google token endpoint HTTP response into a token array or WP_Error.
+     *
+     * Handles wp_remote_post() failures, JSON decode, and Google-level error
+     * fields (the `error` / `error_description` response body keys).
+     *
+     * @param array|WP_Error $response  The raw return value from wp_remote_post().
+     * @return array|WP_Error  Decoded token array on success, or WP_Error describing
+     *                         the HTTP or API failure.
      */
     private static function parse_token_response( $response ) {
         if ( is_wp_error( $response ) ) {
@@ -266,7 +325,13 @@ class LVB_Google_Calendar {
     }
 
     /**
-     * Parse a Calendar API response body.
+     * Parse a Google Calendar API HTTP response body into a data array or WP_Error.
+     *
+     * Handles wp_remote_*() failures and Google API-level error objects
+     * (the `error.message` field in the response body).
+     *
+     * @param array|WP_Error $response  The raw return value from a wp_remote_*() call.
+     * @return array|WP_Error  Decoded response body array on success, or WP_Error.
      */
     private static function parse_calendar_response( $response ) {
         if ( is_wp_error( $response ) ) {
@@ -377,7 +442,13 @@ class LVB_Google_Calendar {
     }
 
     /**
-     * True if the plugin is connected to Google Calendar.
+     * Check whether the plugin is currently connected to Google Calendar.
+     *
+     * A non-empty refresh token is the indicator of a live connection. The
+     * access token itself may have expired and will be refreshed on the next
+     * API call; what matters is that a refresh token is available.
+     *
+     * @return bool  True if a refresh token is stored, false otherwise.
      */
     public static function is_connected() {
         return ! empty( get_option( 'lvb_google_refresh_token', '' ) );
