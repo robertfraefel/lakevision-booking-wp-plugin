@@ -244,7 +244,15 @@ class LVB_Admin {
             'lvb_email_from',
             'lvb_email_from_address',
             'lvb_currency_symbol',
+            'lvb_email_logo_url',
+            'lvb_staff_label',
+            'lvb_service_label',
+            'lvb_whatsapp_url',
         ];
+        // Textarea options
+        if ( isset( $_POST['lvb_email_confirmation_text'] ) ) {
+            update_option( 'lvb_email_confirmation_text', sanitize_textarea_field( wp_unslash( $_POST['lvb_email_confirmation_text'] ) ) );
+        }
         foreach ( $text_options as $opt ) {
             if ( isset( $_POST[ $opt ] ) ) {
                 update_option( $opt, sanitize_text_field( wp_unslash( $_POST[ $opt ] ) ) );

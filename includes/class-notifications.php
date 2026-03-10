@@ -202,15 +202,17 @@ class LVB_Notifications {
         $btn_style    = "display:inline-block;background:$primary;color:$dark;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;margin-top:16px;";
         $row_style    = 'padding:8px 0;border-bottom:1px solid #eeeeee;';
 
-        $site     = esc_html( $vars['site_name'] );
-        $logo_url = plugins_url( 'assets/img/logo.svg', LVB_PLUGIN_FILE );
-        $logo     = '<img src="' . esc_url( $logo_url ) . '" alt="' . $site . '" width="200" style="display:block;margin:0 auto;max-width:200px;">';
+        $site         = esc_html( $vars['site_name'] );
+        $logo_url     = get_option( 'lvb_email_logo_url', plugins_url( 'assets/img/logo.svg', LVB_PLUGIN_FILE ) );
+        $staff_label  = get_option( 'lvb_staff_label', 'Instructor' );
+        $confirm_text = get_option( 'lvb_email_confirmation_text', 'Your booking is confirmed. We look forward to seeing you!' );
+        $logo         = '<img src="' . esc_url( $logo_url ) . '" alt="' . $site . '" width="200" style="display:block;margin:0 auto;max-width:200px;">';
 
         switch ( $template ) {
             case 'customer_confirmation':
                 $rows = self::detail_rows( [
-                    'Service'    => esc_html( $vars['service_name'] ),
-                    'Instructor' => esc_html( $vars['staff_name'] ?: 'TBD' ),
+                    'Service'       => esc_html( $vars['service_name'] ),
+                    $staff_label    => esc_html( $vars['staff_name'] ?: 'TBD' ),
                     'Date'       => esc_html( $vars['date'] ),
                     'Time'       => esc_html( $vars['time'] ),
                     'Price'      => esc_html( $vars['price'] ),
@@ -222,7 +224,7 @@ class LVB_Notifications {
                     <div style="' . $body_style . '">
                         <h2 style="color:' . $dark . ';margin-top:0;">Booking Confirmed!</h2>
                         <p>Hi ' . esc_html( $vars['customer_name'] ) . ',</p>
-                        <p>Your WakeSurf session is confirmed. We can\'t wait to see you on the water!</p>
+                        <p>' . esc_html( $confirm_text ) . '</p>
                         <table style="width:100%;border-collapse:collapse;">' . $rows . '</table>
                         ' . ( $vars['notes'] ? '<p><strong>Notes:</strong> ' . esc_html( $vars['notes'] ) . '</p>' : '' ) . '
                         <p style="margin-top:24px;">If you need to reschedule or cancel, please contact us as soon as possible.</p>
@@ -232,8 +234,8 @@ class LVB_Notifications {
 
             case 'admin_notification':
                 $rows = self::detail_rows( [
-                    'Service'  => esc_html( $vars['service_name'] ),
-                    'Staff'    => esc_html( $vars['staff_name'] ?: 'Unassigned' ),
+                    'Service'      => esc_html( $vars['service_name'] ),
+                    $staff_label   => esc_html( $vars['staff_name'] ?: 'Unassigned' ),
                     'Date'     => esc_html( $vars['date'] ),
                     'Time'     => esc_html( $vars['time'] ),
                     'Price'    => esc_html( $vars['price'] ),

@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: LakeVision Booking
- * Plugin URI:  https://lakevision.com
- * Description: Complete booking system for WakeSurf businesses with Google Calendar integration.
- * Version:     1.0.0
+ * Plugin URI:  https://github.com/robertfraefel/lakevision-booking-wp-plugin
+ * Description: Flexible booking system with Google Calendar integration, time-slot management and email notifications.
+ * Version:     1.1.0
  * Author:      LakeVision
- * Author URI:  https://lakevision.com
+ * Author URI:  https://lakevision.ch
  * License:     GPL-2.0+
  * Text Domain: lakevision-booking
  *
