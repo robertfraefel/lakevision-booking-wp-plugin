@@ -343,6 +343,14 @@
         var bufferMin     = parseInt( $serviceSelect.find( 'option:selected' ).data( 'buffer' ), 10 ) || 0;
         var subSlots      = generateSubSlots( windows, state.serviceDuration, bufferMin, bookedWindows );
 
+        // Filter out past slots when the selected date is today
+        if ( state.selectedDate === todayStr() ) {
+            var now = new Date();
+            subSlots = subSlots.filter( function ( slot ) {
+                return new Date( slot.start.replace( ' ', 'T' ) ) > now;
+            } );
+        }
+
         if ( ! subSlots.length ) {
             $slotsContainer.html( '<div class="lvb-slots-grid"><p class="lvb-no-slots">Keine passenden Zeitfenster für diese Sportart verfügbar.</p></div>' );
             return;
