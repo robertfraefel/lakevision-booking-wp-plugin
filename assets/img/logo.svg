@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 280" width="600" height="280">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00F5C4"/>
+      <stop offset="100%" stop-color="#00C2FF"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00F5C4" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#00C2FF" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+
+  <!-- === SAILBOAT ICON === -->
+  <g transform="translate(28, 22)">
+    <line x1="72" y1="14" x2="72" y2="130" stroke="url(#g1)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M72,18 L72,126 L18,110 Z" fill="url(#g1)" filter="url(#glow)"/>
+    <path d="M72,34 L72,118 L114,106 Z" fill="url(#g2)"/>
+    <path d="M72,34 L114,106 L72,118" fill="none" stroke="url(#g1)" stroke-width="1.2" opacity="0.6"/>
+    <path d="M10,122 Q72,144 134,122" fill="none" stroke="url(#g1)" stroke-width="3.5" stroke-linecap="round" filter="url(#glow)"/>
+    <path d="M10,122 Q72,144 134,122 L126,130 Q72,150 18,130 Z" fill="url(#g1)" opacity="0.25"/>
+    <line x1="4" y1="134" x2="140" y2="134" stroke="url(#g1)" stroke-width="1" opacity="0.2"/>
+    <path d="M0,142 Q18,134 36,142 Q54,150 72,142 Q90,134 108,142 Q126,150 144,142" fill="none" stroke="url(#g1)" stroke-width="2.2" stroke-linecap="round" filter="url(#glow)"/>
+    <path d="M6,154 Q26,147 46,154 Q66,161 86,154 Q106,147 138,154" fill="none" stroke="url(#g1)" stroke-width="1.4" stroke-linecap="round" opacity="0.5"/>
+    <path d="M14,164 Q36,158 58,164 Q80,170 102,164 Q124,158 140,164" fill="none" stroke="url(#g1)" stroke-width="0.8" stroke-linecap="round" opacity="0.25"/>
+  </g>
+
+  <!-- === WORDMARK === -->
+  <text x="210" y="126"
+        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        font-size="72" font-weight="700" letter-spacing="-2"
+        fill="url(#g1)" filter="url(#glow)">LAKE</text>
+  <text x="210" y="192"
+        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        font-size="72" font-weight="700" letter-spacing="10"
+        fill="url(#g1)" opacity="0.95">VISION</text>
+
+  <!-- Divider line full width -->
+  <line x1="28" y1="218" x2="572" y2="218" stroke="url(#g1)" stroke-width="0.8" opacity="0.15"/>
+
+  <!-- Tagline: forced to full logo width via textLength -->
+  <text x="28" y="258"
+        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        font-size="22" font-weight="600" letter-spacing="2"
+        textLength="544" lengthAdjust="spacing"
+        fill="url(#g1)" opacity="0.75">SEGELN · WASSERSPORT · ABENTEUER</text>
+
+  <!-- Small decorative lines flanking tagline -->
+  <line x1="28" y1="258" x2="68" y2="258" stroke="url(#g1)" stroke-width="0.8" opacity="0.25"/>
+  <line x1="532" y1="258" x2="572" y2="258" stroke="url(#g1)" stroke-width="0.8" opacity="0.25"/>
+</svg>

@@ -1,0 +1,162 @@
+/* ==========================================================================
+   LakeVision Booking – Admin Styles
+   ========================================================================== */
+
+:root {
+    --lvb-accent:  #00F5C4;
+    --lvb-accent2: #00C2FF;
+    --lvb-dark:    #0d1117;
+    --lvb-danger:  #e74c3c;
+    --lvb-warn:    #f39c12;
+    --lvb-ok:      #27ae60;
+    --lvb-border:  #e0e0e0;
+    --lvb-radius:  6px;
+}
+
+/* Wrap */
+.lvb-wrap { max-width: 1400px; }
+.lvb-wrap h1 { margin-bottom: 0; }
+
+/* ---- Filter row ---- */
+.lvb-filter-form { margin: 16px 0; }
+.lvb-filter-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.lvb-filter-row .button { height: 32px; line-height: 30px; }
+
+/* ---- Stat pills (booking status count bar) ---- */
+.lvb-stat-row { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+.lvb-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 2px solid var(--lvb-border);
+    text-decoration: none;
+    color: #444;
+    font-size: 13px;
+    transition: border-color .2s;
+}
+.lvb-stat-pill:hover   { border-color: var(--lvb-accent2); color: #222; }
+.lvb-stat-pill.active  { border-color: var(--lvb-accent); font-weight: 700; }
+.lvb-stat-pill strong  { font-size: 14px; }
+
+/* ---- Tables ---- */
+.lvb-table { border-radius: var(--lvb-radius); overflow: hidden; }
+.lvb-table th { font-weight: 600; white-space: nowrap; }
+.lvb-table td { vertical-align: middle; }
+.lvb-row-editing { background: #fffbe6 !important; }
+.lvb-time { color: #666; font-size: 12px; }
+.lvb-muted { color: #888; font-size: 12px; }
+.lvb-code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 12px; word-break: break-all; }
+.lvb-code-block {
+    display: block;
+    background: #f4f4f4;
+    padding: 10px 14px;
+    border-radius: var(--lvb-radius);
+    font-size: 13px;
+    word-break: break-all;
+    margin: 6px 0;
+}
+
+/* ---- Badges ---- */
+.lvb-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+.lvb-badge.confirmed { background: #d4edda; color: #155724; }
+.lvb-badge.pending   { background: #fff3cd; color: #856404; }
+.lvb-badge.cancelled { background: #f8d7da; color: #721c24; }
+.lvb-badge.active    { background: #d4edda; color: #155724; }
+.lvb-badge.inactive  { background: #e2e3e5; color: #383d41; }
+
+/* ---- Danger button ---- */
+.lvb-btn-danger { background: var(--lvb-danger) !important; color: #fff !important; border-color: var(--lvb-danger) !important; }
+.lvb-btn-danger:hover { background: #c0392b !important; border-color: #c0392b !important; }
+
+/* ---- Two-column layout ---- */
+.lvb-two-col { display: flex; gap: 24px; align-items: flex-start; }
+.lvb-col-main { flex: 1 1 0; min-width: 0; }
+.lvb-col-side { flex: 0 0 360px; }
+
+/* ---- Card ---- */
+.lvb-card {
+    background: #fff;
+    border: 1px solid var(--lvb-border);
+    border-radius: var(--lvb-radius);
+    padding: 24px;
+}
+.lvb-card h2 { margin-top: 0; font-size: 16px; border-bottom: 1px solid var(--lvb-border); padding-bottom: 12px; margin-bottom: 16px; }
+
+/* ---- Form helpers ---- */
+.lvb-form-group { margin-bottom: 14px; }
+.lvb-label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 13px; }
+.lvb-field-row { display: flex; gap: 12px; }
+.lvb-field-row .lvb-form-group { flex: 1; }
+.lvb-form-actions { border-top: 1px solid var(--lvb-border); padding-top: 16px; margin-top: 16px; display: flex; gap: 8px; }
+.lvb-checkbox-label { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; cursor: pointer; font-size: 13px; }
+.lvb-help {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #ccc;
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: help;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+.req { color: var(--lvb-danger); }
+
+/* ---- Settings sections ---- */
+.lvb-settings-section {
+    background: #fff;
+    border: 1px solid var(--lvb-border);
+    border-radius: var(--lvb-radius);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+}
+.lvb-settings-section h2 {
+    margin-top: 0;
+    font-size: 15px;
+    color: var(--lvb-dark);
+    border-bottom: 2px solid var(--lvb-accent);
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+}
+.lvb-help-section ul { margin: 8px 0 0 18px; }
+.lvb-help-section li { margin-bottom: 4px; font-size: 13px; }
+
+/* ---- Google OAuth status bar ---- */
+.lvb-google-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--lvb-radius);
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+.lvb-google-status.connected    { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.lvb-google-status.disconnected { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+.lvb-google-status .dashicons   { font-size: 20px; width: 20px; height: 20px; }
+.lvb-connect-btn    { background: var(--lvb-accent)  !important; color: var(--lvb-dark) !important; border: none !important; font-weight: 700 !important; }
+.lvb-connect-btn:hover { background: #00d4ab !important; }
+.lvb-disconnect-btn { margin-left: auto !important; }
+
+/* ---- Misc ---- */
+.lvb-empty       { padding: 24px; text-align: center; color: #888; font-style: italic; background: #fafafa; border: 1px solid var(--lvb-border); border-radius: var(--lvb-radius); }
+.lvb-total-count { color: #666; font-size: 13px; margin: 0 0 12px; }
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+    .lvb-two-col { flex-direction: column; }
+    .lvb-col-side { flex: none; width: 100%; }
+}
