@@ -248,8 +248,6 @@ class LVB_Admin {
             'lvb_staff_label',
             'lvb_service_label',
             'lvb_whatsapp_url',
-            'lvb_places_api_key',
-            'lvb_place_id',
         ];
         // Textarea options
         if ( isset( $_POST['lvb_email_confirmation_text'] ) ) {
@@ -257,9 +255,6 @@ class LVB_Admin {
         }
         // Checkbox options
         update_option( 'lvb_reminder_enabled', isset( $_POST['lvb_reminder_enabled'] ) ? 1 : 0 );
-        if ( isset( $_POST['lvb_clear_reviews_cache'] ) ) {
-            delete_transient( 'lvb_google_reviews' );
-        }
         // Number options
         if ( isset( $_POST['lvb_reminder_hours'] ) ) {
             update_option( 'lvb_reminder_hours', max( 1, (int) $_POST['lvb_reminder_hours'] ) );

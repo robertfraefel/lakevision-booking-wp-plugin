@@ -201,40 +201,6 @@ $disconnect_url = wp_nonce_url(
             </table>
         </div>
 
-        <!-- Google Reviews -->
-        <div class="lvb-settings-section">
-            <h2>Google Reviews</h2>
-            <table class="form-table">
-                <tr>
-                    <th><label for="lvb_places_api_key">Places API Key</label></th>
-                    <td>
-                        <input type="text" id="lvb_places_api_key" name="lvb_places_api_key" class="regular-text"
-                               value="<?php echo esc_attr( get_option( 'lvb_places_api_key', '' ) ); ?>">
-                        <p class="description">Google Cloud Console → APIs &amp; Services → Credentials → API Key. Places API muss aktiviert sein.</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label for="lvb_place_id">Place ID</label></th>
-                    <td>
-                        <input type="text" id="lvb_place_id" name="lvb_place_id" class="regular-text"
-                               value="<?php echo esc_attr( get_option( 'lvb_place_id', '' ) ); ?>"
-                               placeholder="ChIJ...">
-                        <p class="description">Zu finden auf Google Maps → rechtsklick auf den Ort → "Place ID kopieren".</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th>Cache</th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="lvb_clear_reviews_cache" value="1">
-                            Reviews-Cache leeren (wird beim nächsten Seitenaufruf neu geladen)
-                        </label>
-                    </td>
-                </tr>
-            </table>
-            <p class="description">Shortcode zum Einbinden der Reviews: <code>[lvb_reviews]</code></p>
-        </div>
-
         <!-- Shortcode Help -->
         <div class="lvb-settings-section lvb-help-section">
             <h2>Shortcode Usage</h2>

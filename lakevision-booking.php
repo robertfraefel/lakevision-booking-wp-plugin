@@ -64,7 +64,6 @@ require_once LVB_PLUGIN_DIR . 'includes/class-booking-manager.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-notifications.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-shortcode.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-water-temp.php';
-require_once LVB_PLUGIN_DIR . 'includes/class-google-reviews.php';
 require_once LVB_PLUGIN_DIR . 'admin/class-admin.php';
 
 /**
