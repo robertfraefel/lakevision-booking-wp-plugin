@@ -165,12 +165,12 @@ $disconnect_url = wp_nonce_url(
                     </td>
                 </tr>
                 <tr>
-                    <th><label for="lvb_whatsapp_url">WhatsApp Channel URL</label></th>
+                    <th><label for="lvb_whatsapp_url">WhatsApp Gruppe URL</label></th>
                     <td>
                         <input type="url" id="lvb_whatsapp_url" name="lvb_whatsapp_url" class="large-text"
                                value="<?php echo esc_attr( get_option( 'lvb_whatsapp_url', '' ) ); ?>"
-                               placeholder="https://whatsapp.com/channel/...">
-                        <p class="description">Optional. If set, a WhatsApp follow button is shown on the booking confirmation screen.</p>
+                               placeholder="https://chat.whatsapp.com/...">
+                        <p class="description">Optional. If set, a WhatsApp group button is shown on the booking confirmation screen.</p>
                     </td>
                 </tr>
             </table>

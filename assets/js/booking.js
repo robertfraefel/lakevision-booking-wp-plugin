@@ -448,7 +448,7 @@
         }
 
         if ( ! $app.find( '#lvb-disclaimer-check' ).is( ':checked' ) ) {
-            showError( 'Bitte akzeptiere den Disclaimer, um fortzufahren.' );
+            showError( 'Bitte akzeptiere den Sicherheitshinweis, um fortzufahren.' );
             return;
         }
 
