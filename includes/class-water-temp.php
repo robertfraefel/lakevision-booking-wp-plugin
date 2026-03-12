@@ -38,11 +38,18 @@ class LVB_Water_Temp {
     const TRANSIENT = 'lvb_water_temp';
 
     /**
-     * Cache lifetime in seconds (1 hour).
+     * Transient key for the measurement timestamp.
+     *
+     * @var string
+     */
+    const TRANSIENT_DATE = 'lvb_water_temp_date';
+
+    /**
+     * Cache lifetime in seconds (6 hours – data updates once daily).
      *
      * @var int
      */
-    const CACHE_SEC = 3600;
+    const CACHE_SEC = 21600;
 
     /**
      * Register the AJAX actions for the water-temperature endpoint.
@@ -71,7 +78,10 @@ class LVB_Water_Temp {
     public static function ajax() {
         $temp = self::get();
         if ( $temp !== null ) {
-            wp_send_json_success( [ 'temp' => $temp ] );
+            wp_send_json_success( [
+                'temp' => $temp,
+                'date' => get_transient( self::TRANSIENT_DATE ) ?: null,
+            ] );
         } else {
             wp_send_json_error( [ 'message' => 'unavailable' ] );
         }
@@ -92,13 +102,14 @@ class LVB_Water_Temp {
             return $cached;
         }
 
-        $temp = self::fetch();
+        $result = self::fetch();
 
-        if ( $temp !== null ) {
-            set_transient( self::TRANSIENT, $temp, self::CACHE_SEC );
+        if ( $result !== null ) {
+            set_transient( self::TRANSIENT, $result['temp'], self::CACHE_SEC );
+            set_transient( self::TRANSIENT_DATE, $result['date'], self::CACHE_SEC );
         }
 
-        return $temp;
+        return $result ? $result['temp'] : null;
     }
 
     /**
@@ -129,12 +140,22 @@ class LVB_Water_Temp {
         $body = wp_remote_retrieve_body( $resp );
         $data = json_decode( $body, true );
 
-        $val = $data['records'][0]['record']['fields']['wert'] ?? null;
+        $fields = $data['records'][0]['record']['fields'] ?? null;
+        $val    = $fields['wert'] ?? null;
+        $ts     = $fields['timestamp'] ?? null;
 
-        if ( is_numeric( $val ) ) {
-            return (float) $val;
+        if ( ! is_numeric( $val ) ) {
+            return null;
         }
 
-        return null;
+        // Format date as "9. März 2026"
+        $date = null;
+        if ( $ts ) {
+            $dt   = new DateTime( $ts );
+            $months = [ 'Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember' ];
+            $date = $dt->format( 'j' ) . '. ' . $months[ (int) $dt->format( 'n' ) - 1 ] . ' ' . $dt->format( 'Y' );
+        }
+
+        return [ 'temp' => (float) $val, 'date' => $date ];
     }
 }
