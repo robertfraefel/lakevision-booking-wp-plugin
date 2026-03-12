@@ -116,7 +116,7 @@ class LVB_Water_Temp {
      * @return float|null  Parsed water temperature in degrees Celsius, or null on failure.
      */
     private static function fetch() {
-        // BAFU station 2135 = Bodensee Untersee (Steckborn) – official Swiss federal data
+        // api.existenz.ch location 2135 = Bodensee Untersee (Berlingen) – cantonal Thurgau measurement
         $url  = 'https://api.existenz.ch/apiv1/hydro/latest?locations=2135&parameters=temperature&app=lakevision.ch&version=1.0.0';
         $resp = wp_remote_get( $url, [ 'timeout' => 8 ] );
 
