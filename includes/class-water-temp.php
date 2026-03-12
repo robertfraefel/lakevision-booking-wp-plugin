@@ -3,9 +3,8 @@
  * LVB_Water_Temp – fetches & caches Bodensee water temperature.
  *
  * Reads the current water temperature for Lake Constance (Bodensee) from the
- * Swiss federal BAFU (Bundesamt für Umwelt) real-time hydrological data API
- * provided by api.existenz.ch. The specific monitoring station used is:
- *   Station 2135 – Bodensee Untersee (Steckborn)
+ * Canton Thurgau Open Data API (data.tg.ch). The specific monitoring station is:
+ *   Feldbach Steckborn – Bodensee Untersee, Kanton Thurgau
  *
  * The result is cached in a WP transient for one hour (CACHE_SEC = 3600) so
  * the external API is not hit on every page load. If the API is unreachable or
@@ -105,19 +104,22 @@ class LVB_Water_Temp {
     /**
      * Perform a live HTTP request to the BAFU API and parse the temperature value.
      *
-     * Queries the api.existenz.ch endpoint for the latest temperature reading at
-     * BAFU station 2135 (Bodensee Untersee/Steckborn). The expected response
+     * Queries the Canton Thurgau Open Data API for the latest temperature reading
+     * at station "Feldbach Steckborn" (Bodensee Untersee). The expected response
      * structure is:
-     *   { "payload": [ { "val": <float> } ] }
+     *   { "records": [ { "record": { "fields": { "wert": <float> } } } ] }
      *
      * Returns null on any HTTP error, non-2xx response, JSON parse failure, or
-     * missing/non-numeric `val` field.
+     * missing/non-numeric `wert` field.
      *
      * @return float|null  Parsed water temperature in degrees Celsius, or null on failure.
      */
     private static function fetch() {
-        // api.existenz.ch location 2135 = Bodensee Untersee (Berlingen) – cantonal Thurgau measurement
-        $url  = 'https://api.existenz.ch/apiv1/hydro/latest?locations=2135&parameters=temperature&app=lakevision.ch&version=1.0.0';
+        // Kanton Thurgau Open Data – Feldbach Steckborn, Bodensee Untersee
+        $url = 'https://data.tg.ch/api/v2/catalog/datasets/dbu-afu-9/records'
+             . '?where=messgruppierung_ortsbezeichnung%3D%22Feldbach+Steckborn%22'
+             . '&order_by=timestamp+desc&limit=1';
+
         $resp = wp_remote_get( $url, [ 'timeout' => 8 ] );
 
         if ( is_wp_error( $resp ) ) {
@@ -127,11 +129,10 @@ class LVB_Water_Temp {
         $body = wp_remote_retrieve_body( $resp );
         $data = json_decode( $body, true );
 
-        if (
-            isset( $data['payload'][0]['val'] ) &&
-            is_numeric( $data['payload'][0]['val'] )
-        ) {
-            return (float) $data['payload'][0]['val'];
+        $val = $data['records'][0]['record']['fields']['wert'] ?? null;
+
+        if ( is_numeric( $val ) ) {
+            return (float) $val;
         }
 
         return null;
