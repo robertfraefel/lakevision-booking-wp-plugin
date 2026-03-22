@@ -206,7 +206,7 @@ class LVB_Shortcode {
                 <div class="lvb-success-screen">
                     <div class="lvb-success-icon">&#10003;</div>
                     <h2>Buchung bestätigt!</h2>
-                    <p>Deine Session ist gebucht. Du erhältst in Kürze eine Bestätigung per E-Mail.</p>
+                    <p>Deine <?php echo esc_html( $service_label ); ?> ist gebucht. Du erhältst in Kürze eine Bestätigung per E-Mail.</p>
                     <div id="lvb-confirmation-details" class="lvb-confirmation-details"></div>
 
                     <div class="lvb-payment-hint">
@@ -235,7 +235,7 @@ class LVB_Shortcode {
                         </a>
                     </div>
                     <?php endif; ?>
-                    <button class="lvb-btn-primary" id="lvb-book-another">Weitere Session buchen</button>
+                    <button class="lvb-btn-primary" id="lvb-book-another">Weitere <?php echo esc_html( $service_label ); ?> buchen</button>
                 </div>
             </div>
 

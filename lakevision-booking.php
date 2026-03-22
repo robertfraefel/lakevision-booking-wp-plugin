@@ -188,6 +188,7 @@ final class LakeVision_Booking {
             'ajaxUrl'            => admin_url( 'admin-ajax.php' ),
             'nonce'              => wp_create_nonce( 'lvb_booking_nonce' ),
             'disclaimerEnabled'  => (bool) get_option( 'lvb_disclaimer_enabled', '1' ),
+            'serviceLabel'       => get_option( 'lvb_service_label', 'Service' ),
         ] );
     }
 

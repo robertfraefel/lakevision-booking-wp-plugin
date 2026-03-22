@@ -328,7 +328,7 @@
 
         // Require sport selection first
         if ( ! state.serviceId || ! state.serviceDuration ) {
-            $slotsContainer.html( '<p class="lvb-no-slots">Bitte wähle zuerst eine Sportart aus.</p>' );
+            $slotsContainer.html( '<p class="lvb-no-slots">Bitte wähle zuerst eine ' + (lvbData.serviceLabel || 'Service') + ' aus.</p>' );
             return;
         }
 
@@ -352,7 +352,7 @@
         }
 
         if ( ! subSlots.length ) {
-            $slotsContainer.html( '<div class="lvb-slots-grid"><p class="lvb-no-slots">Keine passenden Zeitfenster für diese Sportart verfügbar.</p></div>' );
+            $slotsContainer.html( '<div class="lvb-slots-grid"><p class="lvb-no-slots">Keine passenden Zeitfenster für diese ' + (lvbData.serviceLabel || 'Service') + ' verfügbar.</p></div>' );
             return;
         }
 
@@ -443,7 +443,7 @@
         }
 
         if ( ! $app.find( '#lvb-service-id-input' ).val() ) {
-            showError( 'Bitte wähle zuerst eine Sportart aus.' );
+            showError( 'Bitte wähle zuerst eine ' + (lvbData.serviceLabel || 'Service') + ' aus.' );
             return;
         }
 
@@ -499,7 +499,7 @@
     =================================================================== */
     function showConfirmation( data ) {
         var html = '<dl>'
-            + '<dt>Sportart</dt><dd>'    + escHtml( data.service_name ) + '</dd>'
+            + '<dt>' + (lvbData.serviceLabel || 'Service') + '</dt><dd>'    + escHtml( data.service_name ) + '</dd>'
             + '<dt>Datum</dt><dd>'       + escHtml( data.date )         + '</dd>'
             + '<dt>Uhrzeit</dt><dd>'     + escHtml( data.time )         + '</dd>'
             + '<dt>Buchungs-Nr.</dt><dd>' + data.booking_id             + '</dd>'
