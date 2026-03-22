@@ -182,12 +182,18 @@ class LVB_Shortcode {
                         <label for="lvb-notes" class="lvb-label">Bemerkungen</label>
                         <textarea id="lvb-notes" name="notes" class="lvb-textarea" rows="3"></textarea>
                     </div>
+                    <?php
+                    $disclaimer_enabled = get_option( 'lvb_disclaimer_enabled', '1' );
+                    if ( $disclaimer_enabled ) :
+                        $disclaimer_text = get_option( 'lvb_disclaimer_text', 'Ich habe den Sicherheitshinweis gelesen und akzeptiert: Unfälle sind selten, aber möglich. Die Versicherung ist Sache der Teilnehmenden. Ausreichende körperliche Fitness wird vorausgesetzt. Ich erkenne meine eigenen Grenzen und akzeptiere, dass die Crew bei Bedarf eingreifen kann.' );
+                    ?>
                     <div class="lvb-disclaimer-box">
                         <label class="lvb-disclaimer-label">
                             <input type="checkbox" id="lvb-disclaimer-check" required>
-                            <span>Ich habe den Sicherheitshinweis gelesen und akzeptiert: Unfälle sind selten, aber möglich. Die Versicherung ist Sache der Teilnehmenden. Ausreichende körperliche Fitness wird vorausgesetzt. Ich erkenne meine eigenen Grenzen und akzeptiere, dass die Crew bei Bedarf eingreifen kann.</span>
+                            <span><?php echo esc_html( $disclaimer_text ); ?></span>
                         </label>
                     </div>
+                    <?php endif; ?>
                     <div id="lvb-form-error" class="lvb-error" style="display:none;"></div>
                     <button type="submit" class="lvb-btn-primary" id="lvb-submit-btn">
                         Jetzt buchen

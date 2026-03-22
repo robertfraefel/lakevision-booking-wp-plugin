@@ -176,6 +176,28 @@ $disconnect_url = wp_nonce_url(
             </table>
         </div>
 
+        <!-- Disclaimer -->
+        <div class="lvb-settings-section">
+            <h2>Disclaimer</h2>
+            <table class="form-table">
+                <tr>
+                    <th><label for="lvb_disclaimer_enabled">Enable Disclaimer</label></th>
+                    <td>
+                        <input type="checkbox" id="lvb_disclaimer_enabled" name="lvb_disclaimer_enabled" value="1"
+                               <?php checked( 1, get_option( 'lvb_disclaimer_enabled', 1 ) ); ?>>
+                        <p class="description">Show the disclaimer checkbox on the booking form. When disabled, the disclaimer is hidden and not required.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="lvb_disclaimer_text">Disclaimer Text</label></th>
+                    <td>
+                        <textarea id="lvb_disclaimer_text" name="lvb_disclaimer_text" class="large-text" rows="4"><?php echo esc_textarea( get_option( 'lvb_disclaimer_text', 'Ich habe den Sicherheitshinweis gelesen und akzeptiert: Unfälle sind selten, aber möglich. Die Versicherung ist Sache der Teilnehmenden. Ausreichende körperliche Fitness wird vorausgesetzt. Ich erkenne meine eigenen Grenzen und akzeptiere, dass die Crew bei Bedarf eingreifen kann.' ) ); ?></textarea>
+                        <p class="description">The disclaimer text shown next to the checkbox on the booking form.</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
         <!-- Accent Colors -->
         <div class="lvb-settings-section">
             <h2>Accent Colors</h2>
