@@ -251,6 +251,12 @@ class LVB_Admin {
             'lvb_accent_color',
             'lvb_accent2_color',
         ];
+        $color_options = [
+            'lvb_dark_color',
+            'lvb_bg_color',
+            'lvb_footer_bg_color',
+            'lvb_text_color',
+        ];
         // Textarea options
         if ( isset( $_POST['lvb_email_confirmation_text'] ) ) {
             update_option( 'lvb_email_confirmation_text', sanitize_textarea_field( wp_unslash( $_POST['lvb_email_confirmation_text'] ) ) );
@@ -269,6 +275,11 @@ class LVB_Admin {
         foreach ( $text_options as $opt ) {
             if ( isset( $_POST[ $opt ] ) ) {
                 update_option( $opt, sanitize_text_field( wp_unslash( $_POST[ $opt ] ) ) );
+            }
+        }
+        foreach ( $color_options as $opt ) {
+            if ( isset( $_POST[ $opt ] ) ) {
+                update_option( $opt, sanitize_hex_color( wp_unslash( $_POST[ $opt ] ) ) );
             }
         }
     }

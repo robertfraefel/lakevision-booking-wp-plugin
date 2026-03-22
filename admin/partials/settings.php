@@ -221,6 +221,42 @@ $disconnect_url = wp_nonce_url(
                         <p class="description">Default: <code>#00C2FF</code></p>
                     </td>
                 </tr>
+                <tr>
+                    <th><label for="lvb_dark_color">Header/Dark Background</label></th>
+                    <td>
+                        <input type="color" id="lvb_dark_color" name="lvb_dark_color"
+                               value="<?php echo esc_attr( get_option( 'lvb_dark_color', '#1E1C19' ) ); ?>">
+                        <code><?php echo esc_html( get_option( 'lvb_dark_color', '#1E1C19' ) ); ?></code>
+                        <p class="description">Used for email header background. Default: <code>#1E1C19</code></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="lvb_bg_color">Body Background</label></th>
+                    <td>
+                        <input type="color" id="lvb_bg_color" name="lvb_bg_color"
+                               value="<?php echo esc_attr( get_option( 'lvb_bg_color', '#FAF7F2' ) ); ?>">
+                        <code><?php echo esc_html( get_option( 'lvb_bg_color', '#FAF7F2' ) ); ?></code>
+                        <p class="description">Used for email body background. Default: <code>#FAF7F2</code></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="lvb_footer_bg_color">Footer Background</label></th>
+                    <td>
+                        <input type="color" id="lvb_footer_bg_color" name="lvb_footer_bg_color"
+                               value="<?php echo esc_attr( get_option( 'lvb_footer_bg_color', '#F2EDE5' ) ); ?>">
+                        <code><?php echo esc_html( get_option( 'lvb_footer_bg_color', '#F2EDE5' ) ); ?></code>
+                        <p class="description">Used for email footer background. Default: <code>#F2EDE5</code></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="lvb_text_color">Text Color</label></th>
+                    <td>
+                        <input type="color" id="lvb_text_color" name="lvb_text_color"
+                               value="<?php echo esc_attr( get_option( 'lvb_text_color', '#1A2332' ) ); ?>">
+                        <code><?php echo esc_html( get_option( 'lvb_text_color', '#1A2332' ) ); ?></code>
+                        <p class="description">Used for email body text. Default: <code>#1A2332</code></p>
+                    </td>
+                </tr>
             </table>
         </div>
 
