@@ -316,16 +316,16 @@ class LVB_Notifications {
      * @return string  Rendered HTML string, or an empty string for an unknown template.
      */
     private static function render( $template, $vars ) {
-        $primary   = '#00F5C4';
-        $secondary = '#00C2FF';
-        $dark      = '#0d1117';
+        $primary   = get_option( 'lvb_accent_color', '#00F5C4' );
+        $secondary = get_option( 'lvb_accent2_color', '#00C2FF' );
+        $dark      = '#1A2332';
 
-        $wrap_style  = 'font-family:Arial,sans-serif;max-width:620px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;';
+        $wrap_style  = 'font-family:Georgia,serif;max-width:620px;margin:0 auto;background:#FAF7F2;border-radius:12px;overflow:hidden;';
         $header_style = "background:$dark;padding:32px 24px;text-align:center;";
-        $body_style   = 'padding:32px 24px;color:#333333;';
-        $footer_style = "background:#f5f5f5;padding:16px 24px;text-align:center;font-size:12px;color:#999999;";
-        $btn_style    = "display:inline-block;background:$primary;color:$dark;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;margin-top:16px;";
-        $row_style    = 'padding:8px 0;border-bottom:1px solid #eeeeee;';
+        $body_style   = 'padding:32px 24px;color:#1A2332;';
+        $footer_style = "background:#F2EDE5;padding:16px 24px;text-align:center;font-size:12px;color:#7A756C;";
+        $btn_style    = "display:inline-block;background:$primary;color:#ffffff;padding:12px 28px;border-radius:60px;text-decoration:none;font-weight:bold;margin-top:16px;";
+        $row_style    = 'padding:8px 0;border-bottom:1px solid #EAE5DD;';
 
         $site         = esc_html( $vars['site_name'] );
         $logo_url     = get_option( 'lvb_email_logo_url', plugins_url( 'assets/img/logo.svg', LVB_PLUGIN_FILE ) );
