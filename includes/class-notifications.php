@@ -318,7 +318,7 @@ class LVB_Notifications {
     private static function render( $template, $vars ) {
         $primary   = get_option( 'lvb_accent_color', '#00F5C4' );
         $secondary = get_option( 'lvb_accent2_color', '#00C2FF' );
-        $dark      = '#1A2332';
+        $dark      = '#1E1C19';
 
         $wrap_style  = 'font-family:Georgia,serif;max-width:620px;margin:0 auto;background:#FAF7F2;border-radius:12px;overflow:hidden;';
         $header_style = "background:$dark;padding:32px 24px;text-align:center;";
@@ -331,7 +331,7 @@ class LVB_Notifications {
         $logo_url     = get_option( 'lvb_email_logo_url', plugins_url( 'assets/img/logo.svg', LVB_PLUGIN_FILE ) );
         $staff_label  = get_option( 'lvb_staff_label', 'Instructor' );
         $confirm_text = get_option( 'lvb_email_confirmation_text', 'Your booking is confirmed. We look forward to seeing you!' );
-        $logo         = '<img src="' . esc_url( $logo_url ) . '" alt="' . $site . '" width="200" style="display:block;margin:0 auto;max-width:200px;">';
+        $logo         = '<img src="' . esc_url( $logo_url ) . '" alt="' . $site . '" width="320" style="display:block;margin:0 auto;max-width:320px;">';
 
         switch ( $template ) {
             case 'customer_confirmation':
