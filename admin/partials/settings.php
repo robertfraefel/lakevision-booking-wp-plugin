@@ -153,7 +153,7 @@ $disconnect_url = wp_nonce_url(
                     <th><label for="lvb_service_label">Service Label</label></th>
                     <td>
                         <input type="text" id="lvb_service_label" name="lvb_service_label" class="regular-text"
-                               value="<?php echo esc_attr( get_option( 'lvb_service_label', 'Sportart' ) ); ?>">
+                               value="<?php echo esc_attr( get_option( 'lvb_service_label', 'Service' ) ); ?>">
                         <p class="description">Label for the service/activity selector, e.g. "Service", "Activity", "Sportart".</p>
                     </td>
                 </tr>
@@ -171,6 +171,32 @@ $disconnect_url = wp_nonce_url(
                                value="<?php echo esc_attr( get_option( 'lvb_whatsapp_url', '' ) ); ?>"
                                placeholder="https://chat.whatsapp.com/...">
                         <p class="description">Optional. If set, a WhatsApp group button is shown on the booking confirmation screen.</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Accent Colors -->
+        <div class="lvb-settings-section">
+            <h2>Accent Colors</h2>
+            <p class="description">Override the default accent colors used in the booking widget.</p>
+            <table class="form-table">
+                <tr>
+                    <th><label for="lvb_accent_color">Primary Accent Color</label></th>
+                    <td>
+                        <input type="color" id="lvb_accent_color" name="lvb_accent_color"
+                               value="<?php echo esc_attr( get_option( 'lvb_accent_color', '#00F5C4' ) ); ?>">
+                        <code><?php echo esc_html( get_option( 'lvb_accent_color', '#00F5C4' ) ); ?></code>
+                        <p class="description">Default: <code>#00F5C4</code></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="lvb_accent2_color">Secondary Accent Color</label></th>
+                    <td>
+                        <input type="color" id="lvb_accent2_color" name="lvb_accent2_color"
+                               value="<?php echo esc_attr( get_option( 'lvb_accent2_color', '#00C2FF' ) ); ?>">
+                        <code><?php echo esc_html( get_option( 'lvb_accent2_color', '#00C2FF' ) ); ?></code>
+                        <p class="description">Default: <code>#00C2FF</code></p>
                     </td>
                 </tr>
             </table>

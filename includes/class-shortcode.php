@@ -73,6 +73,17 @@ class LVB_Shortcode {
             'staff_id'   => '',
         ], $atts, 'lvb_booking' );
 
+        // Enqueue assets – they were registered on wp_enqueue_scripts.
+        wp_enqueue_style( 'lvb-booking' );
+        wp_enqueue_script( 'lvb-booking' );
+
+        // Output accent color overrides if configured.
+        $accent  = get_option( 'lvb_accent_color', '#00F5C4' );
+        $accent2 = get_option( 'lvb_accent2_color', '#00C2FF' );
+        if ( $accent !== '#00F5C4' || $accent2 !== '#00C2FF' ) {
+            wp_add_inline_style( 'lvb-booking', ':root{--lvb-accent:' . esc_attr( $accent ) . ';--lvb-accent2:' . esc_attr( $accent2 ) . ';}' );
+        }
+
         // Pre-load active services for the dropdown
         $services      = LVB_Database::get_all( 'services', [ 'status' => 'active' ], 'sort_order ASC, name ASC' );
         $service_label = get_option( 'lvb_service_label', 'Service' );

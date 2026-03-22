@@ -158,8 +158,11 @@ final class LakeVision_Booking {
     }
 
     /**
-     * Enqueue frontend CSS and JS only on pages that contain the booking shortcode.
+     * Register frontend CSS and JS so they can be enqueued by the shortcode.
      *
+     * Assets are registered (not enqueued) here so they load only when the
+     * [lvb_booking] shortcode actually renders – whether in post content or
+     * via do_shortcode() in a PHP template.
      * Uses file modification time as the asset version to bust browser caches
      * automatically whenever a file changes in development.
      * The `lvbData` JS object exposes the AJAX URL and a security nonce to the
@@ -168,26 +171,23 @@ final class LakeVision_Booking {
      * @return void
      */
     public function enqueue_frontend_assets() {
-        global $post;
-        if ( is_a( $post, 'WP_Post' ) && has_shortcode( $post->post_content, 'lvb_booking' ) ) {
-            wp_enqueue_style(
-                'lvb-booking',
-                LVB_PLUGIN_URL . 'assets/css/booking.css',
-                [],
-                filemtime( LVB_PLUGIN_DIR . 'assets/css/booking.css' )
-            );
-            wp_enqueue_script(
-                'lvb-booking',
-                LVB_PLUGIN_URL . 'assets/js/booking.js',
-                [ 'jquery' ],
-                filemtime( LVB_PLUGIN_DIR . 'assets/js/booking.js' ),
-                true
-            );
-            wp_localize_script( 'lvb-booking', 'lvbData', [
-                'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-                'nonce'   => wp_create_nonce( 'lvb_booking_nonce' ),
-            ] );
-        }
+        wp_register_style(
+            'lvb-booking',
+            LVB_PLUGIN_URL . 'assets/css/booking.css',
+            [],
+            filemtime( LVB_PLUGIN_DIR . 'assets/css/booking.css' )
+        );
+        wp_register_script(
+            'lvb-booking',
+            LVB_PLUGIN_URL . 'assets/js/booking.js',
+            [ 'jquery' ],
+            filemtime( LVB_PLUGIN_DIR . 'assets/js/booking.js' ),
+            true
+        );
+        wp_localize_script( 'lvb-booking', 'lvbData', [
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+            'nonce'   => wp_create_nonce( 'lvb_booking_nonce' ),
+        ] );
     }
 
     /**

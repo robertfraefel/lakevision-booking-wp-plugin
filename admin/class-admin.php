@@ -248,6 +248,8 @@ class LVB_Admin {
             'lvb_staff_label',
             'lvb_service_label',
             'lvb_whatsapp_url',
+            'lvb_accent_color',
+            'lvb_accent2_color',
         ];
         // Textarea options
         if ( isset( $_POST['lvb_email_confirmation_text'] ) ) {
