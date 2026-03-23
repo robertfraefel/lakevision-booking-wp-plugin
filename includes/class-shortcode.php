@@ -210,7 +210,7 @@ class LVB_Shortcode {
                     <div id="lvb-confirmation-details" class="lvb-confirmation-details"></div>
 
                     <div class="lvb-payment-hint">
-                        <span class="lvb-payment-label">Bezahlung an Bord:</span>
+                        <span class="lvb-payment-label">Zahlung vor Ort:</span>
                         <div class="lvb-payment-logos">
                             <img src="<?php echo esc_url( plugins_url( 'assets/img/twint-logo.png', LVB_PLUGIN_FILE ) ); ?>" alt="Twint" class="lvb-twint-logo">
                             <!-- Cash / banknote icon -->
