@@ -95,7 +95,7 @@ class LVB_Shortcode {
             <!-- Step indicator -->
             <div class="lvb-steps">
                 <div class="lvb-step active" data-step="1"><span>1</span> Datum wählen</div>
-                <div class="lvb-step" data-step="2"><span>2</span> Slot wählen</div>
+                <div class="lvb-step" data-step="2"><span>2</span> Sitzung wählen</div>
                 <div class="lvb-step" data-step="3"><span>3</span> Deine Angaben</div>
                 <div class="lvb-step" data-step="4"><span>4</span> Bestätigt</div>
             </div>
