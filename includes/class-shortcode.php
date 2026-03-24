@@ -92,6 +92,18 @@ class LVB_Shortcode {
         ?>
         <div id="lvb-booking-app" class="lvb-booking-app" data-service="<?php echo esc_attr( $atts['service_id'] ); ?>" data-staff="<?php echo esc_attr( $atts['staff_id'] ); ?>">
 
+            <?php
+            $booking_title    = get_option( 'lvb_booking_title', 'Jetzt einen Termin vereinbaren' );
+            $booking_subtitle = get_option( 'lvb_booking_subtitle', 'Wähle einen passenden Termin und buche direkt online.' );
+            if ( $booking_title !== '' ) : ?>
+            <div class="lvb-booking-header" style="text-align:center;margin-bottom:24px;">
+                <h2 style="font-family:inherit;font-size:28px;font-weight:700;margin:0 0 8px;"><?php echo esc_html( $booking_title ); ?></h2>
+                <?php if ( $booking_subtitle !== '' ) : ?>
+                <p style="font-family:inherit;font-size:15px;color:var(--lvb-muted);margin:0;"><?php echo esc_html( $booking_subtitle ); ?></p>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
             <!-- Step indicator -->
             <div class="lvb-steps">
                 <div class="lvb-step active" data-step="1"><span>1</span> Datum wählen</div>

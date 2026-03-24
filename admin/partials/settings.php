@@ -129,6 +129,29 @@ $disconnect_url = wp_nonce_url(
             </table>
         </div>
 
+        <!-- Booking Page -->
+        <div class="lvb-settings-section">
+            <h2>Booking Page</h2>
+            <table class="form-table">
+                <tr>
+                    <th><label for="lvb_booking_title">Booking Page Title</label></th>
+                    <td>
+                        <input type="text" id="lvb_booking_title" name="lvb_booking_title" class="regular-text"
+                               value="<?php echo esc_attr( get_option( 'lvb_booking_title', 'Jetzt einen Termin vereinbaren' ) ); ?>">
+                        <p class="description">Main heading above the booking widget. Leave empty to hide the header.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="lvb_booking_subtitle">Booking Page Subtitle</label></th>
+                    <td>
+                        <input type="text" id="lvb_booking_subtitle" name="lvb_booking_subtitle" class="regular-text"
+                               value="<?php echo esc_attr( get_option( 'lvb_booking_subtitle', 'Wähle einen passenden Termin und buche direkt online.' ) ); ?>">
+                        <p class="description">Subtitle shown below the main heading.</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
         <!-- Branding & Customization -->
         <div class="lvb-settings-section">
             <h2>Branding &amp; Customization</h2>

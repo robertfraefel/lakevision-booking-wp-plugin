@@ -251,6 +251,8 @@ class LVB_Admin {
             'lvb_payment_title',
             'lvb_payment_methods',
             'lvb_whatsapp_url',
+            'lvb_booking_title',
+            'lvb_booking_subtitle',
             'lvb_accent_color',
             'lvb_accent2_color',
         ];
