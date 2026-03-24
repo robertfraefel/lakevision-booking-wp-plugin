@@ -247,6 +247,7 @@ class LVB_Admin {
             'lvb_email_logo_url',
             'lvb_staff_label',
             'lvb_service_label',
+            'lvb_slot_label',
             'lvb_whatsapp_url',
             'lvb_accent_color',
             'lvb_accent2_color',

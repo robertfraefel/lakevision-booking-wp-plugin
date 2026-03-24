@@ -158,6 +158,14 @@ $disconnect_url = wp_nonce_url(
                     </td>
                 </tr>
                 <tr>
+                    <th><label for="lvb_slot_label">Slot Label</label></th>
+                    <td>
+                        <input type="text" id="lvb_slot_label" name="lvb_slot_label" class="regular-text"
+                               value="<?php echo esc_attr( get_option( 'lvb_slot_label', 'Sitzung' ) ); ?>">
+                        <p class="description">Label für Schritt 2 im Buchungsformular, z.B. "Sitzung", "Slot", "Zeitfenster".</p>
+                    </td>
+                </tr>
+                <tr>
                     <th><label for="lvb_email_confirmation_text">Confirmation Email Text</label></th>
                     <td>
                         <textarea id="lvb_email_confirmation_text" name="lvb_email_confirmation_text" class="large-text" rows="3"><?php echo esc_textarea( get_option( 'lvb_email_confirmation_text', 'Your booking is confirmed. We look forward to seeing you!' ) ); ?></textarea>
