@@ -209,21 +209,52 @@ class LVB_Shortcode {
                     <p>Deine <?php echo esc_html( $service_label ); ?> ist gebucht. Du erhältst in Kürze eine Bestätigung per E-Mail.</p>
                     <div id="lvb-confirmation-details" class="lvb-confirmation-details"></div>
 
+                    <?php
+                    $payment_title   = get_option( 'lvb_payment_title', 'Zahlung vor Ort' );
+                    $payment_methods = array_map( 'trim', explode( ';', get_option( 'lvb_payment_methods', 'Twint;Bar;Debit;Credit' ) ) );
+                    $payment_methods = array_filter( $payment_methods );
+                    ?>
+                    <?php if ( $payment_methods ) : ?>
                     <div class="lvb-payment-hint">
-                        <span class="lvb-payment-label">Zahlung vor Ort:</span>
+                        <span class="lvb-payment-label"><?php echo esc_html( $payment_title ); ?>:</span>
                         <div class="lvb-payment-logos">
-                            <img src="<?php echo esc_url( plugins_url( 'assets/img/twint-logo.png', LVB_PLUGIN_FILE ) ); ?>" alt="Twint" class="lvb-twint-logo">
-                            <!-- Cash / banknote icon -->
-                            <span class="lvb-cash-badge">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <rect x="1" y="5" width="22" height="14" rx="2"/>
-                                    <circle cx="12" cy="12" r="3"/>
-                                    <path d="M1 9h2M21 9h2M1 15h2M21 15h2"/>
-                                </svg>
-                                Bar (CHF)
-                            </span>
+                            <?php foreach ( $payment_methods as $method ) :
+                                $method_lower = strtolower( $method );
+                                if ( $method_lower === 'twint' ) : ?>
+                                    <img src="<?php echo esc_url( plugins_url( 'assets/img/twint-logo.png', LVB_PLUGIN_FILE ) ); ?>" alt="Twint" class="lvb-twint-logo">
+                                <?php elseif ( $method_lower === 'bar' ) : ?>
+                                    <span class="lvb-cash-badge">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <rect x="1" y="5" width="22" height="14" rx="2"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                            <path d="M1 9h2M21 9h2M1 15h2M21 15h2"/>
+                                        </svg>
+                                        Bar (CHF)
+                                    </span>
+                                <?php elseif ( $method_lower === 'debit' ) : ?>
+                                    <span class="lvb-cash-badge">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <rect x="1" y="4" width="22" height="16" rx="2"/>
+                                            <path d="M1 10h22"/>
+                                        </svg>
+                                        Debit
+                                    </span>
+                                <?php elseif ( $method_lower === 'credit' ) : ?>
+                                    <span class="lvb-cash-badge">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <rect x="1" y="4" width="22" height="16" rx="2"/>
+                                            <path d="M1 10h22"/>
+                                            <path d="M5 15h4"/>
+                                        </svg>
+                                        Credit
+                                    </span>
+                                <?php else : ?>
+                                    <span class="lvb-cash-badge"><?php echo esc_html( $method ); ?></span>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
                         </div>
                     </div>
+                    <?php endif; ?>
 
                     <?php $wa_url = get_option( 'lvb_whatsapp_url', '' ); ?>
                     <?php if ( $wa_url ) : ?>

@@ -248,6 +248,8 @@ class LVB_Admin {
             'lvb_staff_label',
             'lvb_service_label',
             'lvb_slot_label',
+            'lvb_payment_title',
+            'lvb_payment_methods',
             'lvb_whatsapp_url',
             'lvb_accent_color',
             'lvb_accent2_color',
