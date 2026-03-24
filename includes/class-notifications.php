@@ -53,7 +53,7 @@ class LVB_Notifications {
         $start = new DateTime( $booking['start_datetime'], $tz );
         $end   = new DateTime( $booking['end_datetime'], $tz );
 
-        $date_str  = $start->format( get_option( 'date_format' ) );
+        $date_str  = wp_date( get_option( 'date_format' ), $start->getTimestamp() );
         $time_str  = $start->format( get_option( 'time_format' ) ) . ' – ' . $end->format( get_option( 'time_format' ) );
         $site_name = get_bloginfo( 'name' );
         $currency  = get_option( 'lvb_currency_symbol', '$' );
@@ -162,7 +162,7 @@ class LVB_Notifications {
             'customer_name'       => trim( $customer['first_name'] . ' ' . $customer['last_name'] ),
             'customer_first_name' => $customer['first_name'],
             'service_name'  => $service['name'],
-            'date'          => $start->format( get_option( 'date_format' ) ),
+            'date'          => wp_date( get_option( 'date_format' ), $start->getTimestamp() ),
             'time'          => $start->format( get_option( 'time_format' ) ) . ' – ' . $end->format( get_option( 'time_format' ) ),
             'site_name'     => get_bloginfo( 'name' ),
         ] );
@@ -200,7 +200,7 @@ class LVB_Notifications {
         $body    = self::render( 'cancellation', [
             'customer_name' => trim( $customer['first_name'] . ' ' . $customer['last_name'] ),
             'service_name'  => $service['name'],
-            'date'          => $start->format( get_option( 'date_format' ) ),
+            'date'          => wp_date( get_option( 'date_format' ), $start->getTimestamp() ),
             'time'          => $start->format( get_option( 'time_format' ) ),
             'site_name'     => get_bloginfo( 'name' ),
         ] );

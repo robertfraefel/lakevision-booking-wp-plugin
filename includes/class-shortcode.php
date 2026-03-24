@@ -480,7 +480,7 @@ class LVB_Shortcode {
         wp_send_json_success( [
             'booking_id'   => $booking_id,
             'service_name' => $service['name'],
-            'date'         => $start->format( get_option( 'date_format' ) ),
+            'date'         => wp_date( get_option( 'date_format' ), $start->getTimestamp() ),
             'time'         => $start->format( 'H:i' ) . ' – ' . $end->format( 'H:i' ),
             'message'      => __( 'Booking confirmed! Check your email for details.', 'lakevision-booking' ),
         ] );

@@ -118,8 +118,8 @@ $status_labels = [
             <tr>
                 <td><?php echo esc_html( $b['id'] ); ?></td>
                 <td>
-                    <strong><?php echo esc_html( $start->format( get_option( 'date_format' ) ) ); ?></strong><br>
-                    <span class="lvb-time"><?php echo esc_html( $start->format( 'H:i' ) . ' – ' . $end->format( 'H:i' ) ); ?></span>
+                    <strong><?php echo esc_html( wp_date( get_option( 'date_format' ), $start->getTimestamp() ) ); ?></strong><br>
+                    <span class="lvb-time"><?php echo esc_html( wp_date( 'H:i', $start->getTimestamp() ) . ' – ' . wp_date( 'H:i', $end->getTimestamp() ) ); ?></span>
                 </td>
                 <td>
                     <?php echo esc_html( $b['first_name'] . ' ' . $b['last_name'] ); ?><br>
@@ -132,7 +132,7 @@ $status_labels = [
                 <td>
                     <?php
                     $created = new DateTime( $b['created_at'], wp_timezone() );
-                    echo esc_html( $created->format( get_option( 'date_format' ) . ' H:i' ) );
+                    echo esc_html( wp_date( get_option( 'date_format' ) . ' H:i', $created->getTimestamp() ) );
                     ?>
                 </td>
                 <td>
