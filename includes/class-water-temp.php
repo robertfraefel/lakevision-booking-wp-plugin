@@ -148,10 +148,11 @@ class LVB_Water_Temp {
             return null;
         }
 
-        // Format date as "9. März 2026"
+        // Format date as "20. März 2026" in Swiss timezone
         $date = null;
         if ( $ts ) {
             $dt   = new DateTime( $ts );
+            $dt->setTimezone( new DateTimeZone( 'Europe/Zurich' ) );
             $months = [ 'Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember' ];
             $date = $dt->format( 'j' ) . '. ' . $months[ (int) $dt->format( 'n' ) - 1 ] . ' ' . $dt->format( 'Y' );
         }
