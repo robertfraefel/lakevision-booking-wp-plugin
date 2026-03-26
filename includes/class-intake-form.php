@@ -226,7 +226,7 @@ class LVB_Intake_Form {
                 var fd = new FormData(form);
                 fd.append('action', 'lvb_submit_intake_form');
 
-                fetch(lvbIntakeData.ajaxUrl, {
+                fetch("<?php echo admin_url("admin-ajax.php"); ?>", {
                     method: 'POST',
                     credentials: 'same-origin',
                     body: fd
@@ -376,7 +376,7 @@ class LVB_Intake_Form {
             // Send confirmation email to the customer
             LVB_Notifications::send_intake_form_customer_confirmation( $insert_data );
 
-            wp_send_json_success( [ 'message' => 'Vielen Dank! Dein Fragebogen wurde erfolgreich gesendet.' ] );
+            wp_send_json_success( [ 'message' => '<div style="text-align:center;padding:2rem;"><div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#C4A68A,#B8976A);display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;"><span style="color:#fff;font-size:28px;">✓</span></div><h2 style="font-family:Georgia,serif;font-size:1.8rem;color:#1E1C19;margin:0 0 0.8rem;">Vielen Dank!</h2><p style="color:#3A3530;font-size:1.05rem;line-height:1.7;margin:0 0 0.5rem;">Dein Anmeldeformular wurde erfolgreich gesendet.</p><p style="color:#7A756C;font-size:0.95rem;">Ich habe deine Angaben erhalten und werde mich gut auf unsere Begegnung vorbereiten.</p></div>' ] );
         } else {
             wp_send_json_error( [ 'message' => 'Ein Fehler ist aufgetreten. Bitte versuche es später erneut.' ] );
         }
