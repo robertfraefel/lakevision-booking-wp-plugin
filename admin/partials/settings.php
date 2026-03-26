@@ -253,7 +253,7 @@ $disconnect_url = wp_nonce_url(
                     <th><label for="lvb_intake_form_enabled">Enable Intake Form</label></th>
                     <td>
                         <input type="checkbox" id="lvb_intake_form_enabled" name="lvb_intake_form_enabled" value="1"
-                               <?php checked( 1, get_option( 'lvb_intake_form_enabled', 1 ) ); ?>>
+                               <?php checked( 1, get_option( 'lvb_intake_form_enabled', 0 ) ); ?>>
                         <p class="description">Show the intake form on the frontend. When disabled, the shortcode will show a message that the form is currently not available.</p>
                     </td>
                 </tr>

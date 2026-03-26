@@ -83,6 +83,7 @@ $total_pages = max( 1, (int) ceil( $total / $per_page ) );
                 <th>Member Since</th>
                 <th>Notes</th>
                 <th>Formular</th>
+                <th>Formular</th>
             </tr>
         </thead>
         <tbody>
@@ -102,6 +103,13 @@ $total_pages = max( 1, (int) ceil( $total / $per_page ) );
                 </td>
                 <td><?php echo esc_html( $joined->format( get_option( 'date_format' ) ) ); ?></td>
                 <td><?php echo esc_html( $c['notes'] ? wp_trim_words( $c['notes'], 10 ) : '—' ); ?></td>
+                <td><?php
+                    global $wpdb;
+                    $intake_id = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM " . $wpdb->prefix . "lvb_intake_forms WHERE email = %s LIMIT 1", $c["email"] ) );
+                    if ( $intake_id ) : ?>
+                        <a href="<?php echo esc_url( add_query_arg( array( "page" => "lvb-intake-forms", "view" => $intake_id ), admin_url( "admin.php" ) ) ); ?>" title="Formular ansehen"><span class="dashicons dashicons-clipboard" style="color:#7A5C1F;"></span></a>
+                    <?php else : ?>—<?php endif; ?>
+                </td>
             </tr>
         <?php endforeach; ?>
         </tbody>

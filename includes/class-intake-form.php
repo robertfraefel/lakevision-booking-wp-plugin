@@ -28,7 +28,7 @@ class LVB_Intake_Form {
      * @return string  HTML output.
      */
     public static function render() {
-        if ( ! get_option( 'lvb_intake_form_enabled', '1' ) ) {
+        if ( ! get_option( 'lvb_intake_form_enabled', '0' ) ) {
             return '<p style="text-align:center;color:#7A756C;">Das Anmeldeformular ist derzeit nicht verfügbar.</p>';
         }
 
