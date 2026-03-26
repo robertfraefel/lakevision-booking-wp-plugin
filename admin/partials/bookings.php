@@ -102,6 +102,7 @@ $status_labels = [
                 <th><?php echo $sort_url( 'price' ); ?></th>
                 <th><?php echo $sort_url( 'status' ); ?></th>
                 <th>Gebucht am</th>
+                <th>Bemerkungen</th>
                 <th>Erinnerung</th>
                 <th>Actions</th>
             </tr>
@@ -148,6 +149,7 @@ $status_labels = [
                     ?>
                 </td>
                 <td>
+                <td><?php echo esc_html( ! empty( $b["notes"] ) ? wp_trim_words( $b["notes"], 15 ) : "—" ); ?></td>
                     <?php if ( ! empty( $b['reminder_sent'] ) ) : ?>
                         <span class="dashicons dashicons-yes-alt" style="color:#46b450" title="Erinnerung gesendet"></span>
                     <?php else : ?>
