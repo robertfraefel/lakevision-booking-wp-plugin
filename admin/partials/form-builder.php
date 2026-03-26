@@ -11,13 +11,35 @@ if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Unauthorised.' );
 $fields = LVB_Intake_Form::get_fields_config();
 ?>
 <div class="wrap lvb-wrap">
-    <h1>LakeVision Booking &ndash; Form Builder</h1>
+    <h1>LakeVision Booking &ndash; Intake Form Builder</h1>
     <hr class="wp-header-end">
 
     <p class="description">Configure the intake form fields displayed on the frontend. Drag rows or change the sort order numbers to reorder fields.</p>
 
     <form method="post" id="lvb-form-builder">
         <?php wp_nonce_field( 'lvb_form_builder_save' ); ?>
+
+        <!-- Intake Form Settings -->
+        <div class="lvb-settings-section" style="margin-bottom:24px;">
+            <h2>Intake Form Settings</h2>
+            <table class="form-table">
+                <tr>
+                    <th><label for="lvb_intake_form_enabled">Enable Intake Form</label></th>
+                    <td>
+                        <input type="checkbox" id="lvb_intake_form_enabled" name="lvb_intake_form_enabled" value="1"
+                               <?php checked( 1, get_option( 'lvb_intake_form_enabled', 0 ) ); ?>>
+                        <p class="description">Show the intake form on the frontend. When disabled, the shortcode will show a message that the form is currently not available.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="lvb_intake_disclaimer">Intake Form Disclaimer</label></th>
+                    <td>
+                        <textarea id="lvb_intake_disclaimer" name="lvb_intake_disclaimer" class="large-text" rows="4"><?php echo esc_textarea( get_option( 'lvb_intake_disclaimer', 'ChiroBalance® ist eine komplementäre Methode und ersetzt keine medizinische oder psychotherapeutische Behandlung. Bei akuten körperlichen oder psychischen Beschwerden wende dich bitte an eine Fachperson. Ich arbeite achtsam und innerhalb meiner Kompetenzen.' ) ); ?></textarea>
+                        <p class="description">Disclaimer text shown on the intake form. HTML entities like &amp;reg; are supported.</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
 
         <table class="widefat striped" id="lvb-fb-table">
             <thead>

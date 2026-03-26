@@ -607,7 +607,7 @@ class LVB_Notifications {
         }
         $url = home_url( '/anmeldeformular' );
         return '<div style="margin-top:24px;padding:20px;background:#F2EDE5;border-radius:8px;">
-            <p style="margin:0 0 12px 0;">Vor deiner ersten Sitzung bitten wir dich, ein kurzes Anmeldeformular auszufüllen.</p>
+            <p style="margin:0 0 12px 0;">Vor deiner ersten Sitzung bitte ich dich, ein kurzes Anmeldeformular auszufüllen.</p>
             <a href="' . esc_url( $url ) . '" style="' . $btn_style . '">Anmeldeformular ausfüllen</a>
         </div>';
     }

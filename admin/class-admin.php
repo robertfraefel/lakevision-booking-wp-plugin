@@ -92,7 +92,7 @@ class LVB_Admin {
         add_submenu_page( 'lvb-bookings', __( 'Services',  'lakevision-booking' ), __( 'Services',  'lakevision-booking' ), 'manage_options', 'lvb-services',  [ $this, 'page_services' ] );
         add_submenu_page( 'lvb-bookings', __( 'Staff',     'lakevision-booking' ), __( 'Staff',     'lakevision-booking' ), 'manage_options', 'lvb-staff',     [ $this, 'page_staff' ] );
         add_submenu_page( 'lvb-bookings', __( 'Intake Forms', 'lakevision-booking' ), __( 'Intake Forms', 'lakevision-booking' ), 'manage_options', 'lvb-intake-forms', [ $this, 'page_intake_forms' ] );
-        add_submenu_page( 'lvb-bookings', __( 'Form Builder', 'lakevision-booking' ), __( 'Form Builder', 'lakevision-booking' ), 'manage_options', 'lvb-form-builder', [ $this, 'page_form_builder' ] );
+        add_submenu_page( 'lvb-bookings', __( 'Intake Form Builder', 'lakevision-booking' ), __( 'Intake Form Builder', 'lakevision-booking' ), 'manage_options', 'lvb-form-builder', [ $this, 'page_form_builder' ] );
         add_submenu_page( 'lvb-bookings', __( 'Settings',  'lakevision-booking' ), __( 'Settings',  'lakevision-booking' ), 'manage_options', 'lvb-settings',  [ $this, 'page_settings' ] );
     }
 
@@ -315,13 +315,8 @@ class LVB_Admin {
         if ( isset( $_POST['lvb_disclaimer_text'] ) ) {
             update_option( 'lvb_disclaimer_text', sanitize_textarea_field( wp_unslash( $_POST['lvb_disclaimer_text'] ) ) );
         }
-        // Textarea options – intake form disclaimer
-        if ( isset( $_POST['lvb_intake_disclaimer'] ) ) {
-            update_option( 'lvb_intake_disclaimer', sanitize_textarea_field( wp_unslash( $_POST['lvb_intake_disclaimer'] ) ) );
-        }
         // Checkbox options
         update_option( 'lvb_disclaimer_enabled', isset( $_POST['lvb_disclaimer_enabled'] ) ? 1 : 0 );
-        update_option( 'lvb_intake_form_enabled', isset( $_POST['lvb_intake_form_enabled'] ) ? 1 : 0 );
         update_option( 'lvb_reminder_enabled', isset( $_POST['lvb_reminder_enabled'] ) ? 1 : 0 );
         // Number options
         if ( isset( $_POST['lvb_reminder_hours'] ) ) {
@@ -383,6 +378,12 @@ class LVB_Admin {
         }
 
         update_option( 'lvb_intake_form_fields', wp_json_encode( $fields, JSON_UNESCAPED_UNICODE ) );
+
+        // Save intake form settings (Enable + Disclaimer)
+        update_option( 'lvb_intake_form_enabled', isset( $_POST['lvb_intake_form_enabled'] ) ? 1 : 0 );
+        if ( isset( $_POST['lvb_intake_disclaimer'] ) ) {
+            update_option( 'lvb_intake_disclaimer', sanitize_textarea_field( wp_unslash( $_POST['lvb_intake_disclaimer'] ) ) );
+        }
     }
 
     // -----------------------------------------------------------------------
