@@ -82,6 +82,7 @@ $total_pages = max( 1, (int) ceil( $total / $per_page ) );
                 <th>Bookings</th>
                 <th>Member Since</th>
                 <th>Notes</th>
+                <th>Formular</th>
             </tr>
         </thead>
         <tbody>
