@@ -411,6 +411,59 @@ class LVB_Notifications {
                     <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '. All rights reserved.</div>
                 </div>';
 
+            case 'intake_form_notification':
+                // Build label => value pairs from the insert data for the table
+                $field_labels = [
+                    'name'                => 'Name',
+                    'email'               => 'E-Mail',
+                    'phone'               => 'Telefon',
+                    'wishes'              => 'Wünsche',
+                    'health_issues'       => 'Gesundheitliche Beschwerden',
+                    'medications'         => 'Medikamente',
+                    'psychotherapy'       => 'Psychotherapie',
+                    'disclaimer_accepted' => 'Disclaimer akzeptiert',
+                    'data_confirmed'      => 'Daten bestätigt',
+                ];
+
+                $intake_pairs = [];
+                foreach ( $field_labels as $key => $label ) {
+                    if ( ! isset( $vars[ $key ] ) || $vars[ $key ] === '' ) continue;
+                    $val = $vars[ $key ];
+                    // Translate yes/no and 1/0 for readability
+                    if ( $val === 'yes' ) $val = 'Ja';
+                    if ( $val === 'no' ) $val = 'Nein';
+                    if ( $val === 1 || $val === '1' ) $val = 'Ja';
+                    if ( $val === 0 || $val === '0' ) $val = 'Nein';
+                    $intake_pairs[ $label ] = esc_html( $val );
+                }
+
+                // Include custom fields if present
+                if ( ! empty( $vars['custom_fields'] ) ) {
+                    $custom = json_decode( $vars['custom_fields'], true );
+                    if ( is_array( $custom ) ) {
+                        foreach ( $custom as $cf_key => $cf_val ) {
+                            $intake_pairs[ esc_html( $cf_key ) ] = esc_html( $cf_val );
+                        }
+                    }
+                }
+
+                $intake_pairs['Eingegangen am'] = esc_html( $vars['created_at'] ?? '' );
+                $intake_pairs['Formular #'] = esc_html( $vars['form_id'] ?? '' );
+
+                $intake_rows = self::detail_rows( $intake_pairs, $row_style );
+                $intake_admin_url = admin_url( 'admin.php?page=lvb-intake-forms&view=' . intval( $vars['form_id'] ?? 0 ) );
+
+                return '<div style="' . $wrap_style . '">
+                    <div style="' . $header_style . '">' . $logo . '</div>
+                    <div style="' . $body_style . '">
+                        <h2 style="color:' . $dark . ';margin-top:0;">Neues Anmeldeformular eingegangen</h2>
+                        <p>Ein neues Anmeldeformular wurde von <strong>' . esc_html( $vars['name'] ?? 'Unbekannt' ) . '</strong> ausgefüllt.</p>
+                        <table style="width:100%;border-collapse:collapse;">' . $intake_rows . '</table>
+                        <a href="' . esc_url( $intake_admin_url ) . '" style="' . $btn_style . '">Im Dashboard ansehen</a>
+                    </div>
+                    <div style="' . $footer_style . '">' . $site . ' Admin</div>
+                </div>';
+
             case 'cancellation':
                 $first_name_c = esc_html( $vars['customer_first_name'] ?? $vars['customer_name'] );
                 return '<div style="' . $wrap_style . '">
@@ -452,6 +505,24 @@ class LVB_Notifications {
             </tr>';
         }
         return $html;
+    }
+
+    /**
+     * Send an admin notification when a customer submits an intake form.
+     *
+     * @param array $insert_data  The data that was inserted into the intake_forms table.
+     * @param int   $form_id      The ID of the newly created intake form record.
+     */
+    public static function send_intake_form_notification( $insert_data, $form_id ) {
+        $admin_email = get_option( 'lvb_admin_notification_email', get_option( 'admin_email' ) );
+        $name        = ! empty( $insert_data['name'] ) ? $insert_data['name'] : 'Unbekannt';
+        $subject     = sprintf( 'Neues Anmeldeformular von %s', $name );
+        $body        = self::render( 'intake_form_notification', array_merge( $insert_data, [
+            'form_id'   => $form_id,
+            'site_name' => get_bloginfo( 'name' ),
+        ] ) );
+
+        self::send( $admin_email, $subject, $body );
     }
 
     /**

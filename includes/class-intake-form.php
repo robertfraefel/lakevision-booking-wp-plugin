@@ -370,6 +370,9 @@ class LVB_Intake_Form {
         $result = LVB_Database::insert( 'intake_forms', $insert_data );
 
         if ( $result ) {
+            // Send admin email notification with the form data
+            LVB_Notifications::send_intake_form_notification( $insert_data, $result );
+
             wp_send_json_success( [ 'message' => 'Vielen Dank! Dein Fragebogen wurde erfolgreich gesendet.' ] );
         } else {
             wp_send_json_error( [ 'message' => 'Ein Fehler ist aufgetreten. Bitte versuche es später erneut.' ] );
