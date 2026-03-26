@@ -467,6 +467,41 @@ class LVB_Notifications {
 
             case 'intake_customer_confirmation':
                 $customer_name_ic = esc_html( $vars['name'] ?? '' );
+
+                // Build summary of submitted form data
+                $ic_field_labels = [
+                    'name'           => 'Name',
+                    'email'          => 'E-Mail',
+                    'phone'          => 'Telefon',
+                    'wishes'         => 'Wünsche',
+                    'health_issues'  => 'Gesundheitliche Beschwerden',
+                    'medications'    => 'Medikamente',
+                    'psychotherapy'  => 'Psychotherapie',
+                ];
+
+                $ic_pairs = [];
+                foreach ( $ic_field_labels as $key => $label ) {
+                    if ( ! isset( $vars[ $key ] ) || $vars[ $key ] === '' ) continue;
+                    $val = $vars[ $key ];
+                    if ( $val === 'yes' ) $val = 'Ja';
+                    if ( $val === 'no' ) $val = 'Nein';
+                    if ( $val === 1 || $val === '1' ) $val = 'Ja';
+                    if ( $val === 0 || $val === '0' ) $val = 'Nein';
+                    $ic_pairs[ $label ] = esc_html( $val );
+                }
+
+                // Include custom fields if present
+                if ( ! empty( $vars['custom_fields'] ) ) {
+                    $ic_custom = json_decode( $vars['custom_fields'], true );
+                    if ( is_array( $ic_custom ) ) {
+                        foreach ( $ic_custom as $cf_key => $cf_val ) {
+                            $ic_pairs[ esc_html( $cf_key ) ] = esc_html( $cf_val );
+                        }
+                    }
+                }
+
+                $ic_rows = self::detail_rows( $ic_pairs, $row_style );
+
                 return '<div style="' . $wrap_style . '">
                     <div style="' . $header_style . '">' . $logo . '</div>
                     <div style="' . $body_style . '">
@@ -474,6 +509,8 @@ class LVB_Notifications {
                         <p>Liebe/r ' . $customer_name_ic . ',</p>
                         <p>Vielen Dank für das Ausfüllen des Anmeldeformulars.</p>
                         <p>Ich habe deine Angaben erhalten und werde mich gut auf unsere Begegnung vorbereiten.</p>
+                        <h3 style="color:' . $dark . ';margin-top:24px;">Deine Angaben</h3>
+                        <table style="width:100%;border-collapse:collapse;">' . $ic_rows . '</table>
                         <p>Falls du noch Fragen hast, kannst du mich jederzeit kontaktieren.</p>
                         <p style="margin-top:24px;">Herzliche Grüsse,<br><strong>' . $site . '</strong></p>
                     </div>
