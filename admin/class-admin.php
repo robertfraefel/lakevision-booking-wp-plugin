@@ -92,6 +92,7 @@ class LVB_Admin {
         add_submenu_page( 'lvb-bookings', __( 'Services',  'lakevision-booking' ), __( 'Services',  'lakevision-booking' ), 'manage_options', 'lvb-services',  [ $this, 'page_services' ] );
         add_submenu_page( 'lvb-bookings', __( 'Staff',     'lakevision-booking' ), __( 'Staff',     'lakevision-booking' ), 'manage_options', 'lvb-staff',     [ $this, 'page_staff' ] );
         add_submenu_page( 'lvb-bookings', __( 'Intake Forms', 'lakevision-booking' ), __( 'Intake Forms', 'lakevision-booking' ), 'manage_options', 'lvb-intake-forms', [ $this, 'page_intake_forms' ] );
+        add_submenu_page( 'lvb-bookings', __( 'Form Builder', 'lakevision-booking' ), __( 'Form Builder', 'lakevision-booking' ), 'manage_options', 'lvb-form-builder', [ $this, 'page_form_builder' ] );
         add_submenu_page( 'lvb-bookings', __( 'Settings',  'lakevision-booking' ), __( 'Settings',  'lakevision-booking' ), 'manage_options', 'lvb-settings',  [ $this, 'page_settings' ] );
     }
 
@@ -118,6 +119,7 @@ class LVB_Admin {
             'lv-booking_page_lvb-staff',
             'lv-booking_page_lvb-settings',
             'lv-booking_page_lvb-intake-forms',
+            'lv-booking_page_lvb-form-builder',
         ];
         if ( ! in_array( $hook, $lvb_pages, true ) ) {
             return;
@@ -217,6 +219,22 @@ class LVB_Admin {
             exit;
         }
 
+        // Form Builder save
+        if ( isset( $_POST['lvb_save_form_builder'] ) ) {
+            check_admin_referer( 'lvb_form_builder_save' );
+            $this->save_form_builder();
+            wp_redirect( add_query_arg( [ 'page' => 'lvb-form-builder', 'lvb_saved' => '1' ], admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
+        // Form Builder reset to defaults
+        if ( isset( $_GET['lvb_action'] ) && $_GET['lvb_action'] === 'reset_form_fields' ) {
+            check_admin_referer( 'lvb_reset_form_fields' );
+            delete_option( 'lvb_intake_form_fields' );
+            wp_redirect( add_query_arg( [ 'page' => 'lvb-form-builder', 'lvb_saved' => '1' ], admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
         // Booking cancel
         if ( isset( $_GET['lvb_action'] ) && $_GET['lvb_action'] === 'cancel_booking' ) {
             $id = (int) ( $_GET['id'] ?? 0 );
@@ -294,6 +312,52 @@ class LVB_Admin {
                 update_option( $opt, sanitize_hex_color( wp_unslash( $_POST[ $opt ] ) ) );
             }
         }
+    }
+
+    /**
+     * Persist the form builder fields configuration to wp_options as JSON.
+     *
+     * @return void
+     */
+    private function save_form_builder() {
+        $raw_fields = isset( $_POST['fields'] ) && is_array( $_POST['fields'] ) ? $_POST['fields'] : [];
+        $fields = [];
+
+        // Sort by sort_order
+        usort( $raw_fields, function( $a, $b ) {
+            return (int) ( $a['sort_order'] ?? 0 ) - (int) ( $b['sort_order'] ?? 0 );
+        } );
+
+        foreach ( $raw_fields as $raw ) {
+            $id   = sanitize_key( $raw['id'] ?? '' );
+            $type = sanitize_text_field( $raw['type'] ?? 'text' );
+            if ( empty( $id ) ) {
+                continue;
+            }
+
+            $field = [
+                'id'       => $id,
+                'label'    => sanitize_text_field( $raw['label'] ?? '' ),
+                'type'     => $type,
+                'required' => ! empty( $raw['required'] ),
+                'enabled'  => ! empty( $raw['enabled'] ),
+            ];
+
+            // Options for select and checkbox-group
+            if ( in_array( $type, [ 'select', 'checkbox-group' ], true ) && ! empty( $raw['options'] ) ) {
+                $lines = preg_split( '/\r?\n/', trim( $raw['options'] ) );
+                $field['options'] = array_values( array_filter( array_map( 'sanitize_text_field', $lines ) ) );
+            }
+
+            // Checkbox text for single-checkbox
+            if ( $type === 'single-checkbox' && ! empty( $raw['checkbox_text'] ) ) {
+                $field['checkbox_text'] = sanitize_text_field( $raw['checkbox_text'] );
+            }
+
+            $fields[] = $field;
+        }
+
+        update_option( 'lvb_intake_form_fields', wp_json_encode( $fields, JSON_UNESCAPED_UNICODE ) );
     }
 
     // -----------------------------------------------------------------------
@@ -397,6 +461,15 @@ class LVB_Admin {
      */
     public function page_settings() {
         require LVB_PLUGIN_DIR . 'admin/partials/settings.php';
+    }
+
+    /**
+     * Render the Form Builder admin page.
+     *
+     * @return void
+     */
+    public function page_form_builder() {
+        require LVB_PLUGIN_DIR . 'admin/partials/form-builder.php';
     }
 
     /**

@@ -6,6 +6,9 @@
  * Data is stored in the wp_lvb_intake_forms table and linked to existing
  * customers by email when possible.
  *
+ * Form fields are now read from the `lvb_intake_form_fields` option,
+ * which can be configured via the Form Builder admin page.
+ *
  * @package LakeVision_Booking
  */
 
@@ -14,6 +17,68 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class LVB_Intake_Form {
+
+    /**
+     * Default field configuration matching the original hardcoded form.
+     *
+     * @return array
+     */
+    public static function get_default_fields() {
+        return [
+            [ 'id' => 'email',         'label' => 'E-Mail-Adresse', 'type' => 'email', 'required' => true, 'enabled' => true ],
+            [ 'id' => 'name',          'label' => 'Name Vorname',   'type' => 'text',  'required' => true, 'enabled' => true ],
+            [ 'id' => 'phone',         'label' => 'Telefonnummer',  'type' => 'tel',   'required' => true, 'enabled' => true ],
+            [ 'id' => 'wishes',        'label' => 'Was wünschst du dir von der Sitzung?', 'type' => 'checkbox-group', 'required' => true, 'enabled' => true, 'options' => [ 'Tiefe Entspannung', 'Mehr innere Stabilität', 'Klarheit', 'Energieaufbau', 'Loslassen von Spannungen', 'Einfach eine Auszeit für mich', 'Ich weiss es noch nicht genau', 'Sonstiges' ] ],
+            [ 'id' => 'health',        'label' => 'Hast du gesundheitliche Beschwerden oder Diagnosen, die ich wissen sollte?', 'type' => 'textarea', 'required' => true, 'enabled' => true ],
+            [ 'id' => 'medications',   'label' => 'Nimmst du aktuell Medikamente ein?', 'type' => 'select', 'required' => true, 'enabled' => true, 'options' => [ 'Ja', 'Nein' ] ],
+            [ 'id' => 'psychotherapy', 'label' => 'Befindest du dich aktuell in psychotherapeutischer oder psychiatrischer Behandlung?', 'type' => 'select', 'required' => true, 'enabled' => true, 'options' => [ 'Ja', 'Nein' ] ],
+            [ 'id' => 'disclaimer',    'label' => 'Disclaimer', 'type' => 'single-checkbox', 'required' => true, 'enabled' => true, 'checkbox_text' => 'Ja, ich habe diesen Hinweis gelesen und verstanden.' ],
+            [ 'id' => 'confirm',       'label' => 'Bestätigung', 'type' => 'single-checkbox', 'required' => true, 'enabled' => true, 'checkbox_text' => 'Ich bestätige die Richtigkeit meiner Angaben.' ],
+        ];
+    }
+
+    /**
+     * Get the current fields configuration from the database or defaults.
+     *
+     * @return array
+     */
+    public static function get_fields_config() {
+        $json = get_option( 'lvb_intake_form_fields', '' );
+        if ( ! empty( $json ) ) {
+            $fields = json_decode( $json, true );
+            if ( is_array( $fields ) && ! empty( $fields ) ) {
+                return $fields;
+            }
+        }
+        return self::get_default_fields();
+    }
+
+    /**
+     * Known DB columns in the intake_forms table (excluding custom_fields).
+     */
+    private static $known_columns = [
+        'email', 'name', 'phone', 'wishes', 'health', 'medications',
+        'psychotherapy', 'disclaimer', 'confirm',
+    ];
+
+    /**
+     * Map field IDs to their database column names.
+     *
+     * @return array  field_id => db_column_name
+     */
+    private static function field_to_column_map() {
+        return [
+            'email'         => 'email',
+            'name'          => 'name',
+            'phone'         => 'phone',
+            'wishes'        => 'wishes',
+            'health'        => 'health_issues',
+            'medications'   => 'medications',
+            'psychotherapy' => 'psychotherapy',
+            'disclaimer'    => 'disclaimer_accepted',
+            'confirm'       => 'data_confirmed',
+        ];
+    }
 
     /**
      * Register the shortcode.
@@ -35,104 +100,90 @@ class LVB_Intake_Form {
         wp_enqueue_style( 'lvb-intake-form' );
         wp_enqueue_script( 'lvb-intake-form' );
 
+        $fields = self::get_fields_config();
+
         ob_start();
         ?>
         <div class="lvb-intake-form-wrap" id="lvb-intake-form-wrap">
             <form id="lvb-intake-form" class="lvb-intake-form" novalidate>
                 <?php wp_nonce_field( 'lvb_intake_form_nonce', 'lvb_intake_nonce' ); ?>
 
-                <!-- 1. E-Mail -->
+                <?php foreach ( $fields as $field ) :
+                    if ( empty( $field['enabled'] ) ) continue;
+                    $id       = esc_attr( $field['id'] );
+                    $label    = esc_html( $field['label'] );
+                    $type     = $field['type'];
+                    $required = ! empty( $field['required'] );
+                    $req_star = $required ? ' <span class="lvb-if-req">*</span>' : '';
+                    $req_attr = $required ? ' required' : '';
+                ?>
+
+                <?php if ( $type === 'email' || $type === 'text' || $type === 'tel' ) : ?>
                 <div class="lvb-if-field">
-                    <label for="lvb-if-email">E-Mail-Adresse <span class="lvb-if-req">*</span></label>
-                    <input type="email" id="lvb-if-email" name="email" required>
+                    <label for="lvb-if-<?php echo $id; ?>"><?php echo $label; ?><?php echo $req_star; ?></label>
+                    <input type="<?php echo esc_attr( $type ); ?>" id="lvb-if-<?php echo $id; ?>" name="<?php echo $id; ?>"<?php echo $req_attr; ?>>
                 </div>
 
-                <!-- 2. Name -->
+                <?php elseif ( $type === 'textarea' ) : ?>
                 <div class="lvb-if-field">
-                    <label for="lvb-if-name">Name Vorname <span class="lvb-if-req">*</span></label>
-                    <input type="text" id="lvb-if-name" name="name" required>
+                    <label for="lvb-if-<?php echo $id; ?>"><?php echo $label; ?><?php echo $req_star; ?></label>
+                    <textarea id="lvb-if-<?php echo $id; ?>" name="<?php echo $id; ?>" rows="4"<?php echo $req_attr; ?>></textarea>
                 </div>
 
-                <!-- 3. Telefon -->
+                <?php elseif ( $type === 'select' ) : ?>
                 <div class="lvb-if-field">
-                    <label for="lvb-if-phone">Telefonnummer <span class="lvb-if-req">*</span></label>
-                    <input type="tel" id="lvb-if-phone" name="phone" required>
+                    <label for="lvb-if-<?php echo $id; ?>"><?php echo $label; ?><?php echo $req_star; ?></label>
+                    <select id="lvb-if-<?php echo $id; ?>" name="<?php echo $id; ?>"<?php echo $req_attr; ?>>
+                        <option value="">&mdash; Bitte w&auml;hlen &mdash;</option>
+                        <?php foreach ( (array) ( $field['options'] ?? [] ) as $opt ) : ?>
+                            <option value="<?php echo esc_attr( $opt ); ?>"><?php echo esc_html( $opt ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
-                <!-- 4. Wishes checkboxes -->
+                <?php elseif ( $type === 'checkbox-group' ) : ?>
                 <div class="lvb-if-field">
-                    <label>Was wünschst du dir von der Sitzung? <span class="lvb-if-req">*</span></label>
+                    <label><?php echo $label; ?><?php echo $req_star; ?></label>
                     <div class="lvb-if-checkboxes">
                         <?php
-                        $wishes = [
-                            'Tiefe Entspannung',
-                            'Mehr innere Stabilität',
-                            'Klarheit',
-                            'Energieaufbau',
-                            'Loslassen von Spannungen',
-                            'Einfach eine Auszeit für mich',
-                            'Ich weiss es noch nicht genau',
-                        ];
-                        foreach ( $wishes as $w ) : ?>
+                        $options = (array) ( $field['options'] ?? [] );
+                        $has_sonstiges = in_array( 'Sonstiges', $options, true );
+                        foreach ( $options as $opt ) :
+                            if ( $opt === 'Sonstiges' ) continue; // render last with special handling
+                        ?>
                             <label class="lvb-if-checkbox-label">
-                                <input type="checkbox" name="wishes[]" value="<?php echo esc_attr( $w ); ?>">
-                                <span><?php echo esc_html( $w ); ?></span>
+                                <input type="checkbox" name="<?php echo $id; ?>[]" value="<?php echo esc_attr( $opt ); ?>">
+                                <span><?php echo esc_html( $opt ); ?></span>
                             </label>
                         <?php endforeach; ?>
-                        <label class="lvb-if-checkbox-label">
-                            <input type="checkbox" name="wishes[]" value="Sonstiges" id="lvb-if-wish-other">
-                            <span>Sonstiges</span>
-                        </label>
-                        <div class="lvb-if-other-wrap" id="lvb-if-other-wrap" style="display:none;">
-                            <input type="text" name="wishes_other" id="lvb-if-wishes-other" placeholder="Bitte beschreiben...">
+                        <?php if ( $has_sonstiges ) : ?>
+                            <label class="lvb-if-checkbox-label">
+                                <input type="checkbox" name="<?php echo $id; ?>[]" value="Sonstiges" id="lvb-if-<?php echo $id; ?>-other">
+                                <span>Sonstiges</span>
+                            </label>
+                            <div class="lvb-if-other-wrap" id="lvb-if-<?php echo $id; ?>-other-wrap" style="display:none;">
+                                <input type="text" name="<?php echo $id; ?>_other" id="lvb-if-<?php echo $id; ?>-other-text" placeholder="Bitte beschreiben...">
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <?php elseif ( $type === 'single-checkbox' ) : ?>
+                <div class="lvb-if-field<?php echo $id === 'disclaimer' ? ' lvb-if-disclaimer-field' : ''; ?>">
+                    <?php if ( $id === 'disclaimer' ) : ?>
+                        <div class="lvb-if-disclaimer-text">
+                            <?php echo wp_kses_post( get_option( 'lvb_intake_disclaimer', 'ChiroBalance&reg; ist eine komplementäre Methode und ersetzt keine medizinische oder psychotherapeutische Behandlung. Bei akuten körperlichen oder psychischen Beschwerden wende dich bitte an eine Fachperson. Ich arbeite achtsam und innerhalb meiner Kompetenzen.' ) ); ?>
                         </div>
-                    </div>
-                </div>
-
-                <!-- 5. Health issues -->
-                <div class="lvb-if-field">
-                    <label for="lvb-if-health">Hast du gesundheitliche Beschwerden oder Diagnosen, die ich wissen sollte? <span class="lvb-if-req">*</span></label>
-                    <textarea id="lvb-if-health" name="health_issues" rows="4" required></textarea>
-                </div>
-
-                <!-- 6. Medications -->
-                <div class="lvb-if-field">
-                    <label for="lvb-if-medications">Nimmst du aktuell Medikamente ein? <span class="lvb-if-req">*</span></label>
-                    <select id="lvb-if-medications" name="medications" required>
-                        <option value="">— Bitte wählen —</option>
-                        <option value="yes">Ja</option>
-                        <option value="no">Nein</option>
-                    </select>
-                </div>
-
-                <!-- 7. Psychotherapy -->
-                <div class="lvb-if-field">
-                    <label for="lvb-if-psychotherapy">Befindest du dich aktuell in psychotherapeutischer oder psychiatrischer Behandlung? <span class="lvb-if-req">*</span></label>
-                    <select id="lvb-if-psychotherapy" name="psychotherapy" required>
-                        <option value="">— Bitte wählen —</option>
-                        <option value="yes">Ja</option>
-                        <option value="no">Nein</option>
-                    </select>
-                </div>
-
-                <!-- 8. Disclaimer -->
-                <div class="lvb-if-field lvb-if-disclaimer-field">
-                    <div class="lvb-if-disclaimer-text">
-                        <?php echo wp_kses_post( get_option( 'lvb_intake_disclaimer', 'ChiroBalance&reg; ist eine komplementäre Methode und ersetzt keine medizinische oder psychotherapeutische Behandlung. Bei akuten körperlichen oder psychischen Beschwerden wende dich bitte an eine Fachperson. Ich arbeite achtsam und innerhalb meiner Kompetenzen.' ) ); ?>
-                    </div>
+                    <?php endif; ?>
                     <label class="lvb-if-checkbox-label">
-                        <input type="checkbox" name="disclaimer_accepted" value="1" required>
-                        <span>Ja, ich habe diesen Hinweis gelesen und verstanden. <span class="lvb-if-req">*</span></span>
+                        <input type="checkbox" name="<?php echo $id; ?>" value="1"<?php echo $req_attr; ?>>
+                        <span><?php echo esc_html( $field['checkbox_text'] ?? $label ); ?><?php echo $req_star; ?></span>
                     </label>
                 </div>
 
-                <!-- 9. Confirmation -->
-                <div class="lvb-if-field">
-                    <label class="lvb-if-checkbox-label">
-                        <input type="checkbox" name="data_confirmed" value="1" required>
-                        <span>Ich bestätige die Richtigkeit meiner Angaben. <span class="lvb-if-req">*</span></span>
-                    </label>
-                </div>
+                <?php endif; ?>
+
+                <?php endforeach; ?>
 
                 <div class="lvb-if-submit-wrap">
                     <button type="submit" class="lvb-if-submit" id="lvb-if-submit">Formular absenden</button>
@@ -143,13 +194,23 @@ class LVB_Intake_Form {
         </div>
         <script>
         (function(){
-            var otherCb = document.getElementById('lvb-if-wish-other');
-            var otherWrap = document.getElementById('lvb-if-other-wrap');
-            if(otherCb){
-                otherCb.addEventListener('change', function(){
-                    otherWrap.style.display = this.checked ? 'block' : 'none';
-                });
-            }
+            // Handle "Sonstiges" toggles for all checkbox-group fields
+            <?php foreach ( $fields as $field ) :
+                if ( $field['type'] !== 'checkbox-group' || empty( $field['enabled'] ) ) continue;
+                $options = (array) ( $field['options'] ?? [] );
+                if ( ! in_array( 'Sonstiges', $options, true ) ) continue;
+                $fid = esc_js( $field['id'] );
+            ?>
+            (function(){
+                var otherCb = document.getElementById('lvb-if-<?php echo $fid; ?>-other');
+                var otherWrap = document.getElementById('lvb-if-<?php echo $fid; ?>-other-wrap');
+                if(otherCb && otherWrap){
+                    otherCb.addEventListener('change', function(){
+                        otherWrap.style.display = this.checked ? 'block' : 'none';
+                    });
+                }
+            })();
+            <?php endforeach; ?>
 
             var form = document.getElementById('lvb-intake-form');
             if(!form) return;
@@ -200,88 +261,111 @@ class LVB_Intake_Form {
 
     /**
      * AJAX handler – process intake form submission.
+     *
+     * Dynamically processes fields based on the stored configuration.
      */
     public static function ajax_submit() {
         check_ajax_referer( 'lvb_intake_form_nonce', 'lvb_intake_nonce' );
 
-        $email = sanitize_email( $_POST['email'] ?? '' );
-        $name  = sanitize_text_field( $_POST['name'] ?? '' );
-        $phone = sanitize_text_field( $_POST['phone'] ?? '' );
+        $fields  = self::get_fields_config();
+        $col_map = self::field_to_column_map();
 
-        // Validate required fields
-        if ( empty( $email ) || ! is_email( $email ) ) {
-            wp_send_json_error( [ 'message' => 'Bitte gib eine gültige E-Mail-Adresse ein.' ] );
-        }
-        if ( empty( $name ) ) {
-            wp_send_json_error( [ 'message' => 'Bitte gib deinen Namen ein.' ] );
-        }
-        if ( empty( $phone ) ) {
-            wp_send_json_error( [ 'message' => 'Bitte gib deine Telefonnummer ein.' ] );
-        }
+        $insert_data    = [];
+        $custom_fields  = [];
 
-        // Wishes
-        $wishes_arr = isset( $_POST['wishes'] ) && is_array( $_POST['wishes'] ) ? array_map( 'sanitize_text_field', $_POST['wishes'] ) : [];
-        if ( empty( $wishes_arr ) ) {
-            wp_send_json_error( [ 'message' => 'Bitte wähle mindestens einen Wunsch aus.' ] );
-        }
-        // If "Sonstiges" selected, append the text
-        if ( in_array( 'Sonstiges', $wishes_arr, true ) && ! empty( $_POST['wishes_other'] ) ) {
-            $other_text = sanitize_text_field( $_POST['wishes_other'] );
-            // Replace "Sonstiges" with "Sonstiges: <text>"
-            $key = array_search( 'Sonstiges', $wishes_arr, true );
-            $wishes_arr[ $key ] = 'Sonstiges: ' . $other_text;
-        }
-        $wishes = implode( ', ', $wishes_arr );
+        foreach ( $fields as $field ) {
+            if ( empty( $field['enabled'] ) ) {
+                continue;
+            }
 
-        $health_issues = sanitize_textarea_field( $_POST['health_issues'] ?? '' );
-        if ( empty( $health_issues ) ) {
-            wp_send_json_error( [ 'message' => 'Bitte beantworte die Frage zu gesundheitlichen Beschwerden.' ] );
-        }
+            $id       = $field['id'];
+            $type     = $field['type'];
+            $required = ! empty( $field['required'] );
+            $label    = $field['label'];
 
-        $medications   = in_array( $_POST['medications'] ?? '', [ 'yes', 'no' ], true ) ? $_POST['medications'] : '';
-        $psychotherapy = in_array( $_POST['psychotherapy'] ?? '', [ 'yes', 'no' ], true ) ? $_POST['psychotherapy'] : '';
+            // Determine the submitted value based on field type
+            $value = null;
 
-        if ( empty( $medications ) ) {
-            wp_send_json_error( [ 'message' => 'Bitte beantworte die Frage zu Medikamenten.' ] );
-        }
-        if ( empty( $psychotherapy ) ) {
-            wp_send_json_error( [ 'message' => 'Bitte beantworte die Frage zur psychotherapeutischen Behandlung.' ] );
-        }
+            if ( $type === 'checkbox-group' ) {
+                $arr = isset( $_POST[ $id ] ) && is_array( $_POST[ $id ] ) ? array_map( 'sanitize_text_field', $_POST[ $id ] ) : [];
+                if ( $required && empty( $arr ) ) {
+                    wp_send_json_error( [ 'message' => sprintf( 'Bitte fülle das Feld "%s" aus.', $label ) ] );
+                }
+                // Handle "Sonstiges" text
+                if ( in_array( 'Sonstiges', $arr, true ) && ! empty( $_POST[ $id . '_other' ] ) ) {
+                    $other_text = sanitize_text_field( $_POST[ $id . '_other' ] );
+                    $key = array_search( 'Sonstiges', $arr, true );
+                    $arr[ $key ] = 'Sonstiges: ' . $other_text;
+                }
+                $value = implode( ', ', $arr );
 
-        $disclaimer_accepted = ! empty( $_POST['disclaimer_accepted'] ) ? 1 : 0;
-        $data_confirmed      = ! empty( $_POST['data_confirmed'] ) ? 1 : 0;
+            } elseif ( $type === 'single-checkbox' ) {
+                $value = ! empty( $_POST[ $id ] ) ? 1 : 0;
+                if ( $required && ! $value ) {
+                    wp_send_json_error( [ 'message' => sprintf( 'Bitte bestätige: %s', $field['checkbox_text'] ?? $label ) ] );
+                }
 
-        if ( ! $disclaimer_accepted ) {
-            wp_send_json_error( [ 'message' => 'Bitte bestätige den Disclaimer.' ] );
-        }
-        if ( ! $data_confirmed ) {
-            wp_send_json_error( [ 'message' => 'Bitte bestätige die Richtigkeit deiner Angaben.' ] );
+            } elseif ( $type === 'email' ) {
+                $value = sanitize_email( $_POST[ $id ] ?? '' );
+                if ( $required && ( empty( $value ) || ! is_email( $value ) ) ) {
+                    wp_send_json_error( [ 'message' => 'Bitte gib eine gültige E-Mail-Adresse ein.' ] );
+                }
+
+            } elseif ( $type === 'textarea' ) {
+                $value = sanitize_textarea_field( $_POST[ $id ] ?? '' );
+                if ( $required && empty( $value ) ) {
+                    wp_send_json_error( [ 'message' => sprintf( 'Bitte fülle das Feld "%s" aus.', $label ) ] );
+                }
+
+            } elseif ( $type === 'select' ) {
+                $value = sanitize_text_field( $_POST[ $id ] ?? '' );
+                if ( $required && empty( $value ) ) {
+                    wp_send_json_error( [ 'message' => sprintf( 'Bitte fülle das Feld "%s" aus.', $label ) ] );
+                }
+
+            } else {
+                // text, tel, etc.
+                $value = sanitize_text_field( $_POST[ $id ] ?? '' );
+                if ( $required && empty( $value ) ) {
+                    wp_send_json_error( [ 'message' => sprintf( 'Bitte fülle das Feld "%s" aus.', $label ) ] );
+                }
+            }
+
+            // Map to known DB column or custom_fields
+            if ( isset( $col_map[ $id ] ) ) {
+                $db_col = $col_map[ $id ];
+                // Special handling for medications/psychotherapy: map Ja/Nein to yes/no
+                if ( in_array( $id, [ 'medications', 'psychotherapy' ], true ) && $type === 'select' ) {
+                    $val_map = [ 'Ja' => 'yes', 'Nein' => 'no' ];
+                    $value = $val_map[ $value ] ?? $value;
+                }
+                $insert_data[ $db_col ] = $value;
+            } else {
+                // Custom field — store in custom_fields JSON
+                $custom_fields[ $id ] = $value;
+            }
         }
 
         // Try to find matching customer by email
         global $wpdb;
         $customer_id = null;
-        $customer = $wpdb->get_row(
-            $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}lvb_customers WHERE email = %s", $email ),
-            ARRAY_A
-        );
-        if ( $customer ) {
-            $customer_id = (int) $customer['id'];
+        if ( ! empty( $insert_data['email'] ) ) {
+            $customer = $wpdb->get_row(
+                $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}lvb_customers WHERE email = %s", $insert_data['email'] ),
+                ARRAY_A
+            );
+            if ( $customer ) {
+                $customer_id = (int) $customer['id'];
+            }
         }
 
-        $insert_data = [
-            'customer_id'         => $customer_id,
-            'email'               => $email,
-            'name'                => $name,
-            'phone'               => $phone,
-            'wishes'              => $wishes,
-            'health_issues'       => $health_issues,
-            'medications'         => $medications,
-            'psychotherapy'       => $psychotherapy,
-            'disclaimer_accepted' => $disclaimer_accepted,
-            'data_confirmed'      => $data_confirmed,
-            'created_at'          => current_time( 'mysql' ),
-        ];
+        $insert_data['customer_id'] = $customer_id;
+        $insert_data['created_at']  = current_time( 'mysql' );
+
+        // Store custom fields as JSON if any
+        if ( ! empty( $custom_fields ) ) {
+            $insert_data['custom_fields'] = wp_json_encode( $custom_fields, JSON_UNESCAPED_UNICODE );
+        }
 
         $result = LVB_Database::insert( 'intake_forms', $insert_data );
 

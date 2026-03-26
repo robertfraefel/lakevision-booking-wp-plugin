@@ -135,6 +135,12 @@ class LVB_Database {
             dbDelta( $sql );
         }
 
+        // Add custom_fields column to intake_forms if missing (migration for Form Builder)
+        $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}lvb_intake_forms LIKE 'custom_fields'" );
+        if ( empty( $cols ) ) {
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}lvb_intake_forms ADD COLUMN custom_fields TEXT DEFAULT NULL AFTER data_confirmed" );
+        }
+
         // Add sort_order column if missing (migration for existing installs)
         $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}lvb_services LIKE 'sort_order'" );
         if ( empty( $cols ) ) {
