@@ -64,7 +64,7 @@ class LVB_Notifications {
 
         // ---- Customer email ----
         $customer_name    = trim( $customer['first_name'] . ' ' . $customer['last_name'] );
-        $customer_subject = sprintf( __( 'Your Booking Confirmation – %s', 'lakevision-booking' ), $site_name );
+        $customer_subject = sprintf( __( 'Deine Buchungsbestätigung – %s', 'lakevision-booking' ), $site_name );
         $customer_body    = self::customer_email_body( [
             'customer_name'       => $customer_name,
             'customer_first_name' => $customer['first_name'],
@@ -92,7 +92,7 @@ class LVB_Notifications {
 
         // ---- Admin email ----
         $admin_email   = get_option( 'lvb_admin_notification_email', get_option( 'admin_email' ) );
-        $admin_subject = sprintf( __( '[New Booking] %s – %s', 'lakevision-booking' ), $service['name'], $customer_name );
+        $admin_subject = sprintf( __( '[Neue Buchung] %s – %s', 'lakevision-booking' ), $service['name'], $customer_name );
         $admin_body    = self::admin_email_body( [
             'customer_name'  => $customer_name,
             'customer_email' => $customer_email,
@@ -335,14 +335,14 @@ class LVB_Notifications {
 
         $site         = esc_html( $vars['site_name'] );
         $logo_url     = get_option( 'lvb_email_logo_url', plugins_url( 'assets/img/logo.svg', LVB_PLUGIN_FILE ) );
-        $staff_label  = get_option( 'lvb_staff_label', 'Instructor' );
+        $staff_label  = get_option( 'lvb_staff_label', 'Begleiterin' );
         $confirm_text = get_option( 'lvb_email_confirmation_text', 'Your booking is confirmed. We look forward to seeing you!' );
         $logo         = '<img src="' . esc_url( $logo_url ) . '" alt="' . $site . '" width="320" style="display:block;margin:0 auto;max-width:320px;">';
 
         switch ( $template ) {
             case 'customer_confirmation':
                 $rows = self::detail_rows( [
-                    'Service'    => esc_html( $vars['service_name'] ),
+                    'Sitzung'    => esc_html( $vars['service_name'] ),
                     $staff_label => esc_html( $vars['staff_name'] ?: 'TBD' ),
                     'Datum'      => esc_html( $vars['date'] ),
                     'Zeit'       => esc_html( $vars['time'] ),
@@ -368,15 +368,15 @@ class LVB_Notifications {
 
             case 'admin_notification':
                 $rows = self::detail_rows( [
-                    'Service'      => esc_html( $vars['service_name'] ),
+                    'Sitzung'      => esc_html( $vars['service_name'] ),
                     $staff_label   => esc_html( $vars['staff_name'] ?: 'Unassigned' ),
                     'Date'     => esc_html( $vars['date'] ),
                     'Time'     => esc_html( $vars['time'] ),
-                    'Price'    => esc_html( $vars['price'] ),
+                    'Preis'    => esc_html( $vars['price'] ),
                     'Customer' => esc_html( $vars['customer_name'] ),
                     'Email'    => esc_html( $vars['customer_email'] ),
                     'Phone'    => esc_html( $vars['customer_phone'] ),
-                    'Notes'    => esc_html( $vars['notes'] ),
+                    'Bemerkungen'    => esc_html( $vars['notes'] ),
                     'Booking #'=> esc_html( $vars['booking_id'] ),
                 ], $row_style );
 
@@ -385,17 +385,17 @@ class LVB_Notifications {
                 return '<div style="' . $wrap_style . '">
                     <div style="' . $header_style . '">' . $logo . '</div>
                     <div style="' . $body_style . '">
-                        <h2 style="color:' . $dark . ';margin-top:0;">New Booking Received</h2>
+                        <h2 style="color:' . $dark . ';margin-top:0;">Neue Buchung eingegangen</h2>
                         <table style="width:100%;border-collapse:collapse;">' . $rows . '</table>
                         ' . self::admin_first_time_note( $vars ) . '
-                        <a href="' . esc_url( $admin_url ) . '" style="' . $btn_style . '">View in Dashboard</a>
+                        <a href="' . esc_url( $admin_url ) . '" style="' . $btn_style . '">Im Dashboard ansehen</a>
                     </div>
                     <div style="' . $footer_style . '">' . $site . ' Admin</div>
                 </div>';
 
             case 'reminder':
                 $rows = self::detail_rows( [
-                    'Service' => esc_html( $vars['service_name'] ),
+                    'Sitzung' => esc_html( $vars['service_name'] ),
                     'Datum'   => esc_html( $vars['date'] ),
                     'Zeit'    => esc_html( $vars['time'] ),
                 ], $row_style );
