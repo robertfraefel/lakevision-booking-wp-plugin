@@ -58,9 +58,9 @@ class LVB_Notifications {
         $site_name = get_bloginfo( 'name' );
         $currency  = get_option( 'lvb_currency_symbol', '$' );
 
-        // ---- Determine first-time customer ----
+        // ---- Determine if customer has an intake form on file ----
         $customer_email   = $customer['email'];
-        $is_first_time    = self::is_first_time_customer( $customer_email );
+        $no_intake_form   = ! self::has_intake_form( $customer_email );
 
         // ---- Customer email ----
         $customer_name    = trim( $customer['first_name'] . ' ' . $customer['last_name'] );
@@ -68,6 +68,7 @@ class LVB_Notifications {
         $customer_body    = self::customer_email_body( [
             'customer_name'       => $customer_name,
             'customer_first_name' => $customer['first_name'],
+            'customer_email'      => $customer_email,
             'service_name'        => $service['name'],
             'staff_name'    => $staff ? $staff['name'] : '',
             'date'          => $date_str,
@@ -76,7 +77,7 @@ class LVB_Notifications {
             'notes'         => $booking['notes'],
             'booking_id'    => $booking_id,
             'site_name'     => $site_name,
-            'is_first_time' => $is_first_time,
+            'no_intake_form' => $no_intake_form,
         ] );
 
         // ---- ICS calendar attachment ----
@@ -104,7 +105,7 @@ class LVB_Notifications {
             'notes'          => $booking['notes'],
             'booking_id'     => $booking_id,
             'site_name'      => $site_name,
-            'is_first_time'  => $is_first_time,
+            'no_intake_form' => $no_intake_form,
         ] );
 
         self::send( $admin_email, $admin_subject, $admin_body );
@@ -464,6 +465,21 @@ class LVB_Notifications {
                     <div style="' . $footer_style . '">' . $site . ' Admin</div>
                 </div>';
 
+            case 'intake_customer_confirmation':
+                $customer_name_ic = esc_html( $vars['name'] ?? '' );
+                return '<div style="' . $wrap_style . '">
+                    <div style="' . $header_style . '">' . $logo . '</div>
+                    <div style="' . $body_style . '">
+                        <h2 style="color:' . $dark . ';margin-top:0;">Vielen Dank für dein Anmeldeformular</h2>
+                        <p>Liebe/r ' . $customer_name_ic . ',</p>
+                        <p>Vielen Dank für das Ausfüllen des Anmeldeformulars.</p>
+                        <p>Ich habe deine Angaben erhalten und werde mich gut auf unsere Begegnung vorbereiten.</p>
+                        <p>Falls du noch Fragen hast, kannst du mich jederzeit kontaktieren.</p>
+                        <p style="margin-top:24px;">Herzliche Grüsse,<br><strong>' . $site . '</strong></p>
+                    </div>
+                    <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '. Alle Rechte vorbehalten.</div>
+                </div>';
+
             case 'cancellation':
                 $first_name_c = esc_html( $vars['customer_first_name'] ?? $vars['customer_name'] );
                 return '<div style="' . $wrap_style . '">
@@ -526,6 +542,24 @@ class LVB_Notifications {
     }
 
     /**
+     * Send a confirmation email to the customer after intake form submission.
+     *
+     * @param array $insert_data  The data that was inserted into the intake_forms table.
+     */
+    public static function send_intake_form_customer_confirmation( $insert_data ) {
+        if ( empty( $insert_data['email'] ) ) {
+            return;
+        }
+
+        $subject = 'Vielen Dank für dein Anmeldeformular';
+        $body    = self::render( 'intake_customer_confirmation', array_merge( $insert_data, [
+            'site_name' => get_bloginfo( 'name' ),
+        ] ) );
+
+        self::send( $insert_data['email'], $subject, $body );
+    }
+
+    /**
      * Check if a customer email has only one confirmed booking (i.e. first time).
      *
      * @param string $email Customer email address.
@@ -543,14 +577,32 @@ class LVB_Notifications {
     }
 
     /**
-     * Render the intake form section for first-time customers in confirmation emails.
+     * Check if a customer email has an existing intake form on file.
      *
-     * @param array  $vars      Template variables (must include 'is_first_time').
+     * @param string $email Customer email address.
+     * @return bool True if an intake form exists for this email.
+     */
+    private static function has_intake_form( $email ) {
+        global $wpdb;
+        $count = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}lvb_intake_forms WHERE email = %s",
+            $email
+        ) );
+        return $count > 0;
+    }
+
+    /**
+     * Render the intake form section for customers without an intake form on file.
+     *
+     * @param array  $vars      Template variables (must include 'customer_email' or 'no_intake_form').
      * @param string $btn_style Inline CSS for the button.
      * @return string HTML string, or empty if not applicable.
      */
     private static function intake_form_section( $vars, $btn_style ) {
-        if ( empty( $vars['is_first_time'] ) || ! get_option( 'lvb_intake_form_enabled', '0' ) ) {
+        if ( ! get_option( 'lvb_intake_form_enabled', '0' ) ) {
+            return '';
+        }
+        if ( empty( $vars['no_intake_form'] ) ) {
             return '';
         }
         $url = home_url( '/anmeldeformular' );
@@ -561,15 +613,15 @@ class LVB_Notifications {
     }
 
     /**
-     * Render a first-time customer note for the admin notification email.
+     * Render a note for the admin when customer has no intake form on file.
      *
-     * @param array $vars Template variables (must include 'is_first_time').
+     * @param array $vars Template variables (must include 'no_intake_form').
      * @return string HTML string, or empty if not applicable.
      */
     private static function admin_first_time_note( $vars ) {
-        if ( empty( $vars['is_first_time'] ) || ! get_option( 'lvb_intake_form_enabled', '0' ) ) {
+        if ( empty( $vars['no_intake_form'] ) || ! get_option( 'lvb_intake_form_enabled', '0' ) ) {
             return '';
         }
-        return '<p style="margin-top:16px;padding:12px;background:#FFF8E1;border-left:4px solid #FFC107;border-radius:4px;">&#11088; Neuer Kunde! Dem Kunden wurde der Link zum Anmeldeformular zugestellt.</p>';
+        return '<p style="margin-top:16px;padding:12px;background:#FFF8E1;border-left:4px solid #FFC107;border-radius:4px;">&#11088; Kein Anmeldeformular vorhanden! Dem Kunden wurde der Link zum Anmeldeformular zugestellt.</p>';
     }
 }
