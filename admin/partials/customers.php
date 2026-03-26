@@ -83,6 +83,7 @@ $total_pages = max( 1, (int) ceil( $total / $per_page ) );
                 <th>Member Since</th>
                 <th>Notes</th>
                 <th>Formular</th>
+                <th>Aktionen</th>
             </tr>
         </thead>
         <tbody>
@@ -108,6 +109,11 @@ $total_pages = max( 1, (int) ceil( $total / $per_page ) );
                     if ( $intake_id ) : ?>
                         <a href="<?php echo esc_url( add_query_arg( array( "page" => "lvb-intake-forms", "view" => $intake_id ), admin_url( "admin.php" ) ) ); ?>" title="Formular ansehen"><span class="dashicons dashicons-clipboard" style="color:#7A5C1F;"></span></a>
                     <?php else : ?>—<?php endif; ?>
+                </td>
+                <td>
+                    <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( [ 'page' => 'lvb-customers', 'lvb_action' => 'delete_customer', 'id' => $c['id'] ], admin_url( 'admin.php' ) ), 'lvb_delete_customer_' . $c['id'] ) ); ?>"
+                       class="button button-small lvb-btn-danger"
+                       onclick="return confirm('Diesen Kunden und alle zugehörigen Daten wirklich löschen?');">Löschen</a>
                 </td>
             </tr>
         <?php endforeach; ?>

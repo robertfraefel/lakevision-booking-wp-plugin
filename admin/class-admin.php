@@ -235,6 +235,31 @@ class LVB_Admin {
             exit;
         }
 
+        // Customer delete
+        if ( isset( $_GET['lvb_action'] ) && $_GET['lvb_action'] === 'delete_customer' ) {
+            $id = (int) ( $_GET['id'] ?? 0 );
+            check_admin_referer( 'lvb_delete_customer_' . $id );
+            global $wpdb;
+            // Get customer email before deleting, to clean up related intake forms
+            $customer = $wpdb->get_row( $wpdb->prepare( "SELECT email FROM {$wpdb->prefix}lvb_customers WHERE id = %d", $id ), ARRAY_A );
+            $wpdb->delete( $wpdb->prefix . 'lvb_customers', [ 'id' => $id ], [ '%d' ] );
+            if ( $customer && ! empty( $customer['email'] ) ) {
+                $wpdb->delete( $wpdb->prefix . 'lvb_intake_forms', [ 'email' => $customer['email'] ], [ '%s' ] );
+            }
+            wp_redirect( add_query_arg( [ 'page' => 'lvb-customers', 'lvb_deleted' => '1' ], admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
+        // Intake form delete
+        if ( isset( $_GET['lvb_action'] ) && $_GET['lvb_action'] === 'delete_intake_form' ) {
+            $id = (int) ( $_GET['id'] ?? 0 );
+            check_admin_referer( 'lvb_delete_intake_form_' . $id );
+            global $wpdb;
+            $wpdb->delete( $wpdb->prefix . 'lvb_intake_forms', [ 'id' => $id ], [ '%d' ] );
+            wp_redirect( add_query_arg( [ 'page' => 'lvb-intake-forms', 'lvb_deleted' => '1' ], admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
         // Booking cancel
         if ( isset( $_GET['lvb_action'] ) && $_GET['lvb_action'] === 'cancel_booking' ) {
             $id = (int) ( $_GET['id'] ?? 0 );

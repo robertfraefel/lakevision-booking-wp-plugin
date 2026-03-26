@@ -128,6 +128,9 @@ $forms = $wpdb->get_results( $wpdb->prepare( $data_sql, ...$data_params ), ARRAY
                 <td><?php echo esc_html( $f['created_at'] ); ?></td>
                 <td>
                     <a href="<?php echo esc_url( admin_url( 'admin.php?page=lvb-intake-forms&view=' . $f['id'] ) ); ?>" class="button button-small">Anzeigen</a>
+                    <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( [ 'page' => 'lvb-intake-forms', 'lvb_action' => 'delete_intake_form', 'id' => $f['id'] ], admin_url( 'admin.php' ) ), 'lvb_delete_intake_form_' . $f['id'] ) ); ?>"
+                       class="button button-small lvb-btn-danger"
+                       onclick="return confirm('Dieses Formular wirklich löschen?');">Löschen</a>
                 </td>
             </tr>
         <?php endforeach; ?>
