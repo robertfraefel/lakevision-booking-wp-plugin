@@ -272,6 +272,10 @@ class LVB_Admin {
         if ( isset( $_POST['lvb_disclaimer_text'] ) ) {
             update_option( 'lvb_disclaimer_text', sanitize_textarea_field( wp_unslash( $_POST['lvb_disclaimer_text'] ) ) );
         }
+        // Textarea options – intake form disclaimer
+        if ( isset( $_POST['lvb_intake_disclaimer'] ) ) {
+            update_option( 'lvb_intake_disclaimer', sanitize_textarea_field( wp_unslash( $_POST['lvb_intake_disclaimer'] ) ) );
+        }
         // Checkbox options
         update_option( 'lvb_disclaimer_enabled', isset( $_POST['lvb_disclaimer_enabled'] ) ? 1 : 0 );
         update_option( 'lvb_reminder_enabled', isset( $_POST['lvb_reminder_enabled'] ) ? 1 : 0 );

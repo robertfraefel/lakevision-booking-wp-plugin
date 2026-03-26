@@ -245,6 +245,20 @@ $disconnect_url = wp_nonce_url(
             </table>
         </div>
 
+        <!-- Intake Form -->
+        <div class="lvb-settings-section">
+            <h2>Intake Form</h2>
+            <table class="form-table">
+                <tr>
+                    <th><label for="lvb_intake_disclaimer">Intake Form Disclaimer</label></th>
+                    <td>
+                        <textarea id="lvb_intake_disclaimer" name="lvb_intake_disclaimer" class="large-text" rows="4"><?php echo esc_textarea( get_option( 'lvb_intake_disclaimer', 'ChiroBalance® ist eine komplementäre Methode und ersetzt keine medizinische oder psychotherapeutische Behandlung. Bei akuten körperlichen oder psychischen Beschwerden wende dich bitte an eine Fachperson. Ich arbeite achtsam und innerhalb meiner Kompetenzen.' ) ); ?></textarea>
+                        <p class="description">Disclaimer text shown on the intake form. HTML entities like &amp;reg; are supported.</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
         <!-- Accent Colors -->
         <div class="lvb-settings-section">
             <h2>Accent Colors</h2>

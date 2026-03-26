@@ -114,7 +114,7 @@ class LVB_Intake_Form {
                 <!-- 8. Disclaimer -->
                 <div class="lvb-if-field lvb-if-disclaimer-field">
                     <div class="lvb-if-disclaimer-text">
-                        ChiroBalance&reg; ist eine komplementäre Methode und ersetzt keine medizinische oder psychotherapeutische Behandlung. Bei akuten körperlichen oder psychischen Beschwerden wende dich bitte an eine Fachperson. Ich arbeite achtsam und innerhalb meiner Kompetenzen.
+                        <?php echo wp_kses_post( get_option( 'lvb_intake_disclaimer', 'ChiroBalance&reg; ist eine komplementäre Methode und ersetzt keine medizinische oder psychotherapeutische Behandlung. Bei akuten körperlichen oder psychischen Beschwerden wende dich bitte an eine Fachperson. Ich arbeite achtsam und innerhalb meiner Kompetenzen.' ) ); ?>
                     </div>
                     <label class="lvb-if-checkbox-label">
                         <input type="checkbox" name="disclaimer_accepted" value="1" required>
