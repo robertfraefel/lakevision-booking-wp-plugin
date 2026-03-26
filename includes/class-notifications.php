@@ -58,8 +58,11 @@ class LVB_Notifications {
         $site_name = get_bloginfo( 'name' );
         $currency  = get_option( 'lvb_currency_symbol', '$' );
 
-        // ---- Customer email ----
+        // ---- Determine first-time customer ----
         $customer_email   = $customer['email'];
+        $is_first_time    = self::is_first_time_customer( $customer_email );
+
+        // ---- Customer email ----
         $customer_name    = trim( $customer['first_name'] . ' ' . $customer['last_name'] );
         $customer_subject = sprintf( __( 'Your Booking Confirmation – %s', 'lakevision-booking' ), $site_name );
         $customer_body    = self::customer_email_body( [
@@ -73,6 +76,7 @@ class LVB_Notifications {
             'notes'         => $booking['notes'],
             'booking_id'    => $booking_id,
             'site_name'     => $site_name,
+            'is_first_time' => $is_first_time,
         ] );
 
         // ---- ICS calendar attachment ----
@@ -100,6 +104,7 @@ class LVB_Notifications {
             'notes'          => $booking['notes'],
             'booking_id'     => $booking_id,
             'site_name'      => $site_name,
+            'is_first_time'  => $is_first_time,
         ] );
 
         self::send( $admin_email, $admin_subject, $admin_body );
@@ -354,6 +359,7 @@ class LVB_Notifications {
                         <p>' . esc_html( $confirm_text ) . '</p>
                         <table style="width:100%;border-collapse:collapse;">' . $rows . '</table>
                         ' . ( $vars['notes'] ? '<p><strong>Notiz:</strong> ' . esc_html( $vars['notes'] ) . '</p>' : '' ) . '
+                        ' . self::intake_form_section( $vars, $btn_style ) . '
                         <p style="margin-top:24px;">Falls du absagen oder umbuchen möchtest, melde dich bitte so früh wie möglich bei uns.</p>
                     </div>
                     <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '. Alle Rechte vorbehalten.</div>
@@ -380,6 +386,7 @@ class LVB_Notifications {
                     <div style="' . $body_style . '">
                         <h2 style="color:' . $dark . ';margin-top:0;">New Booking Received</h2>
                         <table style="width:100%;border-collapse:collapse;">' . $rows . '</table>
+                        ' . self::admin_first_time_note( $vars ) . '
                         <a href="' . esc_url( $admin_url ) . '" style="' . $btn_style . '">View in Dashboard</a>
                     </div>
                     <div style="' . $footer_style . '">' . $site . ' Admin</div>
@@ -445,5 +452,53 @@ class LVB_Notifications {
             </tr>';
         }
         return $html;
+    }
+
+    /**
+     * Check if a customer email has only one confirmed booking (i.e. first time).
+     *
+     * @param string $email Customer email address.
+     * @return bool True if this is the customer's first confirmed booking.
+     */
+    private static function is_first_time_customer( $email ) {
+        global $wpdb;
+        $count = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}lvb_bookings b
+             JOIN {$wpdb->prefix}lvb_customers c ON c.id = b.customer_id
+             WHERE c.email = %s AND b.status = 'confirmed'",
+            $email
+        ) );
+        return $count === 1;
+    }
+
+    /**
+     * Render the intake form section for first-time customers in confirmation emails.
+     *
+     * @param array  $vars      Template variables (must include 'is_first_time').
+     * @param string $btn_style Inline CSS for the button.
+     * @return string HTML string, or empty if not applicable.
+     */
+    private static function intake_form_section( $vars, $btn_style ) {
+        if ( empty( $vars['is_first_time'] ) || ! get_option( 'lvb_intake_form_enabled', '0' ) ) {
+            return '';
+        }
+        $url = home_url( '/anmeldeformular' );
+        return '<div style="margin-top:24px;padding:20px;background:#F2EDE5;border-radius:8px;">
+            <p style="margin:0 0 12px 0;">Vor deiner ersten Sitzung bitten wir dich, ein kurzes Anmeldeformular auszufüllen.</p>
+            <a href="' . esc_url( $url ) . '" style="' . $btn_style . '">Anmeldeformular ausfüllen</a>
+        </div>';
+    }
+
+    /**
+     * Render a first-time customer note for the admin notification email.
+     *
+     * @param array $vars Template variables (must include 'is_first_time').
+     * @return string HTML string, or empty if not applicable.
+     */
+    private static function admin_first_time_note( $vars ) {
+        if ( empty( $vars['is_first_time'] ) || ! get_option( 'lvb_intake_form_enabled', '0' ) ) {
+            return '';
+        }
+        return '<p style="margin-top:16px;padding:12px;background:#FFF8E1;border-left:4px solid #FFC107;border-radius:4px;">&#11088; Neuer Kunde! Dem Kunden wurde der Link zum Anmeldeformular zugestellt.</p>';
     }
 }
