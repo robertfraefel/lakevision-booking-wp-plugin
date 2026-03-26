@@ -113,7 +113,7 @@ class LVB_Booking_Manager {
 
         // 6b. Ensure booking end doesn't exceed the availability window
         if ( ! empty( $data['slot_win_end'] ) ) {
-            $win_end_dt = new DateTime( $data['slot_win_end'] );
+            $win_end_dt = new DateTime( $data['slot_win_end'], wp_timezone() );
             if ( $end_dt > $win_end_dt ) {
                 return new WP_Error( 'outside_window', __( 'Die gewählte Zeit überschreitet das verfügbare Zeitfenster.', 'lakevision-booking' ) );
             }
