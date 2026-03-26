@@ -29,6 +29,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class LVB_Database {
 
     /**
+     * Alias for install() – can be called from WP-CLI or other contexts.
+     */
+    public static function create_tables() {
+        self::install();
+    }
+
+    /**
      * Run on plugin activation via register_activation_hook.
      */
     public static function install() {
@@ -80,6 +87,25 @@ class LVB_Database {
             created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             UNIQUE KEY email (email)
+        ) $charset;";
+
+        // Intake Forms
+        $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lvb_intake_forms (
+            id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            customer_id         BIGINT UNSIGNED DEFAULT NULL,
+            email               VARCHAR(255)    NOT NULL,
+            name                VARCHAR(255)    NOT NULL,
+            phone               VARCHAR(50)     DEFAULT NULL,
+            wishes              TEXT            DEFAULT NULL,
+            health_issues       TEXT            DEFAULT NULL,
+            medications         ENUM('yes','no') DEFAULT NULL,
+            psychotherapy       ENUM('yes','no') DEFAULT NULL,
+            disclaimer_accepted TINYINT(1)      NOT NULL DEFAULT 0,
+            data_confirmed      TINYINT(1)      NOT NULL DEFAULT 0,
+            created_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_customer    (customer_id),
+            KEY idx_email       (email)
         ) $charset;";
 
         // Bookings

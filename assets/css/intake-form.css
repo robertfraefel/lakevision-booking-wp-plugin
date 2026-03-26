@@ -1,0 +1,175 @@
+/* ==========================================================================
+   LakeVision Booking – Intake Form Styles
+   Matches the booking widget dark theme.
+   ========================================================================== */
+
+.lvb-intake-form-wrap {
+    background: var(--lvb-dark2, #161b22);
+    border: 1px solid var(--lvb-border, rgba(255,255,255,0.08));
+    border-radius: var(--lvb-radius, 10px);
+    box-shadow: var(--lvb-shadow, 0 8px 32px rgba(0,0,0,0.4));
+    padding: 32px;
+    margin: 0 auto;
+    max-width: 640px;
+    color: var(--lvb-text, #e6edf3);
+    font-family: inherit;
+}
+
+/* ---------- Field group ---------- */
+.lvb-if-field {
+    margin-bottom: 24px;
+}
+
+.lvb-if-field > label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--lvb-text, #e6edf3);
+    line-height: 1.4;
+}
+
+.lvb-if-req {
+    color: var(--lvb-accent, #00F5C4);
+}
+
+/* ---------- Text / email / tel inputs ---------- */
+.lvb-intake-form input[type="text"],
+.lvb-intake-form input[type="email"],
+.lvb-intake-form input[type="tel"],
+.lvb-intake-form textarea,
+.lvb-intake-form select {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 15px;
+    color: var(--lvb-text, #e6edf3);
+    background: var(--lvb-dark, #0d1117);
+    border: 1px solid var(--lvb-border, rgba(255,255,255,0.08));
+    border-radius: var(--lvb-radius-sm, 6px);
+    outline: none;
+    transition: border-color var(--lvb-transition, .2s ease);
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.lvb-intake-form input[type="text"]:focus,
+.lvb-intake-form input[type="email"]:focus,
+.lvb-intake-form input[type="tel"]:focus,
+.lvb-intake-form textarea:focus,
+.lvb-intake-form select:focus {
+    border-color: var(--lvb-accent, #00F5C4);
+}
+
+.lvb-intake-form textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.lvb-intake-form select {
+    appearance: auto;
+    cursor: pointer;
+}
+
+/* ---------- Checkboxes ---------- */
+.lvb-if-checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.lvb-if-checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 15px;
+    cursor: pointer;
+    line-height: 1.4;
+    color: var(--lvb-text, #e6edf3);
+}
+
+.lvb-if-checkbox-label input[type="checkbox"] {
+    margin-top: 3px;
+    accent-color: var(--lvb-accent, #00F5C4);
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.lvb-if-other-wrap {
+    margin-left: 28px;
+    margin-top: 4px;
+}
+
+/* ---------- Disclaimer ---------- */
+.lvb-if-disclaimer-field .lvb-if-disclaimer-text {
+    background: var(--lvb-dark3, #21262d);
+    border: 1px solid var(--lvb-border, rgba(255,255,255,0.08));
+    border-radius: var(--lvb-radius-sm, 6px);
+    padding: 16px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--lvb-muted, #8b949e);
+}
+
+/* ---------- Submit button ---------- */
+.lvb-if-submit-wrap {
+    margin-top: 32px;
+}
+
+.lvb-if-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 14px 32px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--lvb-dark, #0d1117);
+    background: linear-gradient(135deg, var(--lvb-accent, #00F5C4), var(--lvb-accent2, #00C2FF));
+    border: none;
+    border-radius: var(--lvb-radius-sm, 6px);
+    cursor: pointer;
+    transition: opacity var(--lvb-transition, .2s ease), transform var(--lvb-transition, .2s ease);
+    font-family: inherit;
+}
+
+.lvb-if-submit:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.lvb-if-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ---------- Messages ---------- */
+.lvb-if-message {
+    margin-top: 20px;
+    padding: 16px;
+    border-radius: var(--lvb-radius-sm, 6px);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.lvb-if-success {
+    background: rgba(0, 245, 196, 0.1);
+    border: 1px solid var(--lvb-accent, #00F5C4);
+    color: var(--lvb-accent, #00F5C4);
+}
+
+.lvb-if-error {
+    background: rgba(255, 85, 85, 0.1);
+    border: 1px solid #f55;
+    color: #f55;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 480px) {
+    .lvb-intake-form-wrap {
+        padding: 20px;
+    }
+}

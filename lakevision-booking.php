@@ -3,7 +3,7 @@
  * Plugin Name: LakeVision Booking
  * Plugin URI:  https://github.com/robertfraefel/lakevision-booking-wp-plugin
  * Description: Flexible booking system with Google Calendar integration, time-slot management and email notifications.
- * Version:     1.2.3
+ * Version:     1.3.0
  * Author:      LakeVision
  * Author URI:  https://lakevision.ch
  * License:     GPL-2.0+
@@ -52,7 +52,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'LVB_VERSION',     '1.0.0' );
+define( 'LVB_VERSION',     '1.3.0' );
 define( 'LVB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LVB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'LVB_PLUGIN_FILE', __FILE__ );
@@ -63,6 +63,7 @@ require_once LVB_PLUGIN_DIR . 'includes/class-google-calendar.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-booking-manager.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-notifications.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-shortcode.php';
+require_once LVB_PLUGIN_DIR . 'includes/class-intake-form.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-water-temp.php';
 require_once LVB_PLUGIN_DIR . 'admin/class-admin.php';
 
@@ -130,6 +131,10 @@ final class LakeVision_Booking {
         add_action( 'wp_ajax_lvb_get_staff_for_service', [ 'LVB_Shortcode', 'ajax_get_staff_for_service' ] );
         add_action( 'wp_ajax_nopriv_lvb_get_staff_for_service', [ 'LVB_Shortcode', 'ajax_get_staff_for_service' ] );
 
+        // Intake form AJAX handlers
+        add_action( 'wp_ajax_lvb_submit_intake_form',        [ 'LVB_Intake_Form', 'ajax_submit' ] );
+        add_action( 'wp_ajax_nopriv_lvb_submit_intake_form', [ 'LVB_Intake_Form', 'ajax_submit' ] );
+
         // Water temperature proxy
         LVB_Water_Temp::register();
 
@@ -154,7 +159,14 @@ final class LakeVision_Booking {
      */
     public function init() {
         load_plugin_textdomain( 'lakevision-booking', false, dirname( plugin_basename( LVB_PLUGIN_FILE ) ) . '/languages' );
+
+        // Run DB migration if version changed (e.g. new tables added).
+        if ( get_option( 'lvb_db_version' ) !== LVB_VERSION ) {
+            LVB_Database::install();
+        }
+
         LVB_Shortcode::register();
+        LVB_Intake_Form::register();
     }
 
     /**
@@ -189,6 +201,24 @@ final class LakeVision_Booking {
             'nonce'              => wp_create_nonce( 'lvb_booking_nonce' ),
             'disclaimerEnabled'  => (bool) get_option( 'lvb_disclaimer_enabled', '1' ),
             'serviceLabel'       => get_option( 'lvb_service_label', 'Service' ),
+        ] );
+
+        // Intake form assets
+        wp_register_style(
+            'lvb-intake-form',
+            LVB_PLUGIN_URL . 'assets/css/intake-form.css',
+            [],
+            filemtime( LVB_PLUGIN_DIR . 'assets/css/intake-form.css' )
+        );
+        wp_register_script(
+            'lvb-intake-form',
+            LVB_PLUGIN_URL . 'assets/js/intake-form.js',
+            [],
+            filemtime( LVB_PLUGIN_DIR . 'assets/js/intake-form.js' ),
+            true
+        );
+        wp_localize_script( 'lvb-intake-form', 'lvbIntakeData', [
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
         ] );
     }
 

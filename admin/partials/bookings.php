@@ -122,7 +122,19 @@ $status_labels = [
                     <span class="lvb-time"><?php echo esc_html( wp_date( 'H:i', $start->getTimestamp() ) . ' – ' . wp_date( 'H:i', $end->getTimestamp() ) ); ?></span>
                 </td>
                 <td>
-                    <?php echo esc_html( $b['first_name'] . ' ' . $b['last_name'] ); ?><br>
+                    <?php echo esc_html( $b['first_name'] . ' ' . $b['last_name'] ); ?>
+                    <?php
+                    // Check if an intake form exists for this customer's email
+                    $intake_count = LVB_Database::count( 'intake_forms', [ 'email' => $b['customer_email'] ] );
+                    if ( $intake_count > 0 ) :
+                        $intake_forms = LVB_Database::get_all( 'intake_forms', [ 'email' => $b['customer_email'] ], 'created_at DESC' );
+                        $intake_url   = admin_url( 'admin.php?page=lvb-intake-forms&view=' . $intake_forms[0]['id'] );
+                    ?>
+                        <a href="<?php echo esc_url( $intake_url ); ?>" title="Intake-Formular vorhanden" style="margin-left:4px;">
+                            <span class="dashicons dashicons-clipboard" style="color:var(--lvb-accent,#00F5C4);font-size:16px;vertical-align:middle;"></span>
+                        </a>
+                    <?php endif; ?>
+                    <br>
                     <a href="mailto:<?php echo esc_attr( $b['customer_email'] ); ?>"><?php echo esc_html( $b['customer_email'] ); ?></a>
                 </td>
                 <td><?php echo esc_html( $b['service_name'] ?? '—' ); ?></td>

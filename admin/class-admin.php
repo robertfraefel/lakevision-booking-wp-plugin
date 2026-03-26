@@ -91,6 +91,7 @@ class LVB_Admin {
         add_submenu_page( 'lvb-bookings', __( 'Customers', 'lakevision-booking' ), __( 'Customers', 'lakevision-booking' ), 'manage_options', 'lvb-customers', [ $this, 'page_customers' ] );
         add_submenu_page( 'lvb-bookings', __( 'Services',  'lakevision-booking' ), __( 'Services',  'lakevision-booking' ), 'manage_options', 'lvb-services',  [ $this, 'page_services' ] );
         add_submenu_page( 'lvb-bookings', __( 'Staff',     'lakevision-booking' ), __( 'Staff',     'lakevision-booking' ), 'manage_options', 'lvb-staff',     [ $this, 'page_staff' ] );
+        add_submenu_page( 'lvb-bookings', __( 'Intake Forms', 'lakevision-booking' ), __( 'Intake Forms', 'lakevision-booking' ), 'manage_options', 'lvb-intake-forms', [ $this, 'page_intake_forms' ] );
         add_submenu_page( 'lvb-bookings', __( 'Settings',  'lakevision-booking' ), __( 'Settings',  'lakevision-booking' ), 'manage_options', 'lvb-settings',  [ $this, 'page_settings' ] );
     }
 
@@ -116,6 +117,7 @@ class LVB_Admin {
             'lv-booking_page_lvb-services',
             'lv-booking_page_lvb-staff',
             'lv-booking_page_lvb-settings',
+            'lv-booking_page_lvb-intake-forms',
         ];
         if ( ! in_array( $hook, $lvb_pages, true ) ) {
             return;
@@ -390,5 +392,17 @@ class LVB_Admin {
      */
     public function page_settings() {
         require LVB_PLUGIN_DIR . 'admin/partials/settings.php';
+    }
+
+    /**
+     * Render the Intake Forms admin page.
+     *
+     * Delegates to the intake-forms partial which lists all intake form
+     * submissions and allows viewing individual records.
+     *
+     * @return void
+     */
+    public function page_intake_forms() {
+        require LVB_PLUGIN_DIR . 'admin/partials/intake-forms.php';
     }
 }
