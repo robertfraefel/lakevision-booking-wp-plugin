@@ -250,6 +250,14 @@ $disconnect_url = wp_nonce_url(
             <h2>Intake Form</h2>
             <table class="form-table">
                 <tr>
+                    <th><label for="lvb_intake_form_enabled">Enable Intake Form</label></th>
+                    <td>
+                        <input type="checkbox" id="lvb_intake_form_enabled" name="lvb_intake_form_enabled" value="1"
+                               <?php checked( 1, get_option( 'lvb_intake_form_enabled', 1 ) ); ?>>
+                        <p class="description">Show the intake form on the frontend. When disabled, the shortcode will show a message that the form is currently not available.</p>
+                    </td>
+                </tr>
+                <tr>
                     <th><label for="lvb_intake_disclaimer">Intake Form Disclaimer</label></th>
                     <td>
                         <textarea id="lvb_intake_disclaimer" name="lvb_intake_disclaimer" class="large-text" rows="4"><?php echo esc_textarea( get_option( 'lvb_intake_disclaimer', 'ChiroBalance® ist eine komplementäre Methode und ersetzt keine medizinische oder psychotherapeutische Behandlung. Bei akuten körperlichen oder psychischen Beschwerden wende dich bitte an eine Fachperson. Ich arbeite achtsam und innerhalb meiner Kompetenzen.' ) ); ?></textarea>

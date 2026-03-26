@@ -278,6 +278,7 @@ class LVB_Admin {
         }
         // Checkbox options
         update_option( 'lvb_disclaimer_enabled', isset( $_POST['lvb_disclaimer_enabled'] ) ? 1 : 0 );
+        update_option( 'lvb_intake_form_enabled', isset( $_POST['lvb_intake_form_enabled'] ) ? 1 : 0 );
         update_option( 'lvb_reminder_enabled', isset( $_POST['lvb_reminder_enabled'] ) ? 1 : 0 );
         // Number options
         if ( isset( $_POST['lvb_reminder_hours'] ) ) {

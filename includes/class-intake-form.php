@@ -28,6 +28,10 @@ class LVB_Intake_Form {
      * @return string  HTML output.
      */
     public static function render() {
+        if ( ! get_option( 'lvb_intake_form_enabled', '1' ) ) {
+            return '<p style="text-align:center;color:#7A756C;">Das Anmeldeformular ist derzeit nicht verfügbar.</p>';
+        }
+
         wp_enqueue_style( 'lvb-intake-form' );
         wp_enqueue_script( 'lvb-intake-form' );
 
