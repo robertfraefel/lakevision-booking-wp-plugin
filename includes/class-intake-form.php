@@ -106,7 +106,7 @@ class LVB_Intake_Form {
         ?>
         <div class="lvb-intake-form-wrap" id="lvb-intake-form-wrap">
             <form id="lvb-intake-form" class="lvb-intake-form" novalidate>
-                <?php wp_nonce_field( 'lvb_intake_form_nonce', 'lvb_intake_nonce' ); ?>
+                <input type="text" name="website_url" style="display:none;position:absolute;left:-9999px;" tabindex="-1" autocomplete="off">
 
                 <?php foreach ( $fields as $field ) :
                     if ( empty( $field['enabled'] ) ) continue;
@@ -189,8 +189,9 @@ class LVB_Intake_Form {
                     <button type="submit" class="lvb-if-submit" id="lvb-if-submit">Formular absenden</button>
                 </div>
 
-                <div class="lvb-if-message" id="lvb-if-message" style="display:none;"></div>
+                
             </form>
+                <div class="lvb-if-message" id="lvb-if-message" style="display:none;"></div>
         </div>
         <script>
         (function(){
@@ -265,7 +266,9 @@ class LVB_Intake_Form {
      * Dynamically processes fields based on the stored configuration.
      */
     public static function ajax_submit() {
-        check_ajax_referer( 'lvb_intake_form_nonce', 'lvb_intake_nonce' );
+        // Nonce check disabled for Cloudflare cache compatibility
+        // Spam protection via honeypot field instead
+        if ( ! empty( $_POST['website_url'] ) ) { wp_send_json_error( ['message' => 'Spam detected.'] ); return; }
 
         $fields  = self::get_fields_config();
         $col_map = self::field_to_column_map();
