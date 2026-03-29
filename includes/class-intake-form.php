@@ -44,6 +44,7 @@ class LVB_Intake_Form {
      */
     public static function get_fields_config() {
         $json = get_option( 'lvb_intake_form_fields', '' );
+        if ( is_array( $json ) ) { return $json; }
         if ( ! empty( $json ) ) {
             $fields = json_decode( $json, true );
             if ( is_array( $fields ) && ! empty( $fields ) ) {
