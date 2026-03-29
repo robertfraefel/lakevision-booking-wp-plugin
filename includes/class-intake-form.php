@@ -67,6 +67,10 @@ class LVB_Intake_Form {
      *
      * @return array  field_id => db_column_name
      */
+    public static function get_field_to_column_map() {
+        return self::field_to_column_map();
+    }
+
     private static function field_to_column_map() {
         return [
             'email'         => 'email',

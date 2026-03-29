@@ -202,7 +202,7 @@ class LVB_Notifications {
         $start = new DateTime( $booking['start_datetime'] );
         $start->setTimezone( wp_timezone() );
 
-        $subject = sprintf( __( 'Booking Cancelled – %s', 'lakevision-booking' ), get_bloginfo( 'name' ) );
+        $subject = sprintf( __( 'Buchung storniert – %s', 'lakevision-booking' ), get_bloginfo( 'name' ) );
         $body    = self::render( 'cancellation', [
             'customer_name' => trim( $customer['first_name'] . ' ' . $customer['last_name'] ),
             'service_name'  => $service['name'],
@@ -336,14 +336,14 @@ class LVB_Notifications {
         $site         = esc_html( $vars['site_name'] );
         $logo_url     = get_option( 'lvb_email_logo_url', plugins_url( 'assets/img/logo.svg', LVB_PLUGIN_FILE ) );
         $staff_label  = get_option( 'lvb_staff_label', 'Begleiterin' );
-        $confirm_text = get_option( 'lvb_email_confirmation_text', 'Your booking is confirmed. We look forward to seeing you!' );
+        $confirm_text = get_option( 'lvb_email_confirmation_text', 'Deine Buchung ist bestätigt. Wir freuen uns auf dich!' );
         $logo         = '<img src="' . esc_url( $logo_url ) . '" alt="' . $site . '" width="320" style="display:block;margin:0 auto;max-width:320px;">';
 
         switch ( $template ) {
             case 'customer_confirmation':
                 $rows = self::detail_rows( [
                     'Sitzung'    => esc_html( $vars['service_name'] ),
-                    $staff_label => esc_html( $vars['staff_name'] ?: 'TBD' ),
+                    $staff_label => esc_html( $vars['staff_name'] ?: 'Noch offen' ),
                     'Datum'      => esc_html( $vars['date'] ),
                     'Zeit'       => esc_html( $vars['time'] ),
                     'Preis'      => esc_html( $vars['price'] ),
@@ -369,15 +369,15 @@ class LVB_Notifications {
             case 'admin_notification':
                 $rows = self::detail_rows( [
                     'Sitzung'      => esc_html( $vars['service_name'] ),
-                    $staff_label   => esc_html( $vars['staff_name'] ?: 'Unassigned' ),
-                    'Date'     => esc_html( $vars['date'] ),
-                    'Time'     => esc_html( $vars['time'] ),
+                    $staff_label   => esc_html( $vars['staff_name'] ?: 'Nicht zugewiesen' ),
+                    'Datum'    => esc_html( $vars['date'] ),
+                    'Zeit'     => esc_html( $vars['time'] ),
                     'Preis'    => esc_html( $vars['price'] ),
-                    'Customer' => esc_html( $vars['customer_name'] ),
-                    'Email'    => esc_html( $vars['customer_email'] ),
-                    'Phone'    => esc_html( $vars['customer_phone'] ),
+                    'Kundin'   => esc_html( $vars['customer_name'] ),
+                    'E-Mail'   => esc_html( $vars['customer_email'] ),
+                    'Telefon'  => esc_html( $vars['customer_phone'] ),
                     'Bemerkungen'    => esc_html( $vars['notes'] ),
-                    'Booking #'=> esc_html( $vars['booking_id'] ),
+                    'Buchung #'=> esc_html( $vars['booking_id'] ),
                 ], $row_style );
 
                 $admin_url = admin_url( 'admin.php?page=lvb-bookings' );
@@ -409,41 +409,42 @@ class LVB_Notifications {
                         <table style="width:100%;border-collapse:collapse;">' . $rows . '</table>
                         <p style="margin-top:24px;">Bei Fragen oder falls du absagen möchtest, melde dich bitte so früh wie möglich bei uns.</p>
                     </div>
-                    <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '. All rights reserved.</div>
+                    <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '. Alle Rechte vorbehalten.</div>
                 </div>';
 
             case 'intake_form_notification':
-                // Build label => value pairs from the insert data for the table
-                $field_labels = [
-                    'name'                => 'Name',
-                    'email'               => 'E-Mail',
-                    'phone'               => 'Telefon',
-                    'wishes'              => 'Wünsche',
-                    'health_issues'       => 'Gesundheitliche Beschwerden',
-                    'medications'         => 'Medikamente',
-                    'psychotherapy'       => 'Psychotherapie',
-                    'disclaimer_accepted' => 'Disclaimer akzeptiert',
-                    'data_confirmed'      => 'Daten bestätigt',
-                ];
+                // Dynamically build label => value pairs from form config
+                $intake_fields_config = LVB_Intake_Form::get_fields_config();
+                $intake_f2c = LVB_Intake_Form::get_field_to_column_map();
+                // Build reverse map: db_column => field_id
+                $intake_col_to_field = array_flip( $intake_f2c );
+                // Build field_id => label map
+                $intake_field_labels_map = [];
+                foreach ( $intake_fields_config as $f ) {
+                    $intake_field_labels_map[ $f['id'] ] = $f['label'];
+                }
 
                 $intake_pairs = [];
-                foreach ( $field_labels as $key => $label ) {
-                    if ( ! isset( $vars[ $key ] ) || $vars[ $key ] === '' ) continue;
-                    $val = $vars[ $key ];
-                    // Translate yes/no and 1/0 for readability
-                    if ( $val === 'yes' ) $val = 'Ja';
-                    if ( $val === 'no' ) $val = 'Nein';
-                    if ( $val === 1 || $val === '1' ) $val = 'Ja';
-                    if ( $val === 0 || $val === '0' ) $val = 'Nein';
+                // Display all known DB columns with German labels
+                foreach ( $intake_f2c as $field_id => $db_col ) {
+                    if ( ! isset( $vars[ $db_col ] ) || $vars[ $db_col ] === '' ) continue;
+                    $val = $vars[ $db_col ];
+                    if ( $val === 'yes' || $val === 1 || $val === '1' ) $val = 'Ja';
+                    if ( $val === 'no' || $val === 0 || $val === '0' ) $val = 'Nein';
+                    $label = isset( $intake_field_labels_map[ $field_id ] ) ? $intake_field_labels_map[ $field_id ] : $db_col;
                     $intake_pairs[ $label ] = esc_html( $val );
                 }
 
-                // Include custom fields if present
+                // Include custom fields with German labels from config
                 if ( ! empty( $vars['custom_fields'] ) ) {
                     $custom = json_decode( $vars['custom_fields'], true );
                     if ( is_array( $custom ) ) {
                         foreach ( $custom as $cf_key => $cf_val ) {
-                            $intake_pairs[ esc_html( $cf_key ) ] = esc_html( $cf_val );
+                            if ( $cf_val === '' ) continue;
+                            if ( $cf_val === 'yes' || $cf_val === 1 || $cf_val === '1' ) $cf_val = 'Ja';
+                            if ( $cf_val === 'no' || $cf_val === 0 || $cf_val === '0' ) $cf_val = 'Nein';
+                            $cf_label = isset( $intake_field_labels_map[ $cf_key ] ) ? $intake_field_labels_map[ $cf_key ] : $cf_key;
+                            $intake_pairs[ esc_html( $cf_label ) ] = esc_html( $cf_val );
                         }
                     }
                 }
@@ -468,34 +469,36 @@ class LVB_Notifications {
             case 'intake_customer_confirmation':
                 $customer_name_ic = esc_html( $vars['name'] ?? '' );
 
-                // Build summary of submitted form data
-                $ic_field_labels = [
-                    'name'           => 'Name',
-                    'email'          => 'E-Mail',
-                    'phone'          => 'Telefon',
-                    'wishes'         => 'Wünsche',
-                    'health_issues'  => 'Gesundheitliche Beschwerden',
-                    'medications'    => 'Medikamente',
-                    'psychotherapy'  => 'Psychotherapie',
-                ];
+                // Dynamically build summary from form config
+                $ic_fields_config = LVB_Intake_Form::get_fields_config();
+                $ic_f2c = LVB_Intake_Form::get_field_to_column_map();
+                // Build field_id => label map
+                $ic_field_labels_map = [];
+                foreach ( $ic_fields_config as $f ) {
+                    $ic_field_labels_map[ $f['id'] ] = $f['label'];
+                }
 
                 $ic_pairs = [];
-                foreach ( $ic_field_labels as $key => $label ) {
-                    if ( ! isset( $vars[ $key ] ) || $vars[ $key ] === '' ) continue;
-                    $val = $vars[ $key ];
-                    if ( $val === 'yes' ) $val = 'Ja';
-                    if ( $val === 'no' ) $val = 'Nein';
-                    if ( $val === 1 || $val === '1' ) $val = 'Ja';
-                    if ( $val === 0 || $val === '0' ) $val = 'Nein';
+                // Display all known DB columns with German labels
+                foreach ( $ic_f2c as $field_id => $db_col ) {
+                    if ( ! isset( $vars[ $db_col ] ) || $vars[ $db_col ] === '' ) continue;
+                    $val = $vars[ $db_col ];
+                    if ( $val === 'yes' || $val === 1 || $val === '1' ) $val = 'Ja';
+                    if ( $val === 'no' || $val === 0 || $val === '0' ) $val = 'Nein';
+                    $label = isset( $ic_field_labels_map[ $field_id ] ) ? $ic_field_labels_map[ $field_id ] : $db_col;
                     $ic_pairs[ $label ] = esc_html( $val );
                 }
 
-                // Include custom fields if present
+                // Include custom fields with German labels from config
                 if ( ! empty( $vars['custom_fields'] ) ) {
                     $ic_custom = json_decode( $vars['custom_fields'], true );
                     if ( is_array( $ic_custom ) ) {
                         foreach ( $ic_custom as $cf_key => $cf_val ) {
-                            $ic_pairs[ esc_html( $cf_key ) ] = esc_html( $cf_val );
+                            if ( $cf_val === '' ) continue;
+                            if ( $cf_val === 'yes' || $cf_val === 1 || $cf_val === '1' ) $cf_val = 'Ja';
+                            if ( $cf_val === 'no' || $cf_val === 0 || $cf_val === '0' ) $cf_val = 'Nein';
+                            $cf_label = isset( $ic_field_labels_map[ $cf_key ] ) ? $ic_field_labels_map[ $cf_key ] : $cf_key;
+                            $ic_pairs[ esc_html( $cf_label ) ] = esc_html( $cf_val );
                         }
                     }
                 }
