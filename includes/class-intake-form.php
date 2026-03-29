@@ -373,6 +373,15 @@ class LVB_Intake_Form {
         $result = LVB_Database::insert( 'intake_forms', $insert_data );
 
         if ( $result ) {
+            // Sync birthday from custom_fields to the customer record
+            if ( $customer_id && ! empty( $custom_fields['birthday'] ) ) {
+                $wpdb->update(
+                    $wpdb->prefix . 'lvb_customers',
+                    [ 'birthday' => sanitize_text_field( $custom_fields['birthday'] ) ],
+                    [ 'id' => $customer_id ]
+                );
+            }
+
             // Send admin email notification with the form data
             LVB_Notifications::send_intake_form_notification( $insert_data, $result );
 

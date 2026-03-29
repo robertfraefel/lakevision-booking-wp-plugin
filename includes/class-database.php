@@ -83,6 +83,7 @@ class LVB_Database {
             last_name   VARCHAR(100)    NOT NULL,
             email       VARCHAR(255)    NOT NULL,
             phone       VARCHAR(50)     DEFAULT NULL,
+            birthday    DATE            DEFAULT NULL,
             notes       TEXT            DEFAULT NULL,
             created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -139,6 +140,12 @@ class LVB_Database {
         $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}lvb_intake_forms LIKE 'custom_fields'" );
         if ( empty( $cols ) ) {
             $wpdb->query( "ALTER TABLE {$wpdb->prefix}lvb_intake_forms ADD COLUMN custom_fields TEXT DEFAULT NULL AFTER data_confirmed" );
+        }
+
+        // Add birthday column to customers if missing (migration for existing installs)
+        $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}lvb_customers LIKE 'birthday'" );
+        if ( empty( $cols ) ) {
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}lvb_customers ADD COLUMN birthday DATE DEFAULT NULL AFTER phone" );
         }
 
         // Add sort_order column if missing (migration for existing installs)

@@ -79,6 +79,7 @@ $total_pages = max( 1, (int) ceil( $total / $per_page ) );
                 <th>Name</th>
                 <th>Email</th>
                 <th>Phone</th>
+                <th>Geburtstag</th>
                 <th>Bookings</th>
                 <th>Member Since</th>
                 <th>Notes</th>
@@ -96,6 +97,7 @@ $total_pages = max( 1, (int) ceil( $total / $per_page ) );
                 <td><strong><?php echo esc_html( $c['first_name'] . ' ' . $c['last_name'] ); ?></strong></td>
                 <td><a href="mailto:<?php echo esc_attr( $c['email'] ); ?>"><?php echo esc_html( $c['email'] ); ?></a></td>
                 <td><?php echo esc_html( $c['phone'] ?: '—' ); ?></td>
+                <td><?php echo ! empty( $c['birthday'] ) ? esc_html( wp_date( get_option( 'date_format' ), strtotime( $c['birthday'] ) ) ) : '—'; ?></td>
                 <td>
                     <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'lvb-bookings', 's' => $c['email'] ], admin_url( 'admin.php' ) ) ); ?>">
                         <?php echo esc_html( $c['booking_count'] ); ?>
