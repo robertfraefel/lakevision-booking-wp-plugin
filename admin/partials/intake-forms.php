@@ -22,18 +22,122 @@ if ( $view_id ) :
     </h1>
     <hr class="wp-header-end">
 
+    <?php
+    // Build label map from form config: field_id => label, and db_column => label
+    $lvb_label_map = [];
+    $lvb_col_map   = [];
+    if ( class_exists( 'LVB_Intake_Form' ) && method_exists( 'LVB_Intake_Form', 'get_fields_config' ) ) {
+        $lvb_fields_cfg = LVB_Intake_Form::get_fields_config();
+        // Map from field_to_column_map
+        $lvb_field_col = [
+            'email'         => 'email',
+            'name'          => 'name',
+            'phone'         => 'phone',
+            'wishes'        => 'wishes',
+            'health'        => 'health_issues',
+            'medications'   => 'medications',
+            'psychotherapy' => 'psychotherapy',
+            'disclaimer'    => 'disclaimer_accepted',
+            'confirm'       => 'data_confirmed',
+        ];
+        foreach ( $lvb_fields_cfg as $f_cfg ) {
+            $fid = $f_cfg['id'];
+            $lvb_label_map[ $fid ] = $f_cfg['label'];
+            if ( isset( $lvb_field_col[ $fid ] ) ) {
+                $lvb_col_map[ $lvb_field_col[ $fid ] ] = $f_cfg['label'];
+            }
+        }
+    }
+
+    // Fallback German labels for known DB columns
+    $lvb_fallback_labels = [
+        'email'               => 'E-Mail-Adresse',
+        'name'                => 'Name',
+        'phone'               => 'Telefonnummer',
+        'wishes'              => 'Wünsche',
+        'health_issues'       => 'Gesundheitliche Beschwerden',
+        'medications'         => 'Medikamente',
+        'psychotherapy'       => 'Psychotherapeutische Behandlung',
+        'disclaimer_accepted' => 'Disclaimer akzeptiert',
+        'data_confirmed'      => 'Angaben bestätigt',
+    ];
+
+    /**
+     * Helper: format a value for display in the admin detail view.
+     */
+    function lvb_admin_format_value( $value ) {
+        if ( is_null( $value ) || $value === '' ) {
+            return '<em>—</em>';
+        }
+        // Boolean-ish values
+        if ( $value === 'yes' || $value === '1' || $value === 1 || $value === true ) {
+            return 'Ja';
+        }
+        if ( $value === 'no' || $value === '0' || $value === 0 || $value === false ) {
+            return 'Nein';
+        }
+        // Comma-separated list (from checkbox-group) → bullet list
+        if ( is_string( $value ) && strpos( $value, ', ' ) !== false ) {
+            $items = array_map( 'trim', explode( ', ', $value ) );
+            $html  = '<ul style="margin:0;padding-left:1.2em;">';
+            foreach ( $items as $item ) {
+                $html .= '<li>' . esc_html( $item ) . '</li>';
+            }
+            $html .= '</ul>';
+            return $html;
+        }
+        // Array (unlikely from DB, but just in case)
+        if ( is_array( $value ) ) {
+            $html = '<ul style="margin:0;padding-left:1.2em;">';
+            foreach ( $value as $item ) {
+                $html .= '<li>' . esc_html( $item ) . '</li>';
+            }
+            $html .= '</ul>';
+            return $html;
+        }
+        return nl2br( esc_html( $value ) );
+    }
+
+    // Known DB columns to display (in order)
+    $lvb_db_columns = [
+        'email', 'name', 'phone', 'wishes', 'health_issues',
+        'medications', 'psychotherapy', 'disclaimer_accepted', 'data_confirmed',
+    ];
+    ?>
+
     <table class="widefat fixed striped" style="max-width:700px;">
         <tbody>
-            <tr><th style="width:35%;">E-Mail</th><td><?php echo esc_html( $form['email'] ); ?></td></tr>
-            <tr><th>Name</th><td><?php echo esc_html( $form['name'] ); ?></td></tr>
-            <tr><th>Telefon</th><td><?php echo esc_html( $form['phone'] ); ?></td></tr>
-            <tr><th>Wünsche</th><td><?php echo esc_html( $form['wishes'] ); ?></td></tr>
-            <tr><th>Gesundheitliche Beschwerden</th><td><?php echo nl2br( esc_html( $form['health_issues'] ) ); ?></td></tr>
-            <tr><th>Medikamente</th><td><?php echo $form['medications'] === 'yes' ? 'Ja' : 'Nein'; ?></td></tr>
-            <tr><th>Psychotherapeutische Behandlung</th><td><?php echo $form['psychotherapy'] === 'yes' ? 'Ja' : 'Nein'; ?></td></tr>
-            <tr><th>Disclaimer akzeptiert</th><td><?php echo $form['disclaimer_accepted'] ? 'Ja' : 'Nein'; ?></td></tr>
-            <tr><th>Angaben bestätigt</th><td><?php echo $form['data_confirmed'] ? 'Ja' : 'Nein'; ?></td></tr>
-            <tr><th>Verknüpfter Kunde</th><td><?php
+            <?php foreach ( $lvb_db_columns as $col ) :
+                $label = $lvb_col_map[ $col ] ?? $lvb_fallback_labels[ $col ] ?? $col;
+                $val   = $form[ $col ] ?? '';
+            ?>
+            <tr>
+                <th style="width:35%;"><?php echo esc_html( $label ); ?></th>
+                <td><?php echo lvb_admin_format_value( $val ); ?></td>
+            </tr>
+            <?php endforeach; ?>
+
+            <?php
+            // Decode and display custom_fields
+            $custom_fields_raw = $form['custom_fields'] ?? '';
+            $custom_fields     = [];
+            if ( ! empty( $custom_fields_raw ) ) {
+                $decoded = json_decode( $custom_fields_raw, true );
+                if ( is_array( $decoded ) ) {
+                    $custom_fields = $decoded;
+                }
+            }
+            if ( ! empty( $custom_fields ) ) :
+                foreach ( $custom_fields as $cf_key => $cf_val ) :
+                    $cf_label = $lvb_label_map[ $cf_key ] ?? $cf_key;
+            ?>
+            <tr>
+                <th style="width:35%;"><?php echo esc_html( $cf_label ); ?></th>
+                <td><?php echo lvb_admin_format_value( $cf_val ); ?></td>
+            </tr>
+            <?php endforeach; endif; ?>
+
+            <tr><th style="width:35%;">Verknüpfter Kunde</th><td><?php
                 if ( $form['customer_id'] ) {
                     $cust = LVB_Database::get_by_id( 'customers', $form['customer_id'] );
                     if ( $cust ) {
