@@ -119,7 +119,7 @@ class LVB_Intake_Form {
                     $req_attr = $required ? ' required' : '';
                 ?>
 
-                <?php if ( $type === 'email' || $type === 'text' || $type === 'tel' ) : ?>
+                <?php if ( $type === 'email' || $type === 'text' || $type === 'tel' || $type === 'date' ) : ?>
                 <div class="lvb-if-field">
                     <label for="lvb-if-<?php echo $id; ?>"><?php echo $label; ?><?php echo $req_star; ?></label>
                     <input type="<?php echo esc_attr( $type ); ?>" id="lvb-if-<?php echo $id; ?>" name="<?php echo $id; ?>"<?php echo $req_attr; ?>>
