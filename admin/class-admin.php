@@ -125,6 +125,11 @@ class LVB_Admin {
             return;
         }
         wp_enqueue_style( 'lvb-admin', LVB_PLUGIN_URL . 'assets/css/admin.css', [], LVB_VERSION );
+
+        // Enqueue jQuery UI Sortable on the Form Builder page for drag & drop reordering.
+        if ( 'lv-booking_page_lvb-form-builder' === $hook ) {
+            wp_enqueue_script( 'jquery-ui-sortable' );
+        }
     }
 
     // -----------------------------------------------------------------------

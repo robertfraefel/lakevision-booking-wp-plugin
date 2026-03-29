@@ -44,6 +44,7 @@ $fields = LVB_Intake_Form::get_fields_config();
         <table class="widefat striped" id="lvb-fb-table">
             <thead>
                 <tr>
+                    <th style="width:20px" title="Drag to reorder">&#8597;</th>
                     <th style="width:30px">#</th>
                     <th>Field ID</th>
                     <th>Label</th>
@@ -57,6 +58,7 @@ $fields = LVB_Intake_Form::get_fields_config();
             <tbody id="lvb-fb-body">
                 <?php foreach ( $fields as $i => $field ) : ?>
                 <tr class="lvb-fb-row" data-index="<?php echo $i; ?>">
+                    <td class="lvb-drag-handle" title="Drag to reorder"><span class="lvb-grip">&#8942;&#8942;</span></td>
                     <td>
                         <input type="number" name="fields[<?php echo $i; ?>][sort_order]" value="<?php echo $i + 1; ?>" class="small-text" min="1" style="width:50px;">
                     </td>
@@ -121,7 +123,8 @@ $fields = LVB_Intake_Form::get_fields_config();
     document.getElementById('lvb-fb-add-field').addEventListener('click', function(){
         var tr = document.createElement('tr');
         tr.className = 'lvb-fb-row';
-        tr.innerHTML = '<td><input type="number" name="fields['+index+'][sort_order]" value="'+(index+1)+'" class="small-text" min="1" style="width:50px;"></td>'
+        tr.innerHTML = '<td class="lvb-drag-handle" title="Drag to reorder"><span class="lvb-grip">&#8942;&#8942;</span></td>'
+            + '<td><input type="number" name="fields['+index+'][sort_order]" value="'+(index+1)+'" class="small-text" min="1" style="width:50px;"></td>'
             + '<td><input type="text" name="fields['+index+'][id]" value="" class="regular-text" style="width:120px;" placeholder="field_id"></td>'
             + '<td><input type="text" name="fields['+index+'][label]" value="" class="regular-text" style="width:100%;" placeholder="Field Label"></td>'
             + '<td><select name="fields['+index+'][type]" class="lvb-fb-type-select">'
@@ -157,4 +160,47 @@ $fields = LVB_Intake_Form::get_fields_config();
         }
     });
 })();
+
+/* --- Drag & Drop Sortable --- */
+jQuery(function($){
+    $('#lvb-fb-body').sortable({
+        handle: '.lvb-drag-handle',
+        axis: 'y',
+        cursor: 'grabbing',
+        opacity: 0.8,
+        placeholder: 'lvb-sortable-placeholder',
+        update: function() {
+            // Re-number sort order inputs after reorder.
+            $('#lvb-fb-body .lvb-fb-row').each(function(i){
+                $(this).find('input[name$="[sort_order]"]').val(i + 1);
+            });
+        }
+    });
+});
 </script>
+
+<style>
+    .lvb-drag-handle {
+        cursor: move;
+        text-align: center;
+        width: 20px;
+        user-select: none;
+    }
+    .lvb-grip {
+        color: #b4b9be;
+        font-size: 16px;
+        letter-spacing: -3px;
+        line-height: 1;
+    }
+    .lvb-fb-row:hover .lvb-grip {
+        color: #50575e;
+    }
+    .lvb-sortable-placeholder {
+        background: #f0f6fc !important;
+        border: 1px dashed #2271b1;
+        visibility: visible !important;
+    }
+    .lvb-sortable-placeholder td {
+        visibility: hidden;
+    }
+</style>
