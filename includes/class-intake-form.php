@@ -175,15 +175,15 @@ class LVB_Intake_Form {
 
                 <?php elseif ( $type === 'single-checkbox' ) : ?>
                 <div class="lvb-if-field<?php echo $id === 'disclaimer' ? ' lvb-if-disclaimer-field' : ''; ?>">
+                    <label class="lvb-if-checkbox-label">
+                        <input type="checkbox" name="<?php echo $id; ?>" value="1"<?php echo $req_attr; ?>>
+                        <span><?php echo esc_html( $field['checkbox_text'] ?? $label ); ?><?php echo $req_star; ?></span>
+                    </label>
                     <?php if ( $id === 'disclaimer' ) : ?>
                         <div class="lvb-if-disclaimer-text">
                             <?php echo wp_kses_post( get_option( 'lvb_intake_disclaimer', 'ChiroBalance&reg; ist eine komplementäre Methode und ersetzt keine medizinische oder psychotherapeutische Behandlung. Bei akuten körperlichen oder psychischen Beschwerden wende dich bitte an eine Fachperson. Ich arbeite achtsam und innerhalb meiner Kompetenzen.' ) ); ?>
                         </div>
                     <?php endif; ?>
-                    <label class="lvb-if-checkbox-label">
-                        <input type="checkbox" name="<?php echo $id; ?>" value="1"<?php echo $req_attr; ?>>
-                        <span><?php echo esc_html( $field['checkbox_text'] ?? $label ); ?><?php echo $req_star; ?></span>
-                    </label>
                 </div>
 
                 <?php endif; ?>

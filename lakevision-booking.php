@@ -141,6 +141,12 @@ final class LakeVision_Booking {
         // Email reminder cron
         add_action( 'lvb_send_reminder', [ 'LVB_Notifications', 'send_reminder' ] );
 
+        // Google Calendar health check (daily)
+        add_action( 'lvb_calendar_health_check', [ 'LVB_Google_Calendar', 'health_check' ] );
+        if ( ! wp_next_scheduled( 'lvb_calendar_health_check' ) ) {
+            wp_schedule_event( time(), 'daily', 'lvb_calendar_health_check' );
+        }
+
         // Google OAuth callback
         add_action( 'admin_post_lvb_google_callback', [ 'LVB_Google_Calendar', 'oauth_callback' ] );
 
@@ -206,9 +212,9 @@ final class LakeVision_Booking {
         // Intake form assets
         wp_register_style(
             'lvb-intake-form',
-            LVB_PLUGIN_URL . 'assets/css/intake-form.css',
+            LVB_PLUGIN_URL . 'assets/css/intake-form-v2.css',
             [],
-            filemtime( LVB_PLUGIN_DIR . 'assets/css/intake-form.css' )
+            filemtime( LVB_PLUGIN_DIR . 'assets/css/intake-form-v2.css' )
         );
         wp_register_script(
             'lvb-intake-form',
@@ -231,7 +237,7 @@ final class LakeVision_Booking {
      * @return void
      */
     public static function deactivate() {
-        // Future: flush rewrite rules, etc.
+        wp_clear_scheduled_hook( 'lvb_calendar_health_check' );
     }
 }
 

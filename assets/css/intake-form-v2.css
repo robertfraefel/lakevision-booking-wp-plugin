@@ -1,0 +1,138 @@
+/* LVB Intake Form – Light Theme */
+.lvb-intake-form-wrap { max-width: 100%; }
+.lvb-intake-form {
+    background: #F2EDE5;
+    border: 1px solid rgba(26,35,50,0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    color: #1A1A1A;
+    font-family: inherit;
+}
+.lvb-if-field { margin-bottom: 1.5rem; }
+.lvb-if-field > label {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1A1A1A;
+    margin-bottom: 0.5rem;
+}
+.lvb-if-req { color: #c0392b; }
+.lvb-intake-form input[type=text],
+.lvb-intake-form input[type=email],
+.lvb-intake-form input[type=tel],
+.lvb-intake-form textarea,
+.lvb-intake-form select {
+    width: 100%;
+    padding: 12px 14px;
+    background: #FAF7F2;
+    border: 1px solid rgba(26,35,50,0.15);
+    border-radius: 8px;
+    color: #1A1A1A;
+    font-size: 15px;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+.lvb-intake-form input:focus,
+.lvb-intake-form textarea:focus,
+.lvb-intake-form select:focus {
+    outline: none;
+    border-color: #7A5C1F;
+    box-shadow: 0 0 0 3px rgba(122,92,31,0.1);
+}
+.lvb-intake-form input::placeholder,
+.lvb-intake-form textarea::placeholder { color: #7A756C; }
+.lvb-intake-form textarea { resize: vertical; min-height: 100px; }
+.lvb-intake-form select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%233A3530' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 38px;
+}
+/* Checkboxes */
+.lvb-if-checkboxes { display: flex; flex-direction: column; gap: 0.5rem; }
+.lvb-if-checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.95rem;
+    color: #3A3530;
+    cursor: pointer;
+}
+.lvb-if-checkbox-label input[type=checkbox] {
+    accent-color: #7A5C1F;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+.lvb-if-other-wrap { margin-top: 0.5rem; padding-left: 2rem; }
+.lvb-if-other-wrap input { max-width: 300px; }
+/* Disclaimer */
+.lvb-if-disclaimer-field .lvb-if-checkbox-label {
+    align-items: flex-start !important;
+}
+.lvb-if-disclaimer-field .lvb-if-checkbox-label input[type=checkbox] {
+    margin-top: 3px;
+}
+.lvb-if-disclaimer-field .lvb-if-disclaimer-text {
+    background: rgba(196,166,138,0.1);
+    border: 1px solid rgba(196,166,138,0.3);
+    border-radius: 12px;
+    padding: 1.2rem;
+    margin-top: 1rem;
+    color: #3A3530;
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+/* Submit */
+.lvb-if-submit-wrap { margin-top: 2rem; }
+.lvb-if-submit {
+    display: block;
+    width: 100%;
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, #C4A68A, #B8976A);
+    color: #1E1C19;
+    border: none;
+    border-radius: 60px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: inherit;
+}
+.lvb-if-submit:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(196,166,138,0.3); }
+.lvb-if-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+/* Messages */
+.lvb-if-message {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 1rem;
+    background: #F2EDE5;
+    color: #1A1A1A;
+}
+.lvb-if-success { background: rgba(122,158,126,0.12); border: 1px solid rgba(122,158,126,0.3); color: #3A6B3E; }
+.lvb-if-error { background: rgba(231,76,60,0.08); border: 1px solid rgba(231,76,60,0.2); color: #c0392b; }
+
+/* Date input styling */
+.lvb-intake-form input[type=date] {
+    width: 100%;
+    padding: 12px 14px;
+    background: #FAF7F2;
+    border: 1px solid rgba(26,35,50,0.15);
+    border-radius: 8px;
+    color: #1A1A1A;
+    font-size: 15px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.lvb-intake-form input[type=date]:focus {
+    outline: none;
+    border-color: #7A5C1F;
+    box-shadow: 0 0 0 3px rgba(122,92,31,0.1);
+}

@@ -453,4 +453,65 @@ class LVB_Google_Calendar {
     public static function is_connected() {
         return ! empty( get_option( 'lvb_google_refresh_token', '' ) );
     }
+
+    /**
+     * Health check: verify the Google Calendar connection is working.
+     *
+     * Attempts to obtain an access token. If it fails, sends an alert email
+     * to the admin notification address (max once per 24 hours to avoid spam).
+     *
+     * Hooked to the `lvb_calendar_health_check` cron event.
+     *
+     * @return void
+     */
+    public static function health_check() {
+        if ( ! self::is_connected() ) {
+            self::send_health_alert( 'Kein Refresh Token vorhanden – Google Calendar ist nicht verbunden.' );
+            return;
+        }
+
+        $token = self::get_access_token();
+        if ( is_wp_error( $token ) ) {
+            self::send_health_alert( 'Google Calendar Verbindung fehlgeschlagen: ' . $token->get_error_message() );
+        } else {
+            // Connection OK – clear any previous alert flag
+            delete_option( 'lvb_health_alert_sent' );
+        }
+    }
+
+    /**
+     * Send a health alert email (max once per 24h).
+     *
+     * @param string $reason  Description of the failure.
+     * @return void
+     */
+    private static function send_health_alert( $reason ) {
+        // Only send once per 24 hours
+        $last_sent = get_option( 'lvb_health_alert_sent', 0 );
+        if ( $last_sent && ( time() - (int) $last_sent ) < DAY_IN_SECONDS ) {
+            return;
+        }
+
+        $to      = get_option( 'lvb_admin_notification_email', get_option( 'admin_email' ) );
+        $subject = '⚠️ Google Calendar Verbindung unterbrochen – ' . get_bloginfo( 'name' );
+        $message = '<html><body style="font-family:sans-serif;color:#333;">';
+        $message .= '<h2 style="color:#c0392b;">Google Calendar Verbindung unterbrochen</h2>';
+        $message .= '<p>' . esc_html( $reason ) . '</p>';
+        $message .= '<p>Bitte verbinde Google Calendar neu unter:<br>';
+        $message .= '<a href="' . esc_url( admin_url( 'admin.php?page=lvb-settings' ) ) . '">LV Booking → Settings</a></p>';
+        $message .= '<p style="color:#999;font-size:12px;">Diese Nachricht wird maximal einmal pro Tag gesendet.</p>';
+        $message .= '</body></html>';
+
+        $headers = [ 'Content-Type: text/html; charset=UTF-8' ];
+
+        $from      = get_option( 'lvb_email_from', get_bloginfo( 'name' ) );
+        $from_email = get_option( 'lvb_email_from_address', get_option( 'admin_email' ) );
+        if ( $from && $from_email ) {
+            $headers[] = 'From: ' . $from . ' <' . $from_email . '>';
+        }
+
+        wp_mail( $to, $subject, $message, $headers );
+
+        update_option( 'lvb_health_alert_sent', time(), false );
+    }
 }
