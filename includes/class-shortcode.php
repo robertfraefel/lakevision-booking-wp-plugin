@@ -351,6 +351,32 @@ class LVB_Shortcode {
             return;
         }
 
+        // Filter slots by minimum advance booking time
+        $min_advance = (int) get_option( 'lvb_min_advance_hours', 24 );
+        if ( $min_advance > 0 ) {
+            $cutoff = new DateTime( 'now', wp_timezone() );
+            $cutoff->modify( '+' . $min_advance . ' hours' );
+            $cutoff_str = $cutoff->format( 'Y-m-d H:i:s' );
+            // Remove slots that end before the cutoff; trim slots that start before cutoff but end after
+            $filtered = [];
+            foreach ( $slots as $slot ) {
+                if ( $slot['end'] <= $cutoff_str ) {
+                    continue; // entire slot is before cutoff
+                }
+                if ( $slot['start'] < $cutoff_str ) {
+                    // Trim: move start to cutoff
+                    $slot['start']      = $cutoff_str;
+                    $slot['start_date'] = substr( $cutoff_str, 0, 10 );
+                    $slot['start_time'] = substr( $cutoff_str, 11, 5 );
+                    $start_ts = ( new DateTime( $slot['start'], wp_timezone() ) )->getTimestamp();
+                    $end_ts   = ( new DateTime( $slot['end'], wp_timezone() ) )->getTimestamp();
+                    $slot['duration'] = (int) ( ( $end_ts - $start_ts ) / 60 );
+                }
+                $filtered[] = $slot;
+            }
+            $slots = $filtered;
+        }
+
         // Filter slots by service duration if provided
         if ( $service ) {
             $min_duration = (int) $service['duration'];
@@ -506,6 +532,18 @@ class LVB_Shortcode {
             'slot_event_id'  => sanitize_text_field( wp_unslash( $_POST['slot_event_id'] ?? '' ) ),
             'slot_win_end'   => sanitize_text_field( wp_unslash( $_POST['slot_win_end']   ?? '' ) ),
         ];
+
+        // Validate minimum advance booking time
+        $min_advance = (int) get_option( 'lvb_min_advance_hours', 24 );
+        if ( $min_advance > 0 ) {
+            $cutoff = new DateTime( 'now', wp_timezone() );
+            $cutoff->modify( '+' . $min_advance . ' hours' );
+            $booking_start = new DateTime( $data['start_datetime'], wp_timezone() );
+            if ( $booking_start < $cutoff ) {
+                wp_send_json_error( [ 'message' => sprintf( 'Buchungen müssen mindestens %d Stunden im Voraus erfolgen.', $min_advance ) ] );
+                return;
+            }
+        }
 
         $booking_id = LVB_Booking_Manager::create_booking( $data );
 

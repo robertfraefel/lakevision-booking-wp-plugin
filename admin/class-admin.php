@@ -303,6 +303,7 @@ class LVB_Admin {
             'lvb_whatsapp_url',
             'lvb_booking_title',
             'lvb_booking_subtitle',
+            'lvb_min_advance_hours',
             'lvb_accent_color',
             'lvb_accent2_color',
         ];

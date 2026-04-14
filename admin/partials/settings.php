@@ -149,6 +149,14 @@ $disconnect_url = wp_nonce_url(
                         <p class="description">Subtitle shown below the main heading.</p>
                     </td>
                 </tr>
+                <tr>
+                    <th><label for="lvb_min_advance_hours">Minimum Advance Booking</label></th>
+                    <td>
+                        <input type="number" id="lvb_min_advance_hours" name="lvb_min_advance_hours" class="small-text" min="0" step="1"
+                               value="<?php echo esc_attr( get_option( 'lvb_min_advance_hours', '24' ) ); ?>"> Stunden
+                        <p class="description">Wie viele Stunden im Voraus muss ein Termin mindestens gebucht werden. 0 = keine Einschränkung.</p>
+                    </td>
+                </tr>
             </table>
         </div>
 
