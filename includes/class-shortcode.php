@@ -356,6 +356,13 @@ class LVB_Shortcode {
         if ( $min_advance > 0 ) {
             $cutoff = new DateTime( 'now', wp_timezone() );
             $cutoff->modify( '+' . $min_advance . ' hours' );
+            // Round up to next 15-minute increment
+            $min = (int) $cutoff->format( 'i' );
+            $remainder = $min % 15;
+            if ( $remainder > 0 ) {
+                $cutoff->modify( '+' . ( 15 - $remainder ) . ' minutes' );
+            }
+            $cutoff->setTime( (int) $cutoff->format( 'H' ), (int) $cutoff->format( 'i' ), 0 );
             $cutoff_str = $cutoff->format( 'Y-m-d H:i:s' );
             // Remove slots that end before the cutoff; trim slots that start before cutoff but end after
             $filtered = [];
