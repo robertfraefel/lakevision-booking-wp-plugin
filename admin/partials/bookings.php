@@ -148,8 +148,8 @@ $status_labels = [
                     echo esc_html( wp_date( get_option( 'date_format' ) . ' H:i', $created->getTimestamp() ) );
                     ?>
                 </td>
-                <td>
                 <td><?php echo esc_html( ! empty( $b["notes"] ) ? wp_trim_words( $b["notes"], 15 ) : "—" ); ?></td>
+                <td>
                     <?php if ( ! empty( $b['reminder_sent'] ) ) : ?>
                         <span class="dashicons dashicons-yes-alt" style="color:#46b450" title="Erinnerung gesendet"></span>
                     <?php else : ?>
