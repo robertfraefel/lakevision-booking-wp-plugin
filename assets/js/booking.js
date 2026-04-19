@@ -338,13 +338,14 @@
                     cur = new Date( curMs + stepMs );
                 } else {
                     // Jump to end of blocking booked range, rounded up to the
-                    // next 15-min boundary so start times stay clean even when
-                    // a conflict ends on a crooked minute (e.g. 13:35 → 13:45).
-                    var step15 = 15 * 60000;
-                    var jumpMs = curMs + step15;
+                    // configured realign grid so start times stay clean even
+                    // when a conflict ends on a crooked minute.
+                    var gridMin  = parseInt( lvbData.slotRealignGrid, 10 ) || 15;
+                    var stepGrid = gridMin * 60000;
+                    var jumpMs   = curMs + stepGrid;
                     for ( var j = 0; j < bookedRanges.length; j++ ) {
                         if ( curMs < bookedRanges[ j ].end && slotEndMs + bufferMs > bookedRanges[ j ].start ) {
-                            var candidate = Math.ceil( bookedRanges[ j ].end / step15 ) * step15;
+                            var candidate = Math.ceil( bookedRanges[ j ].end / stepGrid ) * stepGrid;
                             if ( candidate > jumpMs ) {
                                 jumpMs = candidate;
                             }

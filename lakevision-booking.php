@@ -212,6 +212,7 @@ final class LakeVision_Booking {
             'nonce'              => wp_create_nonce( 'lvb_booking_nonce' ),
             'disclaimerEnabled'  => (bool) get_option( 'lvb_disclaimer_enabled', '1' ),
             'serviceLabel'       => get_option( 'lvb_service_label', 'Service' ),
+            'slotRealignGrid'    => max( 1, (int) get_option( 'lvb_slot_realign_grid', 15 ) ),
         ] );
 
         // Intake form assets

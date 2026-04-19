@@ -404,11 +404,12 @@ class LVB_Shortcode {
         if ( $min_advance > 0 ) {
             $cutoff = new DateTime( 'now', wp_timezone() );
             $cutoff->modify( '+' . $min_advance . ' hours' );
-            // Round up to next 15-minute increment
-            $min = (int) $cutoff->format( 'i' );
-            $remainder = $min % 15;
+            // Round up to next grid-minute increment (configurable)
+            $grid_min  = max( 1, (int) get_option( 'lvb_cutoff_grid', 15 ) );
+            $min       = (int) $cutoff->format( 'i' );
+            $remainder = $min % $grid_min;
             if ( $remainder > 0 ) {
-                $cutoff->modify( '+' . ( 15 - $remainder ) . ' minutes' );
+                $cutoff->modify( '+' . ( $grid_min - $remainder ) . ' minutes' );
             }
             $cutoff->setTime( (int) $cutoff->format( 'H' ), (int) $cutoff->format( 'i' ), 0 );
             $cutoff_str = $cutoff->format( 'Y-m-d H:i:s' );
