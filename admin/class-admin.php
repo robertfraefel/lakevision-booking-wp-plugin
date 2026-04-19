@@ -91,8 +91,10 @@ class LVB_Admin {
         add_submenu_page( 'lvb-bookings', __( 'Customers', 'lakevision-booking' ), __( 'Customers', 'lakevision-booking' ), 'manage_options', 'lvb-customers', [ $this, 'page_customers' ] );
         add_submenu_page( 'lvb-bookings', __( 'Services',  'lakevision-booking' ), __( 'Services',  'lakevision-booking' ), 'manage_options', 'lvb-services',  [ $this, 'page_services' ] );
         add_submenu_page( 'lvb-bookings', __( 'Staff',     'lakevision-booking' ), __( 'Staff',     'lakevision-booking' ), 'manage_options', 'lvb-staff',     [ $this, 'page_staff' ] );
-        add_submenu_page( 'lvb-bookings', __( 'Intake Forms', 'lakevision-booking' ), __( 'Intake Forms', 'lakevision-booking' ), 'manage_options', 'lvb-intake-forms', [ $this, 'page_intake_forms' ] );
-        add_submenu_page( 'lvb-bookings', __( 'Intake Form Builder', 'lakevision-booking' ), __( 'Intake Form Builder', 'lakevision-booking' ), 'manage_options', 'lvb-form-builder', [ $this, 'page_form_builder' ] );
+        if ( get_option( 'lvb_intake_form_enabled', 0 ) ) {
+            add_submenu_page( 'lvb-bookings', __( 'Intake Forms', 'lakevision-booking' ), __( 'Intake Forms', 'lakevision-booking' ), 'manage_options', 'lvb-intake-forms', [ $this, 'page_intake_forms' ] );
+            add_submenu_page( 'lvb-bookings', __( 'Intake Form Builder', 'lakevision-booking' ), __( 'Intake Form Builder', 'lakevision-booking' ), 'manage_options', 'lvb-form-builder', [ $this, 'page_form_builder' ] );
+        }
         add_submenu_page( 'lvb-bookings', __( 'Settings',  'lakevision-booking' ), __( 'Settings',  'lakevision-booking' ), 'manage_options', 'lvb-settings',  [ $this, 'page_settings' ] );
     }
 
@@ -321,10 +323,15 @@ class LVB_Admin {
         if ( isset( $_POST['lvb_disclaimer_text'] ) ) {
             update_option( 'lvb_disclaimer_text', sanitize_textarea_field( wp_unslash( $_POST['lvb_disclaimer_text'] ) ) );
         }
+        // Textarea options – intake form disclaimer
+        if ( isset( $_POST['lvb_intake_disclaimer'] ) ) {
+            update_option( 'lvb_intake_disclaimer', wp_kses_post( wp_unslash( $_POST['lvb_intake_disclaimer'] ) ) );
+        }
         // Checkbox options
         update_option( 'lvb_disclaimer_enabled', isset( $_POST['lvb_disclaimer_enabled'] ) ? 1 : 0 );
         update_option( 'lvb_reminder_enabled', isset( $_POST['lvb_reminder_enabled'] ) ? 1 : 0 );
         update_option( 'lvb_theme_inherit', isset( $_POST['lvb_theme_inherit'] ) ? 1 : 0 );
+        update_option( 'lvb_intake_form_enabled', isset( $_POST['lvb_intake_form_enabled'] ) ? 1 : 0 );
         // Number options
         if ( isset( $_POST['lvb_reminder_hours'] ) ) {
             update_option( 'lvb_reminder_hours', max( 1, (int) $_POST['lvb_reminder_hours'] ) );
