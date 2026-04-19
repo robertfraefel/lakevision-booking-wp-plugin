@@ -410,6 +410,14 @@ class LVB_Google_Calendar {
     public static function create_booking_event( $calendar_id, $booking ) {
         $tz = wp_timezone_string();
 
+        $color_id = '11'; // Default: Tomato – visually distinct from availability slots
+        if ( isset( $booking['color_id'] ) && $booking['color_id'] !== '' && $booking['color_id'] !== null ) {
+            $cid = (int) $booking['color_id'];
+            if ( $cid >= 1 && $cid <= 11 ) {
+                $color_id = (string) $cid;
+            }
+        }
+
         $event_body = [
             'summary'     => sprintf(
                 '[Booking] %s – %s',
@@ -430,7 +438,7 @@ class LVB_Google_Calendar {
                 'dateTime' => ( new DateTime( $booking['end'], wp_timezone() ) )->format( DateTime::RFC3339 ),
                 'timeZone' => $tz,
             ],
-            'colorId' => '11', // Tomato – visually distinct from availability slots
+            'colorId' => $color_id,
         ];
 
         $result = self::create_event( $calendar_id, $event_body );
@@ -439,6 +447,30 @@ class LVB_Google_Calendar {
         }
 
         return $result['id'] ?? '';
+    }
+
+    /**
+     * Google Calendar event color palette (colorId 1-11).
+     *
+     * Hex values approximate Google Calendars stock "event colors" as rendered
+     * in the Calendar UI. Used by the admin UI to render a color picker.
+     *
+     * @return array<int, array{name:string, hex:string}>
+     */
+    public static function get_event_color_palette() {
+        return [
+            1  => [ 'name' => 'Lavender',  'hex' => '#7986cb' ],
+            2  => [ 'name' => 'Sage',      'hex' => '#33b679' ],
+            3  => [ 'name' => 'Grape',     'hex' => '#8e24aa' ],
+            4  => [ 'name' => 'Flamingo',  'hex' => '#e67c73' ],
+            5  => [ 'name' => 'Banana',    'hex' => '#f6c026' ],
+            6  => [ 'name' => 'Tangerine', 'hex' => '#f5511d' ],
+            7  => [ 'name' => 'Peacock',   'hex' => '#039be5' ],
+            8  => [ 'name' => 'Graphite',  'hex' => '#616161' ],
+            9  => [ 'name' => 'Blueberry', 'hex' => '#3f51b5' ],
+            10 => [ 'name' => 'Basil',     'hex' => '#0b8043' ],
+            11 => [ 'name' => 'Tomato',    'hex' => '#d60000' ],
+        ];
     }
 
     /**
