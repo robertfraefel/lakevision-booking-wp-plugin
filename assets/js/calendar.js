@@ -23,8 +23,12 @@
     var legend      = document.getElementById('lvb-cal-legend');
     var modal       = document.getElementById('lvb-cal-modal');
     var btnCancel   = modal.querySelector('.lvb-cal-btn-cancel');
+    var createModal = document.getElementById('lvb-cal-create-modal');
+    var createForm  = document.getElementById('lvb-cal-create-form');
 
     var activeEvent = null;   // currently open FC event in modal
+    var pendingStart = null;  // ISO start string selected via drag/click
+    var meta = null;          // {services, staff, service_staff}
     var calendar;
 
     // ----- Populate staff filter + legend -----
@@ -74,29 +78,57 @@
 
     // ----- FullCalendar init -----
     calendar = new FullCalendar.Calendar(root, {
-        initialView: 'timeGridWeek',
+        initialView: pickInitialView(),
         locale: data.locale || 'de',
         firstDay: 1,
         slotMinTime: data.timeMin || '07:00:00',
         slotMaxTime: data.timeMax || '22:00:00',
         nowIndicator: true,
         editable: true,
-        selectable: false,
-        headerToolbar: {
-            left:   'prev,next today',
-            center: 'title',
-            right:  'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-        },
+        selectable: true,
+        selectMirror: true,
+        select: onSelect,
+        expandRows: true,
+        headerToolbar: headerToolbarForWidth(window.innerWidth),
         buttonText: {
             today: 'Heute', month: 'Monat', week: 'Woche', day: 'Tag', list: 'Liste'
         },
-        height: 'auto',
+        height: '100%',
         events: fetchEvents,
         eventClick: onEventClick,
         eventDrop: onEventChange,
-        eventResize: onEventChange
+        eventResize: onEventChange,
+        windowResize: function () {
+            calendar.setOption('headerToolbar', headerToolbarForWidth(window.innerWidth));
+            var target = pickInitialView();
+            if (calendar.view.type !== target && shouldAutoSwitch(calendar.view.type, target)) {
+                calendar.changeView(target);
+            }
+        }
     });
     calendar.render();
+
+    function pickInitialView() {
+        var w = window.innerWidth;
+        if (w < 640)  return 'listWeek';
+        if (w < 1100) return 'timeGridDay';
+        return 'timeGridWeek';
+    }
+    function shouldAutoSwitch(current, target) {
+        // Only auto-switch when crossing into/out of mobile list view,
+        // so manual picks (month/day/week) stick on desktop.
+        return current === 'listWeek' || target === 'listWeek';
+    }
+    function headerToolbarForWidth(w) {
+        if (w < 640) {
+            return { left: 'prev,next', center: 'title', right: 'listWeek,timeGridDay' };
+        }
+        return {
+            left:   'prev,next today',
+            center: 'title',
+            right:  'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        };
+    }
 
     // ----- Event fetching -----
     function fetchEvents(info, success, failure) {
@@ -154,6 +186,109 @@
     function closeModal() {
         activeEvent = null;
         modal.setAttribute('hidden', 'hidden');
+    }
+
+    // ----- Create booking flow -----
+    createModal.addEventListener('click', function (e) {
+        if (e.target.dataset && e.target.dataset.close === '1') closeCreate();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !createModal.hasAttribute('hidden')) closeCreate();
+    });
+
+    createForm.querySelector('select[name="service_id"]').addEventListener('change', updateStaffOptions);
+
+    createForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!pendingStart) return;
+
+        var fd = new FormData(createForm);
+        var body = {
+            service_id: parseInt(fd.get('service_id'), 10),
+            staff_id:   fd.get('staff_id') ? parseInt(fd.get('staff_id'), 10) : 0,
+            start:      pendingStart,
+            email:      fd.get('email'),
+            first_name: fd.get('first_name'),
+            last_name:  fd.get('last_name'),
+            phone:      fd.get('phone') || '',
+            notes:      fd.get('notes') || ''
+        };
+
+        var submitBtn = createForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+
+        fetch(restUrl, {
+            method: 'POST',
+            headers: { 'X-WP-Nonce': nonce, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        }).then(parseJson).then(function () {
+            closeCreate();
+            calendar.refetchEvents();
+        }).catch(function (err) {
+            alert('Buchung konnte nicht angelegt werden: ' + err.message);
+        }).finally(function () {
+            submitBtn.disabled = false;
+        });
+    });
+
+    function onSelect(info) {
+        pendingStart = info.start.toISOString();
+        loadMeta().then(function () {
+            populateServiceOptions();
+            updateStaffOptions();
+            createForm.reset();
+            createForm.querySelector('output[name="start_display"]').textContent = formatRange(info.start, null);
+            createModal.removeAttribute('hidden');
+            setTimeout(function () {
+                createForm.querySelector('input[name="email"]').focus();
+            }, 50);
+        });
+        calendar.unselect();
+    }
+
+    function closeCreate() {
+        pendingStart = null;
+        createModal.setAttribute('hidden', 'hidden');
+    }
+
+    function loadMeta() {
+        if (meta) return Promise.resolve(meta);
+        var metaUrl = restUrl.replace(/\/events$/, '/meta');
+        return fetch(metaUrl, { headers: { 'X-WP-Nonce': nonce } })
+            .then(parseJson)
+            .then(function (m) { meta = m; return m; });
+    }
+
+    function populateServiceOptions() {
+        var sel = createForm.querySelector('select[name="service_id"]');
+        sel.innerHTML = '';
+        meta.services.forEach(function (s) {
+            var opt = document.createElement('option');
+            opt.value = String(s.id);
+            opt.textContent = s.name + ' (' + s.duration + ' min)';
+            sel.appendChild(opt);
+        });
+    }
+
+    function updateStaffOptions() {
+        var svcSel   = createForm.querySelector('select[name="service_id"]');
+        var staffSel = createForm.querySelector('select[name="staff_id"]');
+        var svcId    = parseInt(svcSel.value, 10) || 0;
+        var allowed  = (meta.service_staff && meta.service_staff[svcId]) || [];
+
+        staffSel.innerHTML = '';
+        var auto = document.createElement('option');
+        auto.value = '';
+        auto.textContent = '— automatisch —';
+        staffSel.appendChild(auto);
+
+        meta.staff.forEach(function (s) {
+            if (allowed.length && allowed.indexOf(s.id) === -1) return;
+            var opt = document.createElement('option');
+            opt.value = String(s.id);
+            opt.textContent = s.name;
+            staffSel.appendChild(opt);
+        });
     }
 
     // ----- Helpers -----

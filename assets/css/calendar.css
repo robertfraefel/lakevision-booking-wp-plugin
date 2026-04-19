@@ -130,3 +130,51 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+/* Create-booking form */
+.lvb-cal-form .lvb-cal-form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+.lvb-cal-form .lvb-cal-form-row label {
+    font-weight: 600;
+    font-size: 13px;
+    color: #1d2327;
+}
+.lvb-cal-form .lvb-cal-form-row .req { color: #d63638; }
+.lvb-cal-form input,
+.lvb-cal-form select,
+.lvb-cal-form textarea {
+    width: 100%;
+}
+.lvb-cal-form-grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.lvb-cal-form-readonly output {
+    display: block;
+    padding: 6px 0;
+    color: #50575e;
+    font-variant-numeric: tabular-nums;
+}
+.lvb-cal-form hr { border: 0; border-top: 1px solid #eee; margin: 10px 0; }
+
+/* Responsive: fill the viewport so the calendar scales with screen size */
+.lvb-cal-root {
+    --lvb-cal-offset: 240px;
+    min-height: calc(100vh - var(--lvb-cal-offset));
+}
+.lvb-cal-root .fc {
+    height: 100%;
+}
+@media (max-width: 900px) {
+    .lvb-cal-root { --lvb-cal-offset: 300px; padding: 8px; }
+    .lvb-cal-toolbar { gap: 8px; }
+    .lvb-cal-legend { margin-left: 0; flex-basis: 100%; }
+    .lvb-cal-root .fc-toolbar { flex-direction: column; gap: 8px; }
+    .lvb-cal-root .fc-toolbar-title { font-size: 1.1em; }
+    .lvb-cal-form-grid2 { grid-template-columns: 1fr; }
+}

@@ -23,6 +23,62 @@ if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Unauthorised.' );
 
     <div id="lvb-calendar-root" class="lvb-cal-root"></div>
 
+    <!-- Create booking modal -->
+    <div id="lvb-cal-create-modal" class="lvb-cal-modal" hidden>
+        <div class="lvb-cal-modal-backdrop" data-close="1"></div>
+        <div class="lvb-cal-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="lvb-cal-create-title">
+            <button type="button" class="lvb-cal-modal-close" data-close="1" aria-label="Schliessen">&times;</button>
+            <h2 id="lvb-cal-create-title">Neue Buchung</h2>
+
+            <form id="lvb-cal-create-form" class="lvb-cal-form">
+                <div class="lvb-cal-form-row">
+                    <label>Service <span class="req">*</span></label>
+                    <select name="service_id" required></select>
+                </div>
+                <div class="lvb-cal-form-row">
+                    <label>Mitarbeiter</label>
+                    <select name="staff_id">
+                        <option value="">— automatisch —</option>
+                    </select>
+                </div>
+                <div class="lvb-cal-form-row lvb-cal-form-readonly">
+                    <label>Start</label>
+                    <output name="start_display">—</output>
+                </div>
+                <hr>
+                <div class="lvb-cal-form-row">
+                    <label>E-Mail <span class="req">*</span></label>
+                    <input type="email" name="email" required>
+                </div>
+                <div class="lvb-cal-form-grid2">
+                    <div class="lvb-cal-form-row">
+                        <label>Vorname <span class="req">*</span></label>
+                        <input type="text" name="first_name" required>
+                    </div>
+                    <div class="lvb-cal-form-row">
+                        <label>Nachname <span class="req">*</span></label>
+                        <input type="text" name="last_name" required>
+                    </div>
+                </div>
+                <div class="lvb-cal-form-row">
+                    <label>Telefon</label>
+                    <input type="tel" name="phone">
+                </div>
+                <div class="lvb-cal-form-row">
+                    <label>Bemerkungen</label>
+                    <textarea name="notes" rows="2"></textarea>
+                </div>
+
+                <p class="description">Eine bestehende Kundin wird anhand der E-Mail-Adresse erkannt und aktualisiert.</p>
+
+                <div class="lvb-cal-modal-actions">
+                    <button type="button" class="button" data-close="1">Abbrechen</button>
+                    <button type="submit" class="button button-primary">Buchung anlegen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Event detail modal -->
     <div id="lvb-cal-modal" class="lvb-cal-modal" hidden>
         <div class="lvb-cal-modal-backdrop" data-close="1"></div>

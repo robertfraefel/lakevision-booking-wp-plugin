@@ -31,8 +31,21 @@ class LVB_Calendar_API {
 
     public static function register_routes() {
         register_rest_route( self::REST_NAMESPACE, '/calendar/events', [
+            [
+                'methods'             => 'GET',
+                'callback'            => [ __CLASS__, 'list_events' ],
+                'permission_callback' => [ __CLASS__, 'permission_check' ],
+            ],
+            [
+                'methods'             => 'POST',
+                'callback'            => [ __CLASS__, 'create_event' ],
+                'permission_callback' => [ __CLASS__, 'permission_check' ],
+            ],
+        ] );
+
+        register_rest_route( self::REST_NAMESPACE, '/calendar/meta', [
             'methods'             => 'GET',
-            'callback'            => [ __CLASS__, 'list_events' ],
+            'callback'            => [ __CLASS__, 'meta' ],
             'permission_callback' => [ __CLASS__, 'permission_check' ],
         ] );
 
@@ -238,6 +251,103 @@ class LVB_Calendar_API {
             'id'           => $id,
             'gcal_warning' => $gcal_warning,
         ] );
+    }
+
+    /**
+     * GET /calendar/meta
+     *
+     * Payload for the create-booking modal: active services (with duration +
+     * price), active staff, and the service→staff mapping so the staff list
+     * can be narrowed after a service is picked.
+     */
+    public static function meta( WP_REST_Request $req ) {
+        $services = LVB_Database::get_all( 'services', [ 'status' => 'active' ], 'sort_order ASC, name ASC' );
+        $staff    = LVB_Database::get_all( 'staff',    [ 'status' => 'active' ], 'name ASC' );
+
+        $service_staff = [];
+        foreach ( $services as $svc ) {
+            $ids = [];
+            foreach ( LVB_Database::get_staff_for_service( (int) $svc['id'] ) as $s ) {
+                $ids[] = (int) $s['id'];
+            }
+            $service_staff[ (int) $svc['id'] ] = $ids;
+        }
+
+        return rest_ensure_response( [
+            'services'      => array_map( function( $s ) {
+                return [
+                    'id'       => (int) $s['id'],
+                    'name'     => $s['name'],
+                    'duration' => (int) $s['duration'],
+                    'price'    => $s['price'],
+                ];
+            }, $services ),
+            'staff'         => array_map( function( $s ) {
+                return [ 'id' => (int) $s['id'], 'name' => $s['name'] ];
+            }, $staff ),
+            'service_staff' => $service_staff,
+        ] );
+    }
+
+    /**
+     * POST /calendar/events
+     *
+     * Create a booking on behalf of a customer from the admin calendar view.
+     * Reuses the standard LVB_Booking_Manager::create_booking() pipeline so
+     * GCal sync, conflict checks, and notifications all fire identically.
+     */
+    public static function create_event( WP_REST_Request $req ) {
+        $required = [ 'service_id', 'start', 'first_name', 'last_name', 'email' ];
+        foreach ( $required as $f ) {
+            if ( ! $req->get_param( $f ) ) {
+                return new WP_Error( 'lvb_missing', "Feld fehlt: $f", [ 'status' => 400 ] );
+            }
+        }
+
+        $email = sanitize_email( $req->get_param( 'email' ) );
+        if ( ! is_email( $email ) ) {
+            return new WP_Error( 'lvb_bad_email', 'Ungültige E-Mail-Adresse', [ 'status' => 400 ] );
+        }
+
+        $data = [
+            'service_id'     => (int) $req->get_param( 'service_id' ),
+            'staff_id'       => (int) ( $req->get_param( 'staff_id' ) ?? 0 ),
+            'start_datetime' => self::iso_to_wp_tz( sanitize_text_field( $req->get_param( 'start' ) ) ),
+            'first_name'     => sanitize_text_field( $req->get_param( 'first_name' ) ),
+            'last_name'      => sanitize_text_field( $req->get_param( 'last_name' ) ),
+            'email'          => $email,
+            'phone'          => sanitize_text_field( $req->get_param( 'phone' ) ?? '' ),
+            'notes'          => sanitize_textarea_field( $req->get_param( 'notes' ) ?? '' ),
+        ];
+
+        if ( ! $data['start_datetime'] ) {
+            return new WP_Error( 'lvb_bad_start', 'Ungültiger Startzeitpunkt', [ 'status' => 400 ] );
+        }
+
+        $result = LVB_Booking_Manager::create_booking( $data );
+        if ( is_wp_error( $result ) ) {
+            $status = 400;
+            if ( in_array( $result->get_error_code(), [ 'time_conflict' ], true ) ) {
+                $status = 409;
+            }
+            return new WP_Error( $result->get_error_code(), $result->get_error_message(), [ 'status' => $status ] );
+        }
+
+        return rest_ensure_response( [ 'ok' => true, 'id' => (int) $result ] );
+    }
+
+    /**
+     * Convert an ISO-8601 datetime to the WP-timezone "Y-m-d H:i:s" string
+     * that create_booking() expects.
+     */
+    private static function iso_to_wp_tz( $iso ) {
+        try {
+            $dt = new DateTime( $iso );
+            $dt->setTimezone( wp_timezone() );
+            return $dt->format( 'Y-m-d H:i:s' );
+        } catch ( Exception $e ) {
+            return '';
+        }
     }
 
     /**
