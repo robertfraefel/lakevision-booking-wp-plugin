@@ -139,6 +139,36 @@ $disconnect_url = wp_nonce_url(
         <!-- Email Settings -->
         <div class="lvb-settings-section">
             <h2>Email Settings</h2>
+            <?php
+            $smtp_override = false;
+            $smtp_label    = '';
+            if ( function_exists( 'is_plugin_active' ) ) {
+                $smtp_plugins = [
+                    'wp-mail-smtp/wp_mail_smtp.php'                   => 'WP Mail SMTP',
+                    'wp-mail-smtp-pro/wp_mail_smtp.php'               => 'WP Mail SMTP Pro',
+                    'post-smtp/postman-smtp.php'                      => 'Post SMTP',
+                    'easy-wp-smtp/easy-wp-smtp.php'                   => 'Easy WP SMTP',
+                    'fluent-smtp/fluent-smtp.php'                     => 'FluentSMTP',
+                ];
+                foreach ( $smtp_plugins as $slug => $label ) {
+                    if ( is_plugin_active( $slug ) ) {
+                        $smtp_override = true;
+                        $smtp_label    = $label;
+                        break;
+                    }
+                }
+            }
+            ?>
+            <?php if ( $smtp_override ) : ?>
+                <div class="notice notice-warning inline" style="margin:8px 0 12px 0;">
+                    <p>
+                        <strong><?php echo esc_html( $smtp_label ); ?> ist aktiv.</strong>
+                        Dieses Plugin überschreibt Absender-Name und Absender-Adresse für <em>alle</em>
+                        WordPress-Mails – die folgenden Felder werden dann <strong>ignoriert</strong>.
+                        Passe den Absender direkt in den Einstellungen von <?php echo esc_html( $smtp_label ); ?> an.
+                    </p>
+                </div>
+            <?php endif; ?>
             <table class="form-table">
                 <tr>
                     <th><label for="lvb_email_from">From Name</label></th>

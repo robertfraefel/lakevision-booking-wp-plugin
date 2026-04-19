@@ -254,13 +254,15 @@ $day_labels    = [
 .lvb-schedule-row{display:flex;gap:6px;align-items:center;margin-bottom:4px;}
 .lvb-schedule-row input[type=time]{width:110px;}
 .lvb-time-off-row input[type=date]{width:145px;}
-.lvb-color-picker{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px;}
-.lvb-color-swatch{display:inline-flex;align-items:center;cursor:pointer;position:relative;}
+.lvb-color-picker{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px;}
+.lvb-color-swatch{display:inline-flex;align-items:center;cursor:pointer;position:relative;padding:3px;border-radius:50%;border:2px solid transparent;}
 .lvb-color-swatch input[type=radio]{position:absolute;opacity:0;pointer-events:none;}
-.lvb-color-swatch span{display:inline-block;width:22px;height:22px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px rgba(0,0,0,0.15);transition:transform .1s;}
+.lvb-color-swatch span{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px rgba(0,0,0,0.15);transition:transform .1s;color:#fff;font-weight:bold;font-size:14px;line-height:1;}
 .lvb-color-swatch:hover span{transform:scale(1.1);}
-.lvb-color-swatch input[type=radio]:checked + span{border-color:#2271b1;box-shadow:0 0 0 1px #2271b1;}
+.lvb-color-swatch input[type=radio]:checked ~ span::after{content:"\2713";}
+.lvb-color-swatch:has(input[type=radio]:checked){border-color:#2271b1;box-shadow:0 0 0 2px #2271b1;background:#e7f1ff;}
 .lvb-color-swatch--none em{margin-left:6px;font-style:normal;font-size:12px;color:#666;}
+.lvb-color-swatch--none span::after{color:#0a0a12;}
 </style>
 <script>
 (function(){
