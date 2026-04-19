@@ -271,9 +271,13 @@ class LVB_Admin {
         if ( isset( $_GET['lvb_action'] ) && $_GET['lvb_action'] === 'cancel_booking' ) {
             $id = (int) ( $_GET['id'] ?? 0 );
             check_admin_referer( 'lvb_cancel_booking_' . $id );
-            LVB_Booking_Manager::cancel_booking( $id );
+            $result = LVB_Booking_Manager::cancel_booking( $id );
             LVB_Notifications::send_cancellation( $id );
-            wp_redirect( add_query_arg( [ 'page' => 'lvb-bookings', 'lvb_cancelled' => '1' ], admin_url( 'admin.php' ) ) );
+            $args = [ 'page' => 'lvb-bookings', 'lvb_cancelled' => '1' ];
+            if ( is_array( $result ) && $result['gcal_status'] === 'failed' ) {
+                $args['lvb_gcal_error'] = rawurlencode( $result['gcal_error'] );
+            }
+            wp_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
             exit;
         }
     }
@@ -428,6 +432,12 @@ class LVB_Admin {
         }
         if ( isset( $_GET['lvb_cancelled'] ) ) {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Booking cancelled.', 'lakevision-booking' ) . '</p></div>';
+        }
+        if ( isset( $_GET['lvb_gcal_error'] ) ) {
+            $msg = sanitize_text_field( urldecode( wp_unslash( $_GET['lvb_gcal_error'] ) ) );
+            echo '<div class="notice notice-warning is-dismissible"><p><strong>'
+                . esc_html__( 'Event konnte nicht aus Google Calendar entfernt werden – bitte manuell prüfen.', 'lakevision-booking' )
+                . '</strong><br><code>' . esc_html( $msg ) . '</code></p></div>';
         }
         if ( isset( $_GET['lvb_connected'] ) ) {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Google Calendar connected successfully!', 'lakevision-booking' ) . '</p></div>';
