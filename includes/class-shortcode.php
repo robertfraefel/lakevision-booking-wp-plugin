@@ -445,7 +445,8 @@ class LVB_Shortcode {
         $availability = [];
         $booked       = [];
         foreach ( $slots as $slot ) {
-            if ( strncmp( $slot['title'], '[Booking]', 9 ) === 0 ) {
+            if ( strncmp( $slot['title'], '[Booking]', 9 ) === 0
+                 || strncmp( $slot['title'], '[Puffer]', 8 ) === 0 ) {
                 $booked[] = $slot;
             } else {
                 $availability[] = $slot;
