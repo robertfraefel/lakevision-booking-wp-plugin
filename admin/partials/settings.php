@@ -24,6 +24,34 @@ $disconnect_url = wp_nonce_url(
         <div class="lvb-settings-section">
             <h2>Google Calendar Integration</h2>
 
+            <div class="lvb-info-box" style="background:#f0f6fc;border-left:4px solid #2271b1;padding:12px 16px;margin:12px 0;">
+                <p style="margin:0 0 8px 0;"><strong>Wie Verfügbarkeiten und Google Calendar zusammenspielen</strong></p>
+                <p style="margin:0 0 6px 0;">
+                    Es gibt <strong>zwei getrennte Fragen</strong>, die beide hier konfiguriert werden:
+                </p>
+                <ol style="margin:0 0 8px 18px;">
+                    <li>
+                        <strong>Woher kommen die Slots?</strong> (= welche Zeiten sind buchbar)<br>
+                        Entweder aus <em>Google Calendar</em> (dann werden alle nicht-Booking-Events im unten
+                        angegebenen Kalender als Verfügbarkeitsfenster gelesen) oder aus den
+                        <em>Arbeitszeiten pro Mitarbeiter</em> (Staff → Arbeitszeiten). Sobald ein Mitarbeiter
+                        Arbeitszeiten hinterlegt hat, ersetzen diese den Google-Kalender für diesen
+                        Mitarbeiter – der Kalender wird dann ignoriert.
+                    </li>
+                    <li>
+                        <strong>Wohin werden bestätigte Buchungen geschrieben?</strong><br>
+                        Nur in den Google-Kalender, <em>wenn</em> (a) das Plugin verbunden ist und (b) der
+                        Mitarbeiter (oder dieser Default) eine Calendar-ID hat. Sonst leben Buchungen nur in
+                        der WP-Datenbank. Die DB ist die Wahrheit – Slots blockieren unabhängig davon.
+                    </li>
+                </ol>
+                <p style="margin:0;">
+                    → <strong>Kein Google nötig</strong>, wenn alle Mitarbeiter Arbeitszeiten gepflegt haben.
+                    Google wird erst interessant, wenn Buchungen auch in einem externen Kalender landen
+                    sollen (z.&nbsp;B. Handy-Synchronisation).
+                </p>
+            </div>
+
             <div class="lvb-google-status <?php echo $is_connected ? 'connected' : 'disconnected'; ?>">
                 <?php if ( $is_connected ) : ?>
                     <span class="dashicons dashicons-yes-alt"></span>

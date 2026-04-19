@@ -133,11 +133,24 @@ $day_labels    = [
 
                     <div class="lvb-form-group">
                         <label class="lvb-label">Arbeitszeiten</label>
-                        <p class="description" style="margin-top:0;">
-                            Wiederkehrende Arbeitstage und -stunden. Wenn gesetzt, werden die
-                            Verfügbarkeiten daraus generiert (ersetzt den Google Calendar).
-                            Ein Tag ohne Zeiten = geschlossen.
-                        </p>
+                        <div class="lvb-info-box" style="background:#f0f6fc;border-left:4px solid #2271b1;padding:10px 14px;margin:8px 0 10px 0;font-size:13px;">
+                            <p style="margin:0 0 6px 0;"><strong>So funktioniert's</strong></p>
+                            <ul style="margin:0 0 6px 18px;padding:0;">
+                                <li>Wiederkehrender Wochenplan pro Wochentag. Pro Tag können mehrere
+                                    Fenster angelegt werden (z.&nbsp;B. vor/nach Mittagspause).</li>
+                                <li><strong>Ein Tag ohne Fenster = geschlossen.</strong> An dem Tag werden
+                                    keine Slots angeboten.</li>
+                                <li>Wenn alle Mitarbeiter einen bestimmten Tag leer lassen, ist das Widget
+                                    an diesem Tag komplett leer.</li>
+                                <li><strong>Ersetzt den Google Calendar</strong> für diesen Mitarbeiter:
+                                    sobald hier mindestens ein Fenster steht, werden Slots aus diesem
+                                    Plan generiert – der Kalender wird ignoriert (nur Buchungen werden
+                                    weiterhin hineingeschrieben, falls Calendar-ID gesetzt).</li>
+                                <li><strong>Ganz leer lassen</strong> → klassischer Modus: Verfügbarkeiten
+                                    kommen aus dem Google Calendar (falls verbunden).</li>
+                            </ul>
+                            <p style="margin:0;">Ferien siehe nächste Sektion.</p>
+                        </div>
                         <table class="lvb-schedule-table widefat" style="margin-top:8px;">
                             <tbody>
                             <?php foreach ( $day_labels as $day_key => $day_label ) : ?>
