@@ -187,6 +187,29 @@ $disconnect_url = wp_nonce_url(
             </table>
         </div>
 
+        <!-- Calendar View -->
+        <div class="lvb-settings-section">
+            <h2>Kalender-Ansicht</h2>
+            <table class="form-table">
+                <tr>
+                    <th><label for="lvb_calendar_time_min">Kalender Startzeit</label></th>
+                    <td>
+                        <input type="time" id="lvb_calendar_time_min" name="lvb_calendar_time_min"
+                               value="<?php echo esc_attr( substr( get_option( 'lvb_calendar_time_min', '07:00' ), 0, 5 ) ); ?>">
+                        <p class="description">Erste sichtbare Stunde im Tages-/Wochenkalender (z.&nbsp;B. 09:00).</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="lvb_calendar_time_max">Kalender Endzeit</label></th>
+                    <td>
+                        <input type="time" id="lvb_calendar_time_max" name="lvb_calendar_time_max"
+                               value="<?php echo esc_attr( substr( get_option( 'lvb_calendar_time_max', '22:00' ), 0, 5 ) ); ?>">
+                        <p class="description">Letzte sichtbare Stunde im Tages-/Wochenkalender (z.&nbsp;B. 19:00).</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
         <!-- Booking Page -->
         <div class="lvb-settings-section">
             <h2>Booking Page</h2>
