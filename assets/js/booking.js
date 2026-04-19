@@ -337,12 +337,16 @@
                     } );
                     cur = new Date( curMs + stepMs );
                 } else {
-                    // Jump past the end of the blocking booked range
-                    var jumpMs = curMs + stepMs;
+                    // Jump to end of blocking booked range, rounded up to the
+                    // next 15-min boundary so start times stay clean even when
+                    // a conflict ends on a crooked minute (e.g. 13:35 → 13:45).
+                    var step15 = 15 * 60000;
+                    var jumpMs = curMs + step15;
                     for ( var j = 0; j < bookedRanges.length; j++ ) {
                         if ( curMs < bookedRanges[ j ].end && slotEndMs + bufferMs > bookedRanges[ j ].start ) {
-                            if ( bookedRanges[ j ].end > jumpMs ) {
-                                jumpMs = bookedRanges[ j ].end;
+                            var candidate = Math.ceil( bookedRanges[ j ].end / step15 ) * step15;
+                            if ( candidate > jumpMs ) {
+                                jumpMs = candidate;
                             }
                         }
                     }
