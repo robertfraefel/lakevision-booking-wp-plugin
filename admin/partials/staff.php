@@ -17,6 +17,13 @@ if ( $editing ) {
         $assigned_services[] = (int) $s['id'];
     }
 }
+
+$working_hours = LVB_Staff_Schedule::parse_working_hours( $editing['working_hours'] ?? null );
+$time_off      = LVB_Staff_Schedule::parse_time_off( $editing['time_off'] ?? null );
+$day_labels    = [
+    'mon' => 'Mo', 'tue' => 'Di', 'wed' => 'Mi', 'thu' => 'Do',
+    'fri' => 'Fr', 'sat' => 'Sa', 'sun' => 'So',
+];
 ?>
 <div class="wrap lvb-wrap">
     <h1>LakeVision Booking – Staff</h1>
@@ -124,6 +131,62 @@ if ( $editing ) {
                     </div>
                     <?php endif; ?>
 
+                    <div class="lvb-form-group">
+                        <label class="lvb-label">Arbeitszeiten</label>
+                        <p class="description" style="margin-top:0;">
+                            Wiederkehrende Arbeitstage und -stunden. Wenn gesetzt, werden die
+                            Verfügbarkeiten daraus generiert (ersetzt den Google Calendar).
+                            Ein Tag ohne Zeiten = geschlossen.
+                        </p>
+                        <table class="lvb-schedule-table widefat" style="margin-top:8px;">
+                            <tbody>
+                            <?php foreach ( $day_labels as $day_key => $day_label ) : ?>
+                                <tr data-day="<?php echo esc_attr( $day_key ); ?>">
+                                    <th style="width:48px;vertical-align:top;padding-top:12px;"><?php echo esc_html( $day_label ); ?></th>
+                                    <td>
+                                        <div class="lvb-schedule-windows" data-day="<?php echo esc_attr( $day_key ); ?>">
+                                            <?php
+                                            $windows = $working_hours[ $day_key ] ?: [ [ 's' => '', 'e' => '' ] ];
+                                            foreach ( $windows as $i => $win ) :
+                                            ?>
+                                                <div class="lvb-schedule-row">
+                                                    <input type="time" name="working_hours[<?php echo esc_attr( $day_key ); ?>][<?php echo (int) $i; ?>][s]" value="<?php echo esc_attr( $win['s'] ); ?>" step="900">
+                                                    <span>–</span>
+                                                    <input type="time" name="working_hours[<?php echo esc_attr( $day_key ); ?>][<?php echo (int) $i; ?>][e]" value="<?php echo esc_attr( $win['e'] ); ?>" step="900">
+                                                    <button type="button" class="button button-small lvb-remove-window" title="Entfernen">×</button>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <button type="button" class="button button-small lvb-add-window" data-day="<?php echo esc_attr( $day_key ); ?>">+ Fenster hinzufügen</button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="lvb-form-group">
+                        <label class="lvb-label">Ferien / Freie Tage</label>
+                        <p class="description" style="margin-top:0;">
+                            Datumsbereiche, an denen dieser Mitarbeiter nicht verfügbar ist.
+                        </p>
+                        <div id="lvb-time-off-list" style="margin-top:8px;">
+                            <?php
+                            $rows = $time_off ?: [ [ 'from' => '', 'to' => '', 'reason' => '' ] ];
+                            foreach ( $rows as $i => $row ) :
+                            ?>
+                                <div class="lvb-time-off-row" style="display:flex;gap:8px;margin-bottom:6px;align-items:center;">
+                                    <input type="date" name="time_off[<?php echo (int) $i; ?>][from]" value="<?php echo esc_attr( $row['from'] ); ?>">
+                                    <span>bis</span>
+                                    <input type="date" name="time_off[<?php echo (int) $i; ?>][to]"   value="<?php echo esc_attr( $row['to'] ); ?>">
+                                    <input type="text" name="time_off[<?php echo (int) $i; ?>][reason]" value="<?php echo esc_attr( $row['reason'] ); ?>" placeholder="Grund (optional)" class="regular-text" style="flex:1;">
+                                    <button type="button" class="button button-small lvb-remove-timeoff" title="Entfernen">×</button>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <button type="button" class="button button-small" id="lvb-add-timeoff">+ Zeitraum hinzufügen</button>
+                    </div>
+
                     <div class="lvb-form-actions">
                         <?php submit_button( $editing ? 'Update Staff' : 'Add Staff', 'primary', 'lvb_save_staff', false ); ?>
                         <?php if ( $editing ) : ?>
@@ -135,3 +198,61 @@ if ( $editing ) {
         </div>
     </div>
 </div>
+
+<style>
+.lvb-schedule-table th,.lvb-schedule-table td{padding:6px 8px;border-bottom:1px solid #eee;}
+.lvb-schedule-row{display:flex;gap:6px;align-items:center;margin-bottom:4px;}
+.lvb-schedule-row input[type=time]{width:110px;}
+.lvb-time-off-row input[type=date]{width:145px;}
+</style>
+<script>
+(function(){
+    function reindex(container, baseName){
+        container.querySelectorAll('.lvb-schedule-row, .lvb-time-off-row').forEach(function(row,i){
+            row.querySelectorAll('input').forEach(function(inp){
+                inp.name = inp.name.replace(/\[\d+\]/, '[' + i + ']');
+            });
+        });
+    }
+    document.querySelectorAll('.lvb-add-window').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            var day = btn.getAttribute('data-day');
+            var wrap = document.querySelector('.lvb-schedule-windows[data-day="' + day + '"]');
+            var idx  = wrap.querySelectorAll('.lvb-schedule-row').length;
+            var row  = document.createElement('div');
+            row.className = 'lvb-schedule-row';
+            row.innerHTML = '<input type="time" name="working_hours[' + day + '][' + idx + '][s]" step="900">'
+                          + '<span>–</span>'
+                          + '<input type="time" name="working_hours[' + day + '][' + idx + '][e]" step="900">'
+                          + '<button type="button" class="button button-small lvb-remove-window" title="Entfernen">×</button>';
+            wrap.appendChild(row);
+        });
+    });
+    document.addEventListener('click', function(e){
+        if (e.target.classList.contains('lvb-remove-window')) {
+            var wrap = e.target.closest('.lvb-schedule-windows');
+            e.target.closest('.lvb-schedule-row').remove();
+            reindex(wrap);
+        }
+        if (e.target.classList.contains('lvb-remove-timeoff')) {
+            var list = document.getElementById('lvb-time-off-list');
+            e.target.closest('.lvb-time-off-row').remove();
+            reindex(list);
+        }
+    });
+    var addTo = document.getElementById('lvb-add-timeoff');
+    if (addTo) addTo.addEventListener('click', function(){
+        var list = document.getElementById('lvb-time-off-list');
+        var idx  = list.querySelectorAll('.lvb-time-off-row').length;
+        var row  = document.createElement('div');
+        row.className = 'lvb-time-off-row';
+        row.style.cssText = 'display:flex;gap:8px;margin-bottom:6px;align-items:center;';
+        row.innerHTML = '<input type="date" name="time_off[' + idx + '][from]">'
+                      + '<span>bis</span>'
+                      + '<input type="date" name="time_off[' + idx + '][to]">'
+                      + '<input type="text" name="time_off[' + idx + '][reason]" placeholder="Grund (optional)" class="regular-text" style="flex:1;">'
+                      + '<button type="button" class="button button-small lvb-remove-timeoff" title="Entfernen">×</button>';
+        list.appendChild(row);
+    });
+})();
+</script>

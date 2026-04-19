@@ -371,16 +371,16 @@ class LVB_Shortcode {
             $date_to = gmdate( 'Y-m-d', strtotime( $date_from . ' +30 days' ) );
         }
 
-        // Determine calendar to query
+        // Determine availability source: staff schedule (if set) overrides Google Calendar.
         $calendar_id = get_option( 'lvb_google_calendar_id', '' );
-        if ( $staff_id ) {
-            $staff = LVB_Database::get_by_id( 'staff', $staff_id );
-            if ( $staff && ! empty( $staff['calendar_id'] ) ) {
-                $calendar_id = $staff['calendar_id'];
-            }
+        $staff       = $staff_id ? LVB_Database::get_by_id( 'staff', $staff_id ) : null;
+        if ( $staff && ! empty( $staff['calendar_id'] ) ) {
+            $calendar_id = $staff['calendar_id'];
         }
 
-        if ( empty( $calendar_id ) || ! LVB_Google_Calendar::is_connected() ) {
+        $use_schedule = $staff && LVB_Staff_Schedule::has_schedule( $staff );
+
+        if ( ! $use_schedule && ( empty( $calendar_id ) || ! LVB_Google_Calendar::is_connected() ) ) {
             // Return demo slots when not configured
             wp_send_json_success( [ 'slots' => [], 'message' => 'Google Calendar not connected.' ] );
             return;
@@ -388,7 +388,11 @@ class LVB_Shortcode {
 
         $service = $service_id ? LVB_Database::get_by_id( 'services', $service_id ) : null;
 
-        $slots = LVB_Google_Calendar::get_available_slots( $calendar_id, $date_from, $date_to );
+        if ( $use_schedule ) {
+            $slots = LVB_Staff_Schedule::generate_windows( $staff, $date_from, $date_to );
+        } else {
+            $slots = LVB_Google_Calendar::get_available_slots( $calendar_id, $date_from, $date_to );
+        }
 
         if ( is_wp_error( $slots ) ) {
             wp_send_json_error( [ 'message' => $slots->get_error_message() ] );
