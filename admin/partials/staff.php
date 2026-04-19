@@ -42,6 +42,7 @@ $day_labels    = [
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Calendar ID</th>
+                        <th>Farbe</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -65,6 +66,18 @@ $day_labels    = [
                         <td><?php echo $member['email'] ? '<a href="mailto:' . esc_attr( $member['email'] ) . '">' . esc_html( $member['email'] ) . '</a>' : '—'; ?></td>
                         <td><?php echo esc_html( $member['phone'] ?: '—' ); ?></td>
                         <td><code class="lvb-code"><?php echo $member['calendar_id'] ? esc_html( $member['calendar_id'] ) : '<em>Not set</em>'; ?></code></td>
+                        <td>
+                            <?php
+                            $palette = LVB_Google_Calendar::get_event_color_palette();
+                            $cid     = (int) ( $member['color_id'] ?? 0 );
+                            if ( $cid >= 1 && $cid <= 11 ) {
+                                $c = $palette[ $cid ];
+                                echo '<span title="' . esc_attr( $c['name'] ) . '" style="display:inline-block;width:18px;height:18px;border-radius:50%;background:' . esc_attr( $c['hex'] ) . ';vertical-align:middle;border:1px solid rgba(0,0,0,0.15);"></span>';
+                            } else {
+                                echo '<span class="lvb-muted">—</span>';
+                            }
+                            ?>
+                        </td>
                         <td>
                             <span class="lvb-badge <?php echo esc_attr( $member['status'] ); ?>">
                                 <?php echo esc_html( ucfirst( $member['status'] ) ); ?>
@@ -116,6 +129,30 @@ $day_labels    = [
                             <option value="active"   <?php selected( $editing['status'] ?? 'active', 'active' );   ?>>Active</option>
                             <option value="inactive" <?php selected( $editing['status'] ?? '', 'inactive' ); ?>>Inactive</option>
                         </select>
+                    </div>
+
+                    <div class="lvb-form-group">
+                        <label class="lvb-label">Kalender-Farbe
+                            <span class="lvb-help" title="Farbe der Buchungs-Einträge dieses Mitarbeiters im Google Calendar.">?</span>
+                        </label>
+                        <?php
+                        $palette    = LVB_Google_Calendar::get_event_color_palette();
+                        $current_id = (int) ( $editing['color_id'] ?? 0 );
+                        ?>
+                        <div class="lvb-color-picker">
+                            <label class="lvb-color-swatch lvb-color-swatch--none" title="Standard (Tomato)">
+                                <input type="radio" name="color_id" value="" <?php checked( $current_id, 0 ); ?>>
+                                <span style="background:#ffffff;border:1px dashed #999;"></span>
+                                <em>Standard</em>
+                            </label>
+                            <?php foreach ( $palette as $id => $c ) : ?>
+                                <label class="lvb-color-swatch" title="<?php echo esc_attr( $c['name'] ); ?>">
+                                    <input type="radio" name="color_id" value="<?php echo (int) $id; ?>" <?php checked( $current_id, $id ); ?>>
+                                    <span style="background:<?php echo esc_attr( $c['hex'] ); ?>;"></span>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                        <p class="description">Überschreibt die Default-Farbe für neue Buchungen dieses Mitarbeiters.</p>
                     </div>
 
                     <?php if ( ! empty( $all_services ) ) : ?>
@@ -217,6 +254,13 @@ $day_labels    = [
 .lvb-schedule-row{display:flex;gap:6px;align-items:center;margin-bottom:4px;}
 .lvb-schedule-row input[type=time]{width:110px;}
 .lvb-time-off-row input[type=date]{width:145px;}
+.lvb-color-picker{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px;}
+.lvb-color-swatch{display:inline-flex;align-items:center;cursor:pointer;position:relative;}
+.lvb-color-swatch input[type=radio]{position:absolute;opacity:0;pointer-events:none;}
+.lvb-color-swatch span{display:inline-block;width:22px;height:22px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px rgba(0,0,0,0.15);transition:transform .1s;}
+.lvb-color-swatch:hover span{transform:scale(1.1);}
+.lvb-color-swatch input[type=radio]:checked + span{border-color:#2271b1;box-shadow:0 0 0 1px #2271b1;}
+.lvb-color-swatch--none em{margin-left:6px;font-style:normal;font-size:12px;color:#666;}
 </style>
 <script>
 (function(){

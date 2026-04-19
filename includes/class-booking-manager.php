@@ -89,6 +89,7 @@ class LVB_Booking_Manager {
                 'start'         => $start_str,
                 'end'           => $buffer_end_dt->format( 'Y-m-d H:i:s' ),
                 'notes'         => $data['notes'] ?? '',
+                'color_id'      => ( $staff && ! empty( $staff['color_id'] ) ) ? (int) $staff['color_id'] : null,
             ] );
 
             if ( ! is_wp_error( $gc_result ) ) {
@@ -374,6 +375,7 @@ class LVB_Booking_Manager {
             'calendar_id'   => sanitize_text_field( $data['calendar_id'] ?? '' ),
             'working_hours' => LVB_Staff_Schedule::encode_working_hours( $data['working_hours'] ?? null ),
             'time_off'      => LVB_Staff_Schedule::encode_time_off( $data['time_off'] ?? null ),
+            'color_id'      => ( isset( $data['color_id'] ) && (int) $data['color_id'] >= 1 && (int) $data['color_id'] <= 11 ) ? (int) $data['color_id'] : null,
             'status'        => in_array( $data['status'] ?? 'active', [ 'active', 'inactive' ], true ) ? $data['status'] : 'active',
         ];
 

@@ -66,6 +66,7 @@ class LVB_Database {
             calendar_id    VARCHAR(255)    DEFAULT NULL COMMENT 'Google Calendar ID for this staff member',
             working_hours  TEXT            DEFAULT NULL COMMENT 'JSON: per-weekday time windows (replaces calendar when set)',
             time_off       TEXT            DEFAULT NULL COMMENT 'JSON: date ranges where staff is unavailable (holidays, etc.)',
+            color_id       TINYINT UNSIGNED DEFAULT NULL COMMENT 'Google Calendar event colorId 1-11 for this staff members bookings',
             status         ENUM('active','inactive') NOT NULL DEFAULT 'active',
             created_at     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id)
@@ -156,6 +157,12 @@ class LVB_Database {
             if ( empty( $have ) ) {
                 $wpdb->query( "ALTER TABLE {$wpdb->prefix}lvb_staff ADD COLUMN $col TEXT DEFAULT NULL AFTER calendar_id" );
             }
+        }
+
+        // Add color_id column to staff (migration for existing installs)
+        $have_color = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}lvb_staff LIKE 'color_id'" );
+        if ( empty( $have_color ) ) {
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}lvb_staff ADD COLUMN color_id TINYINT UNSIGNED DEFAULT NULL AFTER time_off" );
         }
 
         // Add sort_order column if missing (migration for existing installs)
