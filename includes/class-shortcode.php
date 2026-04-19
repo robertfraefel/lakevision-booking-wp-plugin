@@ -77,20 +77,40 @@ class LVB_Shortcode {
         wp_enqueue_style( 'lvb-booking' );
         wp_enqueue_script( 'lvb-booking' );
 
-        // Output accent color overrides if configured.
-        $accent  = get_option( 'lvb_accent_color', '#00F5C4' );
-        $accent2 = get_option( 'lvb_accent2_color', '#00C2FF' );
-        if ( $accent !== '#00F5C4' || $accent2 !== '#00C2FF' ) {
-            wp_add_inline_style( 'lvb-booking', ':root{--lvb-accent:' . esc_attr( $accent ) . ';--lvb-accent2:' . esc_attr( $accent2 ) . ';}' );
+        // Output accent color overrides if configured. The second stop
+        // defaults to empty so --lvb-accent2 inherits from --lvb-accent
+        // (see booking.css), which gives a clean solid look when only one
+        // accent is provided.
+        $accent  = trim( (string) get_option( 'lvb_accent_color', '' ) );
+        $accent2 = trim( (string) get_option( 'lvb_accent2_color', '' ) );
+        $overrides = '';
+        if ( $accent !== '' ) {
+            $overrides .= '--lvb-accent:' . esc_attr( $accent ) . ';';
+        }
+        if ( $accent2 !== '' ) {
+            $overrides .= '--lvb-accent2:' . esc_attr( $accent2 ) . ';';
+        }
+        if ( $overrides !== '' ) {
+            wp_add_inline_style( 'lvb-booking', '#lvb-booking-app{' . $overrides . '}' );
         }
 
         // Pre-load active services for the dropdown
         $services      = LVB_Database::get_all( 'services', [ 'status' => 'active' ], 'sort_order ASC, name ASC' );
         $service_label = get_option( 'lvb_service_label', 'Service' );
 
+        // Pre-load active staff. The picker is rendered unconditionally but
+        // JS hides it when there are 0 or 1 active staff (the single-staff
+        // case auto-assigns without a UI).
+        $staff_members = LVB_Database::get_all( 'staff', [ 'status' => 'active' ], 'name ASC' );
+        $staff_label   = get_option( 'lvb_staff_label', __( 'Mitarbeiter:in', 'lakevision-booking' ) );
+        $staff_any     = get_option( 'lvb_staff_any_label', __( 'Nächster freier Platz', 'lakevision-booking' ) );
+
         ob_start();
         ?>
-        <div id="lvb-booking-app" class="lvb-booking-app" data-service="<?php echo esc_attr( $atts['service_id'] ); ?>" data-staff="<?php echo esc_attr( $atts['staff_id'] ); ?>">
+        <div id="lvb-booking-app" class="lvb-booking-app"
+             data-service="<?php echo esc_attr( $atts['service_id'] ); ?>"
+             data-staff="<?php echo esc_attr( $atts['staff_id'] ); ?>"
+             data-staff-count="<?php echo esc_attr( count( $staff_members ) ); ?>">
 
             <?php
             $booking_title    = get_option( 'lvb_booking_title', 'Jetzt einen Termin vereinbaren' );
@@ -134,6 +154,20 @@ class LVB_Shortcode {
                     <button class="lvb-back" data-target="1">&#8592; Zurück</button>
                     <h3 id="lvb-selected-date-label" class="lvb-date-label"></h3>
                 </div>
+                <?php if ( count( $staff_members ) > 0 ) : ?>
+                <div class="lvb-form-group lvb-staff-picker" id="lvb-staff-wrap" hidden>
+                    <label for="lvb-staff-select" class="lvb-label"><?php echo esc_html( $staff_label ); ?></label>
+                    <select id="lvb-staff-select" class="lvb-select">
+                        <option value="0">— <?php echo esc_html( $staff_any ); ?> —</option>
+                        <?php foreach ( $staff_members as $st ) : ?>
+                            <option value="<?php echo esc_attr( $st['id'] ); ?>"
+                                    <?php selected( $atts['staff_id'], $st['id'] ); ?>>
+                                <?php echo esc_html( $st['name'] ); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
                 <div class="lvb-form-group lvb-service-picker">
                     <label for="lvb-service-select" class="lvb-label"><?php echo esc_html( $service_label ); ?> <span class="req">*</span></label>
                     <select id="lvb-service-select" class="lvb-select" required>
