@@ -160,6 +160,53 @@ class LVB_Database {
         }
 
         update_option( 'lvb_db_version', LVB_VERSION );
+
+        // One-time: inherit site theme colors for email branding if not yet set.
+        self::sync_theme_defaults();
+    }
+
+    /**
+     * Populate empty branding options from the active theme.
+     *
+     * Called once on install. For each color option not yet set, we attempt to
+     * read a matching slug from the block-theme palette
+     * (wp_get_global_settings) and fall back to leaving the option empty so
+     * {@see LVB_Notifications::render()} uses the hardcoded default.
+     */
+    private static function sync_theme_defaults() {
+        if ( ! function_exists( 'wp_get_global_settings' ) ) {
+            return;
+        }
+        $settings = wp_get_global_settings( [ 'color', 'palette' ] );
+        $palette  = [];
+        if ( is_array( $settings ) ) {
+            foreach ( [ 'theme', 'custom', 'default' ] as $origin ) {
+                if ( ! empty( $settings[ $origin ] ) && is_array( $settings[ $origin ] ) ) {
+                    foreach ( $settings[ $origin ] as $entry ) {
+                        if ( ! empty( $entry['slug'] ) && ! empty( $entry['color'] ) ) {
+                            $palette[ strtolower( $entry['slug'] ) ] = $entry['color'];
+                        }
+                    }
+                }
+            }
+        }
+
+        $map = [
+            'lvb_accent_color'     => [ 'accent', 'primary', 'accent-1', 'brand', 'highlight' ],
+            'lvb_accent2_color'    => [ 'secondary', 'accent-2', 'tertiary' ],
+            'lvb_dark_color'       => [ 'foreground', 'contrast', 'dark', 'black' ],
+            'lvb_bg_color'         => [ 'background', 'base', 'light', 'neutral' ],
+            'lvb_footer_bg_color'  => [ 'tertiary-background', 'muted', 'subtle' ],
+        ];
+        foreach ( $map as $option => $slugs ) {
+            if ( get_option( $option, '' ) !== '' ) continue;
+            foreach ( $slugs as $slug ) {
+                if ( isset( $palette[ $slug ] ) ) {
+                    update_option( $option, $palette[ $slug ] );
+                    break;
+                }
+            }
+        }
     }
 
     /**

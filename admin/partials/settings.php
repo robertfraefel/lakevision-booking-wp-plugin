@@ -167,9 +167,19 @@ $disconnect_url = wp_nonce_url(
                 <tr>
                     <th><label for="lvb_email_logo_url">Email Logo URL</label></th>
                     <td>
+                        <?php $lvb_logo_override = get_option( 'lvb_email_logo_url', '' ); ?>
                         <input type="url" id="lvb_email_logo_url" name="lvb_email_logo_url" class="large-text"
-                               value="<?php echo esc_attr( get_option( 'lvb_email_logo_url', plugins_url( 'assets/img/logo.svg', LVB_PLUGIN_FILE ) ) ); ?>">
-                        <p class="description">Logo shown in booking confirmation emails. Leave as default to use the plugin's built-in logo.</p>
+                               value="<?php echo esc_attr( $lvb_logo_override ); ?>"
+                               placeholder="<?php echo esc_attr( LVB_Notifications::get_email_logo_url() ); ?>">
+                        <p class="description">
+                            Optional override for the email banner logo. Leave empty to auto-use the site's
+                            custom logo (Appearance → Customize → Site Identity); if none is set, the site
+                            icon or the plugin's default logo is used.<br>
+                            <?php if ( $lvb_logo_override === '' ) : ?>
+                                <strong>Currently auto-detected:</strong>
+                                <code><?php echo esc_html( LVB_Notifications::get_email_logo_url() ); ?></code>
+                            <?php endif; ?>
+                        </p>
                     </td>
                 </tr>
                 <tr>
