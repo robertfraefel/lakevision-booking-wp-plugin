@@ -155,6 +155,7 @@
             if (res.gcal_warning) {
                 alert('Buchung verschoben, aber Google Calendar meldete: ' + res.gcal_warning);
             }
+            calendar.refetchEvents();
         }).catch(function (err) {
             alert('Fehler beim Verschieben: ' + err.message);
             info.revert();
@@ -164,6 +165,7 @@
     // ----- Click → modal -----
     function onEventClick(info) {
         info.jsEvent.preventDefault();
+        if (info.event.extendedProps && info.event.extendedProps.is_buffer) return;
         activeEvent = info.event;
         var p = info.event.extendedProps;
 

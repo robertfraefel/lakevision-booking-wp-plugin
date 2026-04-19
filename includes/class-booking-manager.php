@@ -79,7 +79,8 @@ class LVB_Booking_Manager {
         $start_str = $start_dt->format( 'Y-m-d H:i:s' );
         $end_str   = $end_dt->format( 'Y-m-d H:i:s' );
 
-        // 5. Create booking event in Google Calendar
+        // 5. Create booking event in Google Calendar (main event ends at $end_str;
+        //    buffer, if any, becomes a separate event created after DB insert).
         $google_event_id = '';
         if ( ! empty( $calendar_id ) && LVB_Google_Calendar::is_connected() ) {
             $gc_result = LVB_Google_Calendar::create_booking_event( $calendar_id, [
@@ -87,7 +88,7 @@ class LVB_Booking_Manager {
                 'staff_name'    => $staff ? $staff['name'] : '',
                 'customer_name' => trim( $data['first_name'] . ' ' . $data['last_name'] ),
                 'start'         => $start_str,
-                'end'           => $buffer_end_dt->format( 'Y-m-d H:i:s' ),
+                'end'           => $end_str,
                 'notes'         => $data['notes'] ?? '',
                 'color_id'      => ( $staff && ! empty( $staff['color_id'] ) ) ? (int) $staff['color_id'] : null,
             ] );
@@ -136,6 +137,19 @@ class LVB_Booking_Manager {
 
         if ( ! $booking_id ) {
             return new WP_Error( 'db_insert_fail', __( 'Could not save booking to database.', 'lakevision-booking' ) );
+        }
+
+        // 7b. Create buffer event in Google Calendar (separate entry after the booking)
+        if ( (int) $service['buffer_time'] > 0 && ! empty( $calendar_id ) && LVB_Google_Calendar::is_connected() ) {
+            $buffer_result = LVB_Google_Calendar::create_buffer_event( $calendar_id, [
+                'service_name'  => $service['name'],
+                'customer_name' => trim( $data['first_name'] . ' ' . $data['last_name'] ),
+                'start'         => $end_str,
+                'end'           => $buffer_end_dt->format( 'Y-m-d H:i:s' ),
+            ] );
+            if ( ! is_wp_error( $buffer_result ) && ! empty( $buffer_result ) ) {
+                LVB_Database::update( 'bookings', [ 'buffer_event_id' => $buffer_result ], [ 'id' => $booking_id ] );
+            }
         }
 
         // 8. Send notifications + schedule reminder
@@ -213,19 +227,28 @@ class LVB_Booking_Manager {
         $gcal_status = 'skipped';
         $gcal_error  = '';
 
-        if ( ! empty( $booking['google_event_id'] ) ) {
+        $buffer_cleared = false;
+        if ( ! empty( $booking['google_event_id'] ) || ! empty( $booking['buffer_event_id'] ) ) {
             $staff       = $booking['staff_id'] ? LVB_Database::get_by_id( 'staff', $booking['staff_id'] ) : null;
             $calendar_id = $staff && ! empty( $staff['calendar_id'] )
                 ? $staff['calendar_id']
                 : get_option( 'lvb_google_default_calendar_id', '' );
 
             if ( $calendar_id && LVB_Google_Calendar::is_connected() ) {
-                $result = LVB_Google_Calendar::delete_event( $calendar_id, $booking['google_event_id'] );
-                if ( is_wp_error( $result ) ) {
-                    $gcal_status = 'failed';
-                    $gcal_error  = $result->get_error_message();
-                } else {
-                    $gcal_status = 'deleted';
+                if ( ! empty( $booking['google_event_id'] ) ) {
+                    $result = LVB_Google_Calendar::delete_event( $calendar_id, $booking['google_event_id'] );
+                    if ( is_wp_error( $result ) ) {
+                        $gcal_status = 'failed';
+                        $gcal_error  = $result->get_error_message();
+                    } else {
+                        $gcal_status = 'deleted';
+                    }
+                }
+                if ( ! empty( $booking['buffer_event_id'] ) ) {
+                    $buf_result = LVB_Google_Calendar::delete_event( $calendar_id, $booking['buffer_event_id'] );
+                    if ( ! is_wp_error( $buf_result ) ) {
+                        $buffer_cleared = true;
+                    }
                 }
             }
         }
@@ -240,6 +263,9 @@ class LVB_Booking_Manager {
         // Clear the GCal reference on success so re-cancelling doesn't retry.
         if ( $gcal_status === 'deleted' ) {
             $update['google_event_id'] = '';
+        }
+        if ( $buffer_cleared ) {
+            $update['buffer_event_id'] = '';
         }
         $rows = LVB_Database::update( 'bookings', $update, [ 'id' => $booking_id ] );
 
