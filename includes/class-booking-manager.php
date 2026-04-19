@@ -197,8 +197,8 @@ class LVB_Booking_Manager {
      * calendar is preferred; the plugin default calendar is used as a fallback.
      *
      * @param int $booking_id  The ID of the booking to cancel.
-     * @return int|false       Number of rows updated (1) on success, or false on failure
-     *                         (booking not found, DB error).
+     * @return array|false     False when the booking wasn't found. Otherwise:
+     *                         { rows:int, gcal_status:'deleted'|'failed'|'skipped', gcal_error:string }.
      */
     public static function cancel_booking( $booking_id ) {
         $booking = LVB_Database::get_by_id( 'bookings', $booking_id );
@@ -206,15 +206,26 @@ class LVB_Booking_Manager {
             return false;
         }
 
-        // Remove Google Calendar event
+        // Remove Google Calendar event.
+        // gcal_status: 'deleted' on success, 'failed' on API error, 'skipped' when
+        //              there was nothing to delete (no event id or no calendar id).
+        $gcal_status = 'skipped';
+        $gcal_error  = '';
+
         if ( ! empty( $booking['google_event_id'] ) ) {
             $staff       = $booking['staff_id'] ? LVB_Database::get_by_id( 'staff', $booking['staff_id'] ) : null;
             $calendar_id = $staff && ! empty( $staff['calendar_id'] )
                 ? $staff['calendar_id']
                 : get_option( 'lvb_google_default_calendar_id', '' );
 
-            if ( $calendar_id ) {
-                LVB_Google_Calendar::delete_event( $calendar_id, $booking['google_event_id'] );
+            if ( $calendar_id && LVB_Google_Calendar::is_connected() ) {
+                $result = LVB_Google_Calendar::delete_event( $calendar_id, $booking['google_event_id'] );
+                if ( is_wp_error( $result ) ) {
+                    $gcal_status = 'failed';
+                    $gcal_error  = $result->get_error_message();
+                } else {
+                    $gcal_status = 'deleted';
+                }
             }
         }
 
@@ -224,7 +235,18 @@ class LVB_Booking_Manager {
             wp_unschedule_event( $timestamp, 'lvb_send_reminder', [ $booking_id ] );
         }
 
-        return LVB_Database::update( 'bookings', [ 'status' => 'cancelled' ], [ 'id' => $booking_id ] );
+        $update = [ 'status' => 'cancelled' ];
+        // Clear the GCal reference on success so re-cancelling doesn't retry.
+        if ( $gcal_status === 'deleted' ) {
+            $update['google_event_id'] = '';
+        }
+        $rows = LVB_Database::update( 'bookings', $update, [ 'id' => $booking_id ] );
+
+        return [
+            'rows'        => $rows,
+            'gcal_status' => $gcal_status,
+            'gcal_error'  => $gcal_error,
+        ];
     }
 
     // -----------------------------------------------------------------------
