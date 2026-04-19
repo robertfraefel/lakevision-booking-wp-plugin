@@ -174,6 +174,8 @@ class LVB_Admin {
                 'nonce'   => wp_create_nonce( 'wp_rest' ),
                 'staff'   => $staff_options,
                 'locale'  => 'de',
+                'timeMin' => self::normalize_time_string( get_option( 'lvb_calendar_time_min', '07:00' ), '07:00' ),
+                'timeMax' => self::normalize_time_string( get_option( 'lvb_calendar_time_max', '22:00' ), '22:00' ),
             ] );
         }
     }
@@ -335,6 +337,24 @@ class LVB_Admin {
      *
      * @return void
      */
+    /**
+     * Normalise a user-entered time string to "HH:MM:SS" (FullCalendar-compatible).
+     *
+     * Accepts "HH:MM" or "HH:MM:SS". Falls back to the default when invalid so
+     * a bad value in the option table cannot break the calendar UI.
+     *
+     * @param string $value
+     * @param string $default Fallback in "HH:MM" form.
+     * @return string 24h time in "HH:MM:SS".
+     */
+    private static function normalize_time_string( $value, $default ) {
+        $value = is_string( $value ) ? trim( $value ) : '';
+        if ( preg_match( '/^([0-1]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/', $value, $m ) ) {
+            return sprintf( '%02d:%02d:%02d', (int) $m[1], (int) $m[2], isset( $m[3] ) ? (int) $m[3] : 0 );
+        }
+        return $default . ':00';
+    }
+
     private function save_settings() {
         $text_options = [
             'lvb_google_client_id',
@@ -356,6 +376,8 @@ class LVB_Admin {
             'lvb_min_advance_hours',
             'lvb_accent_color',
             'lvb_accent2_color',
+            'lvb_calendar_time_min',
+            'lvb_calendar_time_max',
         ];
         $color_options = [
             'lvb_dark_color',
