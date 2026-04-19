@@ -139,8 +139,17 @@ class LVB_Booking_Manager {
             return new WP_Error( 'db_insert_fail', __( 'Could not save booking to database.', 'lakevision-booking' ) );
         }
 
-        // 7b. Create buffer event in Google Calendar (separate entry after the booking)
-        if ( (int) $service['buffer_time'] > 0 && ! empty( $calendar_id ) && LVB_Google_Calendar::is_connected() ) {
+        // 7b. Create buffer event in Google Calendar (separate entry after the booking).
+        //     Skip at the end of the availability window — no following booking
+        //     means no reset time is needed.
+        $skip_buffer = false;
+        if ( ! empty( $data['slot_win_end'] ) ) {
+            $win_end_dt = new DateTime( $data['slot_win_end'], wp_timezone() );
+            if ( $end_dt >= $win_end_dt ) {
+                $skip_buffer = true;
+            }
+        }
+        if ( ! $skip_buffer && (int) $service['buffer_time'] > 0 && ! empty( $calendar_id ) && LVB_Google_Calendar::is_connected() ) {
             $buffer_result = LVB_Google_Calendar::create_buffer_event( $calendar_id, [
                 'service_name'  => $service['name'],
                 'customer_name' => trim( $data['first_name'] . ' ' . $data['last_name'] ),
