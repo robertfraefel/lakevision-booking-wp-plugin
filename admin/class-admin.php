@@ -88,6 +88,7 @@ class LVB_Admin {
         );
 
         add_submenu_page( 'lvb-bookings', __( 'Bookings',  'lakevision-booking' ), __( 'Bookings',  'lakevision-booking' ), 'manage_options', 'lvb-bookings',  [ $this, 'page_bookings' ] );
+        add_submenu_page( 'lvb-bookings', __( 'Kalender',  'lakevision-booking' ), __( 'Kalender',  'lakevision-booking' ), 'manage_options', 'lvb-calendar',  [ $this, 'page_calendar' ] );
         add_submenu_page( 'lvb-bookings', __( 'Customers', 'lakevision-booking' ), __( 'Customers', 'lakevision-booking' ), 'manage_options', 'lvb-customers', [ $this, 'page_customers' ] );
         add_submenu_page( 'lvb-bookings', __( 'Services',  'lakevision-booking' ), __( 'Services',  'lakevision-booking' ), 'manage_options', 'lvb-services',  [ $this, 'page_services' ] );
         add_submenu_page( 'lvb-bookings', __( 'Staff',     'lakevision-booking' ), __( 'Staff',     'lakevision-booking' ), 'manage_options', 'lvb-staff',     [ $this, 'page_staff' ] );
@@ -116,6 +117,7 @@ class LVB_Admin {
     public function enqueue_assets( $hook ) {
         $lvb_pages = [
             'toplevel_page_lvb-bookings',
+            'lv-booking_page_lvb-calendar',
             'lv-booking_page_lvb-customers',
             'lv-booking_page_lvb-services',
             'lv-booking_page_lvb-staff',
@@ -131,6 +133,48 @@ class LVB_Admin {
         // Enqueue jQuery UI Sortable on the Form Builder page for drag & drop reordering.
         if ( 'lv-booking_page_lvb-form-builder' === $hook ) {
             wp_enqueue_script( 'jquery-ui-sortable' );
+        }
+
+        // Calendar page: FullCalendar bundle + our glue script.
+        if ( 'lv-booking_page_lvb-calendar' === $hook ) {
+            wp_enqueue_script(
+                'lvb-fullcalendar',
+                'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js',
+                [],
+                '6.1.15',
+                true
+            );
+            wp_enqueue_script(
+                'lvb-calendar',
+                LVB_PLUGIN_URL . 'assets/js/calendar.js',
+                [ 'lvb-fullcalendar' ],
+                filemtime( LVB_PLUGIN_DIR . 'assets/js/calendar.js' ),
+                true
+            );
+            wp_enqueue_style(
+                'lvb-calendar',
+                LVB_PLUGIN_URL . 'assets/css/calendar.css',
+                [ 'lvb-admin' ],
+                filemtime( LVB_PLUGIN_DIR . 'assets/css/calendar.css' )
+            );
+
+            $palette = LVB_Google_Calendar::get_event_color_palette();
+            $staff   = LVB_Database::get_all( 'staff', [ 'status' => 'active' ], 'name ASC' );
+            $staff_options = array_map( function( $s ) use ( $palette ) {
+                $cid = (int) ( $s['color_id'] ?? 0 );
+                return [
+                    'id'    => (int) $s['id'],
+                    'name'  => $s['name'],
+                    'color' => ( $cid >= 1 && $cid <= 11 ) ? $palette[ $cid ]['hex'] : null,
+                ];
+            }, $staff );
+
+            wp_localize_script( 'lvb-calendar', 'lvbCalendar', [
+                'restUrl' => esc_url_raw( rest_url( 'lvb/v1/calendar/events' ) ),
+                'nonce'   => wp_create_nonce( 'wp_rest' ),
+                'staff'   => $staff_options,
+                'locale'  => 'de',
+            ] );
         }
     }
 
@@ -464,6 +508,18 @@ class LVB_Admin {
      */
     public function page_bookings() {
         require LVB_PLUGIN_DIR . 'admin/partials/bookings.php';
+    }
+
+    /**
+     * Render the Kalender (calendar) admin page.
+     *
+     * Delegates to the calendar partial which renders the FullCalendar UI.
+     * The page consumes the REST API exposed by LVB_Calendar_API.
+     *
+     * @return void
+     */
+    public function page_calendar() {
+        require LVB_PLUGIN_DIR . 'admin/partials/calendar.php';
     }
 
     /**
