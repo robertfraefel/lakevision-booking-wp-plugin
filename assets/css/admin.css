@@ -79,9 +79,10 @@
 .lvb-btn-danger:hover { background: #c0392b !important; border-color: #c0392b !important; }
 
 /* ---- Two-column layout ---- */
-.lvb-two-col { display: flex; gap: 24px; align-items: flex-start; }
-.lvb-col-main { flex: 1 1 0; min-width: 0; }
-.lvb-col-side { flex: 0 0 360px; }
+.lvb-two-col { display: flex; flex-direction: column; gap: 24px; }
+.lvb-col-main { width: 100%; min-width: 0; overflow-x: auto; }
+.lvb-col-main .lvb-table { table-layout: auto; }
+.lvb-col-side { width: 100%; max-width: 720px; }
 
 /* ---- Card ---- */
 .lvb-card {
@@ -157,6 +158,5 @@
 
 /* ---- Responsive ---- */
 @media (max-width: 900px) {
-    .lvb-two-col { flex-direction: column; }
-    .lvb-col-side { flex: none; width: 100%; }
+    .lvb-col-side { max-width: 100%; }
 }
