@@ -69,6 +69,31 @@
         }
         if ( preStaff ) $staffSelect.val( preStaff );
 
+        // Staff picker visibility:
+        //   0 staff  → no wrap rendered (server-side skip)
+        //   1 staff  → auto-select that staff, keep wrap hidden
+        //   ≥2 staff → show wrap so the customer can pick
+        // A preselected staff_id via shortcode attr always hides the picker.
+        var staffCount = parseInt( $app.data( 'staff-count' ), 10 ) || 0;
+        if ( $staffWrap.length ) {
+            if ( preStaff ) {
+                state.staffId = preStaff;
+                $staffWrap.prop( 'hidden', true );
+            } else if ( staffCount === 1 ) {
+                // Skip the "Nächster freier Platz" placeholder (value=0), pick the only real option.
+                var onlyStaff = $staffSelect.find( 'option' ).filter( function () {
+                    return parseInt( this.value, 10 ) > 0;
+                } ).first();
+                if ( onlyStaff.length ) {
+                    $staffSelect.val( onlyStaff.val() );
+                    state.staffId = parseInt( onlyStaff.val(), 10 ) || 0;
+                }
+                $staffWrap.prop( 'hidden', true );
+            } else if ( staffCount >= 2 ) {
+                $staffWrap.prop( 'hidden', false );
+            }
+        }
+
         // Today's date
         var now = new Date();
         state.currentYear  = now.getFullYear();
@@ -81,6 +106,7 @@
         $app.on( 'click', '.lvb-back',              onBack );
         $app.on( 'click', '.lvb-slot-btn',          onSlotClick );
         $app.on( 'change', '#lvb-service-select',   onServiceChangeStep2 );
+        $app.on( 'change', '#lvb-staff-select',     onStaffChange );
         $app.on( 'click', '#lvb-book-another',      onBookAnother );
         $bookingForm.on( 'submit', onFormSubmit );
 
@@ -245,6 +271,18 @@
         state.serviceDuration = parseInt( $serviceSelect.find( 'option:selected' ).data( 'duration' ), 10 ) || 0;
         state.selectedSlot   = null;   // reset previously selected sub-slot
         renderSlots();
+    }
+
+    /* ===================================================================
+       Staff change → refetch the current month from the staff-specific
+       calendar and re-render. We refetch (not just re-render) because each
+       staff member may have their own Google Calendar.
+    =================================================================== */
+    function onStaffChange() {
+        state.staffId      = parseInt( $staffSelect.val(), 10 ) || 0;
+        state.selectedSlot = null;
+        state.slotsLoaded  = false;
+        fetchSlotsForMonth();
     }
 
     /* ===================================================================
@@ -512,14 +550,21 @@
        "Book Another" button
     =================================================================== */
     function onBookAnother() {
-        // Reset state
+        // Reset state. Keep staffId when there's only one staff member so
+        // the auto-assignment from init() is preserved across subsequent
+        // bookings without requiring the user to re-pick.
         state.selectedDate    = null;
         state.selectedSlot    = null;
         state.serviceId       = 0;
         state.serviceDuration = 0;
-        state.staffId         = 0;
         state.bookedByDate    = {};
         state.slotsLoaded     = false;
+
+        var staffCount = parseInt( $app.data( 'staff-count' ), 10 ) || 0;
+        if ( staffCount >= 2 ) {
+            state.staffId = 0;
+            $staffSelect.val( '0' );
+        }
 
         $serviceSelect.val( '' );
         $bookingForm[ 0 ].reset();
