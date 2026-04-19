@@ -483,6 +483,44 @@ class LVB_Google_Calendar {
     }
 
     /**
+     * Create a buffer/cleanup event after a booking and return its ID.
+     *
+     * Creates a short grey (colorId 8 / Graphite) event used to block the buffer
+     * window following a service. The main booking and buffer are separate
+     * calendar entries so operators see both and availability checks naturally
+     * skip both.
+     *
+     * @param string $calendar_id
+     * @param array  $buffer  {service_name, customer_name, start, end}
+     * @return string|WP_Error  Event ID or WP_Error.
+     */
+    public static function create_buffer_event( $calendar_id, $buffer ) {
+        $tz = wp_timezone_string();
+
+        $event_body = [
+            'summary'     => sprintf( '[Puffer] %s', $buffer['service_name'] ),
+            'description' => 'Pufferzeit nach Buchung: ' . ( $buffer['customer_name'] ?? '' ),
+            'start' => [
+                'dateTime' => ( new DateTime( $buffer['start'], wp_timezone() ) )->format( DateTime::RFC3339 ),
+                'timeZone' => $tz,
+            ],
+            'end'   => [
+                'dateTime' => ( new DateTime( $buffer['end'], wp_timezone() ) )->format( DateTime::RFC3339 ),
+                'timeZone' => $tz,
+            ],
+            'colorId' => '8',
+            'transparency' => 'opaque',
+        ];
+
+        $result = self::create_event( $calendar_id, $event_body );
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+
+        return $result['id'] ?? '';
+    }
+
+    /**
      * Google Calendar event color palette (colorId 1-11).
      *
      * Hex values approximate Google Calendars stock "event colors" as rendered

@@ -97,7 +97,7 @@ class LVB_Calendar_API {
 
         $sql = "SELECT b.id, b.start_datetime, b.end_datetime, b.status, b.notes,
                        b.staff_id, b.price,
-                       sv.name AS service_name,
+                       sv.name AS service_name, sv.buffer_time,
                        st.name AS staff_name, st.color_id,
                        c.first_name, c.last_name, c.email AS customer_email, c.phone AS customer_phone
                 FROM {$wpdb->prefix}lvb_bookings b
@@ -141,6 +141,33 @@ class LVB_Calendar_API {
                     'notes'          => $r['notes'],
                 ],
             ];
+
+            $buffer_minutes = (int) ( $r['buffer_time'] ?? 0 );
+            if ( $buffer_minutes > 0 ) {
+                $buf_start_dt = new DateTime( $r['end_datetime'], $tz );
+                $buf_end_dt   = clone $buf_start_dt;
+                $buf_end_dt->modify( '+' . $buffer_minutes . ' minutes' );
+
+                $events[] = [
+                    'id'              => 'buffer-' . (int) $r['id'],
+                    'title'           => 'Puffer',
+                    'start'           => $buf_start_dt->format( DateTime::ATOM ),
+                    'end'             => $buf_end_dt->format( DateTime::ATOM ),
+                    'backgroundColor' => '#9e9e9e',
+                    'borderColor'     => '#9e9e9e',
+                    'textColor'       => '#ffffff',
+                    'editable'        => false,
+                    'startEditable'   => false,
+                    'durationEditable'=> false,
+                    'classNames'      => [ 'lvb-buffer-event' ],
+                    'extendedProps'   => [
+                        'is_buffer'     => true,
+                        'booking_id'    => (int) $r['id'],
+                        'staff_id'      => (int) $r['staff_id'],
+                        'service'       => $r['service_name'],
+                    ],
+                ];
+            }
         }
 
         return rest_ensure_response( $events );
@@ -204,19 +231,38 @@ class LVB_Calendar_API {
             [ 'id' => $id ]
         );
 
-        // Sync the Google Calendar event if one is linked.
+        // Sync the Google Calendar event(s) if linked.
         $gcal_warning = null;
-        if ( ! empty( $booking['google_event_id'] ) && LVB_Google_Calendar::is_connected() ) {
+        if ( LVB_Google_Calendar::is_connected()
+             && ( ! empty( $booking['google_event_id'] ) || ! empty( $booking['buffer_event_id'] ) ) ) {
             $calendar_id = self::resolve_calendar_id( $booking );
             if ( $calendar_id ) {
                 $tz_string = wp_timezone_string();
-                $patch_body = [
-                    'start' => [ 'dateTime' => $start_dt->format( DateTime::RFC3339 ), 'timeZone' => $tz_string ],
-                    'end'   => [ 'dateTime' => $end_dt->format( DateTime::RFC3339 ),   'timeZone' => $tz_string ],
-                ];
-                $result = LVB_Google_Calendar::patch_event( $calendar_id, $booking['google_event_id'], $patch_body );
-                if ( is_wp_error( $result ) ) {
-                    $gcal_warning = $result->get_error_message();
+                if ( ! empty( $booking['google_event_id'] ) ) {
+                    $patch_body = [
+                        'start' => [ 'dateTime' => $start_dt->format( DateTime::RFC3339 ), 'timeZone' => $tz_string ],
+                        'end'   => [ 'dateTime' => $end_dt->format( DateTime::RFC3339 ),   'timeZone' => $tz_string ],
+                    ];
+                    $result = LVB_Google_Calendar::patch_event( $calendar_id, $booking['google_event_id'], $patch_body );
+                    if ( is_wp_error( $result ) ) {
+                        $gcal_warning = $result->get_error_message();
+                    }
+                }
+                if ( ! empty( $booking['buffer_event_id'] ) ) {
+                    $service = LVB_Database::get_by_id( 'services', (int) $booking['service_id'] );
+                    $buffer_minutes = $service ? (int) $service['buffer_time'] : 0;
+                    if ( $buffer_minutes > 0 ) {
+                        $buf_end_dt = clone $end_dt;
+                        $buf_end_dt->modify( '+' . $buffer_minutes . ' minutes' );
+                        $buf_body = [
+                            'start' => [ 'dateTime' => $end_dt->format( DateTime::RFC3339 ), 'timeZone' => $tz_string ],
+                            'end'   => [ 'dateTime' => $buf_end_dt->format( DateTime::RFC3339 ), 'timeZone' => $tz_string ],
+                        ];
+                        $buf_result = LVB_Google_Calendar::patch_event( $calendar_id, $booking['buffer_event_id'], $buf_body );
+                        if ( is_wp_error( $buf_result ) && ! $gcal_warning ) {
+                            $gcal_warning = $buf_result->get_error_message();
+                        }
+                    }
                 }
             }
         }

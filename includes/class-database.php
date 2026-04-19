@@ -122,6 +122,7 @@ class LVB_Database {
             end_datetime     DATETIME        NOT NULL,
             status           ENUM('pending','confirmed','cancelled') NOT NULL DEFAULT 'pending',
             google_event_id  VARCHAR(255)    DEFAULT NULL,
+            buffer_event_id  VARCHAR(255)    DEFAULT NULL,
             price            DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
             notes            TEXT            DEFAULT NULL,
             reminder_sent    TINYINT(1)      NOT NULL DEFAULT 0,
@@ -163,6 +164,12 @@ class LVB_Database {
         $have_color = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}lvb_staff LIKE 'color_id'" );
         if ( empty( $have_color ) ) {
             $wpdb->query( "ALTER TABLE {$wpdb->prefix}lvb_staff ADD COLUMN color_id TINYINT UNSIGNED DEFAULT NULL AFTER time_off" );
+        }
+
+        // Add buffer_event_id column to bookings (migration for existing installs)
+        $have_buffer_ev = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}lvb_bookings LIKE 'buffer_event_id'" );
+        if ( empty( $have_buffer_ev ) ) {
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}lvb_bookings ADD COLUMN buffer_event_id VARCHAR(255) DEFAULT NULL AFTER google_event_id" );
         }
 
         // Add sort_order column if missing (migration for existing installs)
