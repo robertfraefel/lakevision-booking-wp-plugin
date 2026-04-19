@@ -43,6 +43,29 @@
 }
 
 /* ==========================================================================
+   Theme-inherit mode
+   --------------------------------------------------------------------------
+   Opt-in via [lvb_booking theme="inherit"] or the "Theme-Farben übernehmen"
+   setting. Makes the widget blend into the surrounding page: transparent
+   background, inherited text color, neutral hairlines derived from the
+   current text color. The accent still drives buttons & highlights.
+   ========================================================================== */
+.lvb-booking-app.lvb-theme-inherit {
+    --lvb-bg:         transparent;
+    --lvb-surface:    color-mix(in srgb, currentColor 6%,  transparent);
+    --lvb-surface-2:  color-mix(in srgb, currentColor 8%,  transparent);
+    --lvb-border:     color-mix(in srgb, currentColor 15%, transparent);
+    --lvb-text:       inherit;
+    --lvb-muted:      color-mix(in srgb, currentColor 60%, transparent);
+    --lvb-shadow:     none;
+}
+.lvb-booking-app.lvb-theme-inherit { color: inherit; }
+.lvb-booking-app.lvb-theme-inherit .lvb-select {
+    /* Swap the chevron SVG to currentColor so it works on light and dark pages. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-opacity='0.6'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+/* ==========================================================================
    Container
    ========================================================================== */
 .lvb-booking-app {

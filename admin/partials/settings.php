@@ -259,6 +259,20 @@ $disconnect_url = wp_nonce_url(
             <p class="description">Override the default accent colors used in the booking widget.</p>
             <table class="form-table">
                 <tr>
+                    <th><label for="lvb_theme_inherit">Inherit Site Theme</label></th>
+                    <td>
+                        <input type="checkbox" id="lvb_theme_inherit" name="lvb_theme_inherit" value="1"
+                               <?php checked( 1, get_option( 'lvb_theme_inherit', 0 ) ); ?>>
+                        <label for="lvb_theme_inherit">Blend into the active page theme</label>
+                        <p class="description">
+                            When enabled, the widget drops its own background/text colors and inherits
+                            them from the surrounding page — only the accent color below is applied.
+                            Useful when embedding on a light theme. Can also be enabled per-instance
+                            via <code>[lvb_booking theme="inherit"]</code>.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
                     <th><label for="lvb_accent_color">Primary Accent Color</label></th>
                     <td>
                         <input type="color" id="lvb_accent_color" name="lvb_accent_color"

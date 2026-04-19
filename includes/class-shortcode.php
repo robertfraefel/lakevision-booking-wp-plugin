@@ -71,7 +71,17 @@ class LVB_Shortcode {
         $atts = shortcode_atts( [
             'service_id' => '',
             'staff_id'   => '',
+            // 'inherit' = blend into the active page theme (transparent
+            // background, inherited text color). Empty = use plugin defaults.
+            'theme'      => '',
         ], $atts, 'lvb_booking' );
+
+        // Theme-inherit is active when either the shortcode attr requests it
+        // or the site-wide option is enabled. The shortcode attr wins if set.
+        $theme_attr     = strtolower( trim( (string) $atts['theme'] ) );
+        $theme_inherit  = $theme_attr === 'inherit'
+            || ( $theme_attr === '' && (int) get_option( 'lvb_theme_inherit', 0 ) === 1 );
+        $app_classes    = 'lvb-booking-app' . ( $theme_inherit ? ' lvb-theme-inherit' : '' );
 
         // Enqueue assets – they were registered on wp_enqueue_scripts.
         wp_enqueue_style( 'lvb-booking' );
@@ -107,7 +117,7 @@ class LVB_Shortcode {
 
         ob_start();
         ?>
-        <div id="lvb-booking-app" class="lvb-booking-app"
+        <div id="lvb-booking-app" class="<?php echo esc_attr( $app_classes ); ?>"
              data-service="<?php echo esc_attr( $atts['service_id'] ); ?>"
              data-staff="<?php echo esc_attr( $atts['staff_id'] ); ?>"
              data-staff-count="<?php echo esc_attr( count( $staff_members ) ); ?>">

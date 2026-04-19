@@ -324,6 +324,7 @@ class LVB_Admin {
         // Checkbox options
         update_option( 'lvb_disclaimer_enabled', isset( $_POST['lvb_disclaimer_enabled'] ) ? 1 : 0 );
         update_option( 'lvb_reminder_enabled', isset( $_POST['lvb_reminder_enabled'] ) ? 1 : 0 );
+        update_option( 'lvb_theme_inherit', isset( $_POST['lvb_theme_inherit'] ) ? 1 : 0 );
         // Number options
         if ( isset( $_POST['lvb_reminder_hours'] ) ) {
             update_option( 'lvb_reminder_hours', max( 1, (int) $_POST['lvb_reminder_hours'] ) );
