@@ -238,6 +238,22 @@ $disconnect_url = wp_nonce_url(
                         <p class="description">Wie viele Stunden im Voraus muss ein Termin mindestens gebucht werden. 0 = keine Einschränkung.</p>
                     </td>
                 </tr>
+                <tr>
+                    <th><label for="lvb_cutoff_grid">Raster für Vorlauf-Cutoff</label></th>
+                    <td>
+                        <input type="number" id="lvb_cutoff_grid" name="lvb_cutoff_grid" class="small-text" min="1" step="1"
+                               value="<?php echo esc_attr( get_option( 'lvb_cutoff_grid', '15' ) ); ?>"> Minuten
+                        <p class="description">Der berechnete "frühestens buchbar"-Zeitpunkt (jetzt + Vorlaufstunden) wird auf dieses Raster aufgerundet, damit keine krummen Startzeiten entstehen (z.B. 14:37 → 14:45 bei Raster 15).</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th><label for="lvb_slot_realign_grid">Raster nach Konflikt</label></th>
+                    <td>
+                        <input type="number" id="lvb_slot_realign_grid" name="lvb_slot_realign_grid" class="small-text" min="1" step="1"
+                               value="<?php echo esc_attr( get_option( 'lvb_slot_realign_grid', '15' ) ); ?>"> Minuten
+                        <p class="description">Wenn ein Slot-Kandidat mit einer bestehenden Buchung kollidiert, wird der nächste Startzeitpunkt auf dieses Raster ab Ende der Blockade aufgerundet (z.B. Block endet 13:35 → nächster Slot bei Raster 15 = 13:45).</p>
+                    </td>
+                </tr>
             </table>
         </div>
 

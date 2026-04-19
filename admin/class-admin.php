@@ -374,6 +374,8 @@ class LVB_Admin {
             'lvb_booking_title',
             'lvb_booking_subtitle',
             'lvb_min_advance_hours',
+            'lvb_cutoff_grid',
+            'lvb_slot_realign_grid',
             'lvb_accent_color',
             'lvb_accent2_color',
             'lvb_calendar_time_min',
