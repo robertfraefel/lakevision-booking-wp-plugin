@@ -346,11 +346,13 @@ class LVB_Booking_Manager {
      */
     public static function save_staff( $data, $id = 0 ) {
         $clean = [
-            'name'        => sanitize_text_field( $data['name'] ),
-            'email'       => sanitize_email( $data['email'] ?? '' ),
-            'phone'       => sanitize_text_field( $data['phone'] ?? '' ),
-            'calendar_id' => sanitize_text_field( $data['calendar_id'] ?? '' ),
-            'status'      => in_array( $data['status'] ?? 'active', [ 'active', 'inactive' ], true ) ? $data['status'] : 'active',
+            'name'          => sanitize_text_field( $data['name'] ),
+            'email'         => sanitize_email( $data['email'] ?? '' ),
+            'phone'         => sanitize_text_field( $data['phone'] ?? '' ),
+            'calendar_id'   => sanitize_text_field( $data['calendar_id'] ?? '' ),
+            'working_hours' => LVB_Staff_Schedule::encode_working_hours( $data['working_hours'] ?? null ),
+            'time_off'      => LVB_Staff_Schedule::encode_time_off( $data['time_off'] ?? null ),
+            'status'        => in_array( $data['status'] ?? 'active', [ 'active', 'inactive' ], true ) ? $data['status'] : 'active',
         ];
 
         if ( $id ) {

@@ -59,13 +59,15 @@ class LVB_Database {
 
         // Staff
         $tables[] = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}lvb_staff (
-            id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            name        VARCHAR(255)    NOT NULL,
-            email       VARCHAR(255)    DEFAULT NULL,
-            phone       VARCHAR(50)     DEFAULT NULL,
-            calendar_id VARCHAR(255)    DEFAULT NULL COMMENT 'Google Calendar ID for this staff member',
-            status      ENUM('active','inactive') NOT NULL DEFAULT 'active',
-            created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            name           VARCHAR(255)    NOT NULL,
+            email          VARCHAR(255)    DEFAULT NULL,
+            phone          VARCHAR(50)     DEFAULT NULL,
+            calendar_id    VARCHAR(255)    DEFAULT NULL COMMENT 'Google Calendar ID for this staff member',
+            working_hours  TEXT            DEFAULT NULL COMMENT 'JSON: per-weekday time windows (replaces calendar when set)',
+            time_off       TEXT            DEFAULT NULL COMMENT 'JSON: date ranges where staff is unavailable (holidays, etc.)',
+            status         ENUM('active','inactive') NOT NULL DEFAULT 'active',
+            created_at     DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id)
         ) $charset;";
 
@@ -146,6 +148,14 @@ class LVB_Database {
         $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}lvb_customers LIKE 'birthday'" );
         if ( empty( $cols ) ) {
             $wpdb->query( "ALTER TABLE {$wpdb->prefix}lvb_customers ADD COLUMN birthday DATE DEFAULT NULL AFTER phone" );
+        }
+
+        // Add working_hours / time_off columns to staff (migration for existing installs)
+        foreach ( [ 'working_hours', 'time_off' ] as $col ) {
+            $have = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}lvb_staff LIKE '$col'" );
+            if ( empty( $have ) ) {
+                $wpdb->query( "ALTER TABLE {$wpdb->prefix}lvb_staff ADD COLUMN $col TEXT DEFAULT NULL AFTER calendar_id" );
+            }
         }
 
         // Add sort_order column if missing (migration for existing installs)
