@@ -291,6 +291,39 @@ class LVB_Google_Calendar {
     }
 
     /**
+     * Patch (partial update) an event in the given calendar.
+     *
+     * Sends only the fields in $event_body, leaving untouched fields intact.
+     * Typically used to reschedule an event (update start/end) without touching
+     * summary/description.
+     *
+     * @param string $calendar_id
+     * @param string $event_id
+     * @param array  $event_body  Partial Calendar API event resource.
+     * @return array|WP_Error     Updated event resource or WP_Error.
+     */
+    public static function patch_event( $calendar_id, $event_id, $event_body ) {
+        $token = self::get_access_token();
+        if ( is_wp_error( $token ) ) {
+            return $token;
+        }
+
+        $url = self::CAL_BASE . '/' . rawurlencode( $calendar_id ) . '/events/' . rawurlencode( $event_id );
+
+        $response = wp_remote_request( $url, [
+            'method'  => 'PATCH',
+            'headers' => [
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type'  => 'application/json',
+            ],
+            'body'    => wp_json_encode( $event_body ),
+            'timeout' => 15,
+        ] );
+
+        return self::parse_calendar_response( $response );
+    }
+
+    /**
      * Delete an event from the given calendar.
      *
      * @param string $calendar_id

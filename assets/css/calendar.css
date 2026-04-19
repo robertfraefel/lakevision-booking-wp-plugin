@@ -1,0 +1,132 @@
+/* Admin calendar view */
+
+.lvb-cal-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin: 12px 0 16px;
+}
+.lvb-cal-toolbar select {
+    min-width: 180px;
+}
+.lvb-cal-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-left: auto;
+    font-size: 12px;
+    color: #50575e;
+}
+.lvb-cal-legend-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.lvb-cal-legend-chip .dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+}
+
+.lvb-cal-root {
+    background: #fff;
+    padding: 16px;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+}
+
+.lvb-cal-root .fc-event {
+    cursor: pointer;
+    border: none;
+    padding: 2px 4px;
+}
+.lvb-cal-root .fc-button {
+    text-transform: none;
+    box-shadow: none;
+}
+.lvb-cal-root .fc-button-primary:not(:disabled):hover {
+    background: #2271b1;
+    border-color: #2271b1;
+}
+
+/* Modal */
+.lvb-cal-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.lvb-cal-modal[hidden] { display: none; }
+.lvb-cal-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+}
+.lvb-cal-modal-dialog {
+    position: relative;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    max-width: 520px;
+    width: calc(100% - 32px);
+    padding: 24px 28px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+.lvb-cal-modal-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: transparent;
+    border: 0;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    color: #646970;
+}
+.lvb-cal-modal-close:hover { color: #1d2327; }
+.lvb-cal-modal-dialog h2 {
+    margin: 0 0 16px;
+    font-size: 18px;
+}
+.lvb-cal-modal-meta {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px 14px;
+    margin: 0 0 18px;
+    font-size: 14px;
+}
+.lvb-cal-modal-meta dt {
+    font-weight: 600;
+    color: #50575e;
+}
+.lvb-cal-modal-meta dd {
+    margin: 0;
+    word-break: break-word;
+}
+.lvb-cal-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid #eee;
+    padding-top: 14px;
+}
+.lvb-cal-modal-actions .button-danger {
+    background: #d63638;
+    border-color: #d63638;
+    color: #fff;
+}
+.lvb-cal-modal-actions .button-danger:hover:not(:disabled) {
+    background: #b92a2c;
+    border-color: #b92a2c;
+    color: #fff;
+}
+.lvb-cal-modal-actions .button-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

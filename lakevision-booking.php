@@ -3,7 +3,7 @@
  * Plugin Name: LakeVision Booking
  * Plugin URI:  https://github.com/robertfraefel/lakevision-booking-wp-plugin
  * Description: Flexible booking system with Google Calendar integration, time-slot management and email notifications.
- * Version:     1.5.1
+ * Version:     1.6.0
  * Author:      LakeVision
  * Author URI:  https://lakevision.ch
  * License:     GPL-2.0+
@@ -52,7 +52,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'LVB_VERSION',     '1.5.1' );
+define( 'LVB_VERSION',     '1.6.0' );
 define( 'LVB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LVB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'LVB_PLUGIN_FILE', __FILE__ );
@@ -66,6 +66,7 @@ require_once LVB_PLUGIN_DIR . 'includes/class-staff-schedule.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-shortcode.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-intake-form.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-water-temp.php';
+require_once LVB_PLUGIN_DIR . 'includes/class-calendar-api.php';
 require_once LVB_PLUGIN_DIR . 'admin/class-admin.php';
 
 /**
@@ -138,6 +139,9 @@ final class LakeVision_Booking {
 
         // Water temperature proxy
         LVB_Water_Temp::register();
+
+        // Calendar REST API (admin calendar view)
+        LVB_Calendar_API::register();
 
         // Email reminder cron
         add_action( 'lvb_send_reminder', [ 'LVB_Notifications', 'send_reminder' ] );
