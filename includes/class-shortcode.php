@@ -476,6 +476,13 @@ class LVB_Shortcode {
             ];
         }
 
+        // Drop availability pieces shorter than the shortest active service —
+        // they can never be booked, so they clutter the UI.
+        $shortest = (int) $wpdb->get_var( "SELECT MIN(duration) FROM {$wpdb->prefix}lvb_services WHERE status = 'active' AND duration > 0" );
+        if ( $shortest > 0 ) {
+            $availability = self::split_availability_by_bookings( $availability, $booked, $shortest );
+        }
+
         // Group by date for easy JS consumption
         $by_date        = [];
         $booked_by_date = [];
@@ -621,6 +628,81 @@ class LVB_Shortcode {
             'date'         => wp_date( get_option( 'date_format' ), $start->getTimestamp() ),
             'time'         => $start->format( 'H:i' ) . ' – ' . $end->format( 'H:i' ),
             'message'      => __( 'Booking confirmed! Check your email for details.', 'lakevision-booking' ),
+        ] );
+    }
+
+    /**
+     * Split availability windows by booked ranges and drop sub-pieces that
+     * are shorter than $min_minutes (i.e. too short for the shortest active
+     * service). Each returned piece has recomputed start/end/duration.
+     *
+     * @param array $windows       Availability windows from GCal.
+     * @param array $booked        Booked+buffer ranges (start/end as 'Y-m-d H:i:s').
+     * @param int   $min_minutes   Minimum usable piece length in minutes.
+     * @return array  Filtered availability pieces.
+     */
+    private static function split_availability_by_bookings( $windows, $booked, $min_minutes ) {
+        if ( empty( $windows ) ) return [];
+
+        // Normalise booked ranges to unix timestamps, merge overlaps.
+        $ranges = [];
+        foreach ( $booked as $b ) {
+            $s = strtotime( $b['start'] );
+            $e = strtotime( $b['end'] );
+            if ( $s && $e && $e > $s ) $ranges[] = [ $s, $e ];
+        }
+        usort( $ranges, function( $a, $b ) { return $a[0] - $b[0]; } );
+        $merged = [];
+        foreach ( $ranges as $r ) {
+            if ( $merged && $r[0] <= end( $merged )[1] ) {
+                $merged[ count( $merged ) - 1 ][1] = max( end( $merged )[1], $r[1] );
+            } else {
+                $merged[] = $r;
+            }
+        }
+
+        $min_seconds = $min_minutes * 60;
+        $tz          = wp_timezone();
+        $out         = [];
+
+        foreach ( $windows as $w ) {
+            $ws = strtotime( $w['start'] );
+            $we = strtotime( $w['end'] );
+            if ( ! $ws || ! $we || $we <= $ws ) continue;
+
+            // Walk through merged booked ranges, cutting pieces between them.
+            $cursor = $ws;
+            foreach ( $merged as $r ) {
+                if ( $r[1] <= $cursor ) continue;   // fully before
+                if ( $r[0] >= $we )     break;      // fully after window
+                if ( $r[0] > $cursor ) {
+                    $out[] = self::make_piece( $w, $cursor, min( $r[0], $we ), $min_seconds, $tz );
+                }
+                $cursor = max( $cursor, $r[1] );
+                if ( $cursor >= $we ) break;
+            }
+            if ( $cursor < $we ) {
+                $out[] = self::make_piece( $w, $cursor, $we, $min_seconds, $tz );
+            }
+        }
+
+        return array_values( array_filter( $out ) );
+    }
+
+    /**
+     * Build an availability slot piece, or null if shorter than $min_seconds.
+     */
+    private static function make_piece( $base, $start_ts, $end_ts, $min_seconds, $tz ) {
+        if ( $end_ts - $start_ts < $min_seconds ) return null;
+        $start = ( new DateTime( '@' . $start_ts ) )->setTimezone( $tz );
+        $end   = ( new DateTime( '@' . $end_ts ) )->setTimezone( $tz );
+        return array_merge( $base, [
+            'start'      => $start->format( 'Y-m-d H:i:s' ),
+            'end'        => $end->format( 'Y-m-d H:i:s' ),
+            'start_date' => $start->format( 'Y-m-d' ),
+            'start_time' => $start->format( 'H:i' ),
+            'end_time'   => $end->format( 'H:i' ),
+            'duration'   => (int) ( ( $end_ts - $start_ts ) / 60 ),
         ] );
     }
 }
