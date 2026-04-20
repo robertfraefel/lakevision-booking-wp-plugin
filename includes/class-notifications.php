@@ -354,6 +354,30 @@ class LVB_Notifications {
      * @param array  $vars      Associative array of variables available to the template.
      * @return string  Rendered HTML string, or an empty string for an unknown template.
      */
+    /**
+     * Wrap rendered email content in a full HTML document shell.
+     * The color-scheme meta forces light mode in all mobile clients (iOS Mail,
+     * Gmail app) so dark-mode auto-inversion cannot produce black-on-black text.
+     */
+    private static function html_shell( $content, $bg ) {
+        return '<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<style>
+:root { color-scheme: light; }
+body { margin:0; padding:16px; background:#f0ede8; }
+</style>
+</head>
+<body style="margin:0;padding:16px;background:#f0ede8;">
+' . $content . '
+</body>
+</html>';
+    }
+
     private static function render( $template, $vars ) {
         $primary   = get_option( 'lvb_accent_color', '#00F5C4' );
         $secondary = get_option( 'lvb_accent2_color', '#00C2FF' );
@@ -362,12 +386,13 @@ class LVB_Notifications {
         $footer_bg = get_option( 'lvb_footer_bg_color', '#F2EDE5' );
         $text      = get_option( 'lvb_text_color', '#1A2332' );
 
-        $wrap_style  = "font-family:Georgia,serif;max-width:620px;margin:0 auto;background:$bg;border-radius:12px;overflow:hidden;";
+        $wrap_style   = "font-family:Georgia,serif;max-width:620px;margin:0 auto;background:$bg;border-radius:12px;overflow:hidden;";
         $header_style = "background:$dark;padding:32px 24px;text-align:center;";
-        $body_style   = "padding:32px 24px;color:$text;";
+        $body_style   = "padding:32px 24px;background:$bg;color:$text;";
         $footer_style = "background:$footer_bg;padding:16px 24px;text-align:center;font-size:12px;color:#7A756C;";
         $btn_style    = "display:inline-block;background:$primary;color:#ffffff;padding:12px 28px;border-radius:60px;text-decoration:none;font-weight:bold;margin-top:16px;";
-        $row_style    = 'padding:8px 0;border-bottom:1px solid #EAE5DD;';
+        $row_style    = "padding:8px 0;border-bottom:1px solid #EAE5DD;color:$text;";
+        $h2_style     = "color:$text;margin-top:0;";
 
         $site         = esc_html( $vars['site_name'] );
         $logo_url     = self::get_email_logo_url();
@@ -388,10 +413,10 @@ class LVB_Notifications {
 
                 $first_name = esc_html( $vars['customer_first_name'] ?? $vars['customer_name'] );
 
-                return '<div style="' . $wrap_style . '">
+                return self::html_shell( '<div style="' . $wrap_style . '">
                     <div style="' . $header_style . '">' . $logo . '</div>
                     <div style="' . $body_style . '">
-                        <h2 style="color:' . $dark . ';margin-top:0;">Buchung bestätigt!</h2>
+                        <h2 style="' . $h2_style . '">Buchung bestätigt!</h2>
                         <p>Hi ' . $first_name . ',</p>
                         <p>' . esc_html( $confirm_text ) . '</p>
                         <table style="width:100%;border-collapse:collapse;">' . $rows . '</table>
@@ -400,7 +425,7 @@ class LVB_Notifications {
                         <p style="margin-top:24px;">Falls du absagen oder umbuchen möchtest, melde dich bitte so früh wie möglich bei uns.</p>
                     </div>
                     <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '. Alle Rechte vorbehalten.</div>
-                </div>';
+                </div>', $bg );
 
             case 'admin_notification':
                 $rows = self::detail_rows( [
@@ -418,16 +443,16 @@ class LVB_Notifications {
 
                 $admin_url = admin_url( 'admin.php?page=lvb-bookings' );
 
-                return '<div style="' . $wrap_style . '">
+                return self::html_shell( '<div style="' . $wrap_style . '">
                     <div style="' . $header_style . '">' . $logo . '</div>
                     <div style="' . $body_style . '">
-                        <h2 style="color:' . $dark . ';margin-top:0;">Neue Buchung eingegangen</h2>
+                        <h2 style="' . $h2_style . '">Neue Buchung eingegangen</h2>
                         <table style="width:100%;border-collapse:collapse;">' . $rows . '</table>
                         ' . self::admin_first_time_note( $vars ) . '
                         <a href="' . esc_url( $admin_url ) . '" style="' . $btn_style . '">Im Dashboard ansehen</a>
                     </div>
                     <div style="' . $footer_style . '">' . $site . ' Admin</div>
-                </div>';
+                </div>', $bg );
 
             case 'reminder':
                 $rows = self::detail_rows( [
@@ -436,17 +461,17 @@ class LVB_Notifications {
                     'Zeit'    => esc_html( $vars['time'] ),
                 ], $row_style );
 
-                return '<div style="' . $wrap_style . '">
+                return self::html_shell( '<div style="' . $wrap_style . '">
                     <div style="' . $header_style . '">' . $logo . '</div>
                     <div style="' . $body_style . '">
-                        <h2 style="color:' . $dark . ';margin-top:0;">&#128337; Erinnerung an deinen Termin</h2>
+                        <h2 style="' . $h2_style . '">&#128337; Erinnerung an deinen Termin</h2>
                         <p>Hallo ' . esc_html( $vars['customer_first_name'] ?? $vars['customer_name'] ) . ',</p>
                         <p>Dies ist eine freundliche Erinnerung an deinen bevorstehenden Termin bei <strong>' . $site . '</strong>.</p>
                         <table style="width:100%;border-collapse:collapse;">' . $rows . '</table>
                         <p style="margin-top:24px;">Bei Fragen oder falls du absagen möchtest, melde dich bitte so früh wie möglich bei uns.</p>
                     </div>
                     <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '. Alle Rechte vorbehalten.</div>
-                </div>';
+                </div>', $bg );
 
             case 'intake_form_notification':
                 // Dynamically build label => value pairs from form config
@@ -491,16 +516,16 @@ class LVB_Notifications {
                 $intake_rows = self::detail_rows( $intake_pairs, $row_style );
                 $intake_admin_url = admin_url( 'admin.php?page=lvb-intake-forms&view=' . intval( $vars['form_id'] ?? 0 ) );
 
-                return '<div style="' . $wrap_style . '">
+                return self::html_shell( '<div style="' . $wrap_style . '">
                     <div style="' . $header_style . '">' . $logo . '</div>
                     <div style="' . $body_style . '">
-                        <h2 style="color:' . $dark . ';margin-top:0;">Neues Anmeldeformular eingegangen</h2>
+                        <h2 style="' . $h2_style . '">Neues Anmeldeformular eingegangen</h2>
                         <p>Ein neues Anmeldeformular wurde von <strong>' . esc_html( $vars['name'] ?? 'Unbekannt' ) . '</strong> ausgefüllt.</p>
                         <table style="width:100%;border-collapse:collapse;">' . $intake_rows . '</table>
                         <a href="' . esc_url( $intake_admin_url ) . '" style="' . $btn_style . '">Im Dashboard ansehen</a>
                     </div>
                     <div style="' . $footer_style . '">' . $site . ' Admin</div>
-                </div>';
+                </div>', $bg );
 
             case 'intake_customer_confirmation':
                 $customer_name_ic = esc_html( $vars['name'] ?? '' );
@@ -541,10 +566,10 @@ class LVB_Notifications {
 
                 $ic_rows = self::detail_rows( $ic_pairs, $row_style );
 
-                return '<div style="' . $wrap_style . '">
+                return self::html_shell( '<div style="' . $wrap_style . '">
                     <div style="' . $header_style . '">' . $logo . '</div>
                     <div style="' . $body_style . '">
-                        <h2 style="color:' . $dark . ';margin-top:0;">Vielen Dank für dein Anmeldeformular</h2>
+                        <h2 style="' . $h2_style . '">Vielen Dank für dein Anmeldeformular</h2>
                         <p>Liebe/r ' . $customer_name_ic . ',</p>
                         <p>Vielen Dank für das Ausfüllen des Anmeldeformulars.</p>
                         <p>Ich habe deine Angaben erhalten und werde mich gut auf unsere Begegnung vorbereiten.</p>
@@ -554,14 +579,14 @@ class LVB_Notifications {
                         <p style="margin-top:24px;">Herzliche Grüsse,<br><strong>' . $site . '</strong></p>
                     </div>
                     <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '. Alle Rechte vorbehalten.</div>
-                </div>';
+                </div>', $bg );
 
             case 'cancellation':
                 $first_name_c = esc_html( $vars['customer_first_name'] ?? $vars['customer_name'] );
-                return '<div style="' . $wrap_style . '">
+                return self::html_shell( '<div style="' . $wrap_style . '">
                     <div style="' . $header_style . '">' . $logo . '</div>
                     <div style="' . $body_style . '">
-                        <h2 style="color:' . $dark . ';margin-top:0;">Buchung storniert</h2>
+                        <h2 style="' . $h2_style . '">Buchung storniert</h2>
                         <p>Hi ' . $first_name_c . ',</p>
                         <p>Deine Buchung für <strong>' . esc_html( $vars['service_name'] ) . '</strong> am
                            <strong>' . esc_html( $vars['date'] ) . '</strong> um <strong>' . esc_html( $vars['time'] ) . '</strong>
@@ -569,7 +594,7 @@ class LVB_Notifications {
                         <p>Falls du neu buchen möchtest, melde dich gerne bei uns.</p>
                     </div>
                     <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '.</div>
-                </div>';
+                </div>', $bg );
 
             default:
                 return '';
