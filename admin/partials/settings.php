@@ -72,7 +72,7 @@ $disconnect_url = wp_nonce_url(
                     <td>
                         <input type="text" id="lvb_google_client_id" name="lvb_google_client_id" class="regular-text"
                                value="<?php echo esc_attr( get_option( 'lvb_google_client_id', '' ) ); ?>">
-                        <p class="description">From your Google Cloud Console → Credentials → OAuth 2.0 Client IDs.</p>
+                        <p class="description">Aus der Google Cloud Console → Credentials → OAuth 2.0 Client IDs.</p>
                     </td>
                 </tr>
                 <tr>
@@ -88,14 +88,14 @@ $disconnect_url = wp_nonce_url(
                         <input type="text" id="lvb_google_default_calendar_id" name="lvb_google_default_calendar_id" class="regular-text"
                                value="<?php echo esc_attr( get_option( 'lvb_google_default_calendar_id', '' ) ); ?>"
                                placeholder="primary  or  name@group.calendar.google.com">
-                        <p class="description">The Google Calendar from which availability slots are read. Can be overridden per staff member.</p>
+                        <p class="description">Der Google Kalender, aus dem die Verfügbarkeiten gelesen werden. Kann pro Mitarbeiter:in überschrieben werden.</p>
                     </td>
                 </tr>
                 <tr>
                     <th>OAuth Redirect URI</th>
                     <td>
                         <code class="lvb-code-block"><?php echo esc_url( $callback_url ); ?></code>
-                        <p class="description">Add this exact URI as an Authorised Redirect URI in your Google Cloud Console OAuth credentials.</p>
+                        <p class="description">Füge genau diese URI als "Authorised Redirect URI" in deinen Google Cloud Console OAuth-Credentials hinzu.</p>
                     </td>
                 </tr>
             </table>
@@ -109,7 +109,7 @@ $disconnect_url = wp_nonce_url(
                     </a>
                 </p>
                 <p class="description">
-                    <strong>Note:</strong> Save your credentials first, then click "Connect Google Calendar".
+                    <strong>Hinweis:</strong> Speichere zuerst deine Credentials, bevor du auf "Connect Google Calendar" klickst.
                 </p>
             <?php endif; ?>
         </div>
@@ -130,7 +130,7 @@ $disconnect_url = wp_nonce_url(
                     <td>
                         <input type="email" id="lvb_admin_notification_email" name="lvb_admin_notification_email" class="regular-text"
                                value="<?php echo esc_attr( get_option( 'lvb_admin_notification_email', get_option( 'admin_email' ) ) ); ?>">
-                        <p class="description">New booking alerts are sent to this address.</p>
+                        <p class="description">Neue Buchungen werden an diese Adresse gemeldet.</p>
                     </td>
                 </tr>
             </table>
@@ -219,7 +219,7 @@ $disconnect_url = wp_nonce_url(
                     <td>
                         <input type="text" id="lvb_booking_title" name="lvb_booking_title" class="regular-text"
                                value="<?php echo esc_attr( get_option( 'lvb_booking_title', 'Jetzt einen Termin vereinbaren' ) ); ?>">
-                        <p class="description">Main heading above the booking widget. Leave empty to hide the header.</p>
+                        <p class="description">Hauptüberschrift über dem Buchungs-Widget. Leer lassen, um die Überschrift auszublenden.</p>
                     </td>
                 </tr>
                 <tr>
@@ -227,7 +227,7 @@ $disconnect_url = wp_nonce_url(
                     <td>
                         <input type="text" id="lvb_booking_subtitle" name="lvb_booking_subtitle" class="regular-text"
                                value="<?php echo esc_attr( get_option( 'lvb_booking_subtitle', 'Wähle einen passenden Termin und buche direkt online.' ) ); ?>">
-                        <p class="description">Subtitle shown below the main heading.</p>
+                        <p class="description">Untertitel unterhalb der Hauptüberschrift.</p>
                     </td>
                 </tr>
                 <tr>
@@ -269,11 +269,11 @@ $disconnect_url = wp_nonce_url(
                                value="<?php echo esc_attr( $lvb_logo_override ); ?>"
                                placeholder="<?php echo esc_attr( LVB_Notifications::get_email_logo_url() ); ?>">
                         <p class="description">
-                            Optional override for the email banner logo. Leave empty to auto-use the site's
-                            custom logo (Appearance → Customize → Site Identity); if none is set, the site
-                            icon or the plugin's default logo is used.<br>
+                            Optionale Überschreibung für das Logo im E-Mail-Banner. Leer lassen, um automatisch
+                            das Custom-Logo der Seite zu verwenden (Design → Customizer → Titel und Logo);
+                            ist keins gesetzt, wird das Site-Icon oder das Plugin-Default-Logo verwendet.<br>
                             <?php if ( $lvb_logo_override === '' ) : ?>
-                                <strong>Currently auto-detected:</strong>
+                                <strong>Aktuell automatisch erkannt:</strong>
                                 <code><?php echo esc_html( LVB_Notifications::get_email_logo_url() ); ?></code>
                             <?php endif; ?>
                         </p>
@@ -284,7 +284,7 @@ $disconnect_url = wp_nonce_url(
                     <td>
                         <input type="text" id="lvb_staff_label" name="lvb_staff_label" class="regular-text"
                                value="<?php echo esc_attr( get_option( 'lvb_staff_label', 'Instructor' ) ); ?>">
-                        <p class="description">Label used for staff in emails, e.g. "Instructor", "Coach", "Guide".</p>
+                        <p class="description">Bezeichnung für Mitarbeitende in E-Mails, z.B. "Instruktor", "Coach", "Guide".</p>
                     </td>
                 </tr>
                 <tr>
@@ -292,7 +292,7 @@ $disconnect_url = wp_nonce_url(
                     <td>
                         <input type="text" id="lvb_service_label" name="lvb_service_label" class="regular-text"
                                value="<?php echo esc_attr( get_option( 'lvb_service_label', 'Service' ) ); ?>">
-                        <p class="description">Label for the service/activity selector, e.g. "Service", "Activity", "Sportart".</p>
+                        <p class="description">Bezeichnung für die Service-/Aktivitätsauswahl, z.B. "Service", "Aktivität", "Sportart".</p>
                     </td>
                 </tr>
                 <tr>
@@ -323,7 +323,7 @@ $disconnect_url = wp_nonce_url(
                     <th><label for="lvb_email_confirmation_text">Confirmation Email Text</label></th>
                     <td>
                         <textarea id="lvb_email_confirmation_text" name="lvb_email_confirmation_text" class="large-text" rows="3"><?php echo esc_textarea( get_option( 'lvb_email_confirmation_text', 'Deine Buchung ist bestätigt. Wir freuen uns auf dich!' ) ); ?></textarea>
-                        <p class="description">Body text in the customer confirmation email.</p>
+                        <p class="description">Haupttext in der Bestätigungs-E-Mail an den Kunden.</p>
                     </td>
                 </tr>
                 <tr>
@@ -339,7 +339,7 @@ $disconnect_url = wp_nonce_url(
                         <input type="url" id="lvb_whatsapp_url" name="lvb_whatsapp_url" class="large-text"
                                value="<?php echo esc_attr( get_option( 'lvb_whatsapp_url', '' ) ); ?>"
                                placeholder="https://chat.whatsapp.com/...">
-                        <p class="description">Optional. If set, a WhatsApp group button is shown on the booking confirmation screen.</p>
+                        <p class="description">Optional. Wenn gesetzt, wird nach der Buchung ein WhatsApp-Gruppen-Button angezeigt.</p>
                     </td>
                 </tr>
             </table>
@@ -354,14 +354,14 @@ $disconnect_url = wp_nonce_url(
                     <td>
                         <input type="checkbox" id="lvb_disclaimer_enabled" name="lvb_disclaimer_enabled" value="1"
                                <?php checked( 1, get_option( 'lvb_disclaimer_enabled', 1 ) ); ?>>
-                        <p class="description">Show the disclaimer checkbox on the booking form. When disabled, the disclaimer is hidden and not required.</p>
+                        <p class="description">Disclaimer-Checkbox im Buchungsformular anzeigen. Wenn deaktiviert, ist der Disclaimer ausgeblendet und nicht zwingend.</p>
                     </td>
                 </tr>
                 <tr>
                     <th><label for="lvb_disclaimer_text">Disclaimer Text</label></th>
                     <td>
                         <textarea id="lvb_disclaimer_text" name="lvb_disclaimer_text" class="large-text" rows="4"><?php echo esc_textarea( get_option( 'lvb_disclaimer_text', 'Ich habe den Sicherheitshinweis gelesen und akzeptiert: Unfälle sind selten, aber möglich. Die Versicherung ist Sache der Teilnehmenden. Ausreichende körperliche Fitness wird vorausgesetzt. Ich erkenne meine eigenen Grenzen und akzeptiere, dass die Crew bei Bedarf eingreifen kann.' ) ); ?></textarea>
-                        <p class="description">The disclaimer text shown next to the checkbox on the booking form.</p>
+                        <p class="description">Disclaimer-Text, der neben der Checkbox im Buchungsformular angezeigt wird.</p>
                     </td>
                 </tr>
             </table>
@@ -382,14 +382,14 @@ $disconnect_url = wp_nonce_url(
                     <td>
                         <input type="checkbox" id="lvb_intake_form_enabled" name="lvb_intake_form_enabled" value="1"
                                <?php checked( 1, get_option( 'lvb_intake_form_enabled', 0 ) ); ?>>
-                        <p class="description">Show the intake form on the frontend and reveal the intake-form admin menus.</p>
+                        <p class="description">Anmeldeformular im Frontend anzeigen und die Intake-Form-Menüs im Admin einblenden.</p>
                     </td>
                 </tr>
                 <tr>
                     <th><label for="lvb_intake_disclaimer">Intake Form Disclaimer</label></th>
                     <td>
                         <textarea id="lvb_intake_disclaimer" name="lvb_intake_disclaimer" class="large-text" rows="4"><?php echo esc_textarea( get_option( 'lvb_intake_disclaimer', 'ChiroBalance® ist eine komplementäre Methode und ersetzt keine medizinische oder psychotherapeutische Behandlung. Bei akuten körperlichen oder psychischen Beschwerden wende dich bitte an eine Fachperson. Ich arbeite achtsam und innerhalb meiner Kompetenzen.' ) ); ?></textarea>
-                        <p class="description">Disclaimer text shown on the intake form. HTML entities like &amp;reg; are supported.</p>
+                        <p class="description">Disclaimer-Text, der im Anmeldeformular angezeigt wird. HTML-Entities wie &amp;reg; werden unterstützt.</p>
                     </td>
                 </tr>
             </table>
@@ -398,19 +398,19 @@ $disconnect_url = wp_nonce_url(
         <!-- Accent Colors -->
         <div class="lvb-settings-section">
             <h2>Accent Colors</h2>
-            <p class="description">Override the default accent colors used in the booking widget.</p>
+            <p class="description">Überschreibe die Standard-Akzentfarben des Buchungs-Widgets.</p>
             <table class="form-table">
                 <tr>
                     <th><label for="lvb_theme_inherit">Inherit Site Theme</label></th>
                     <td>
                         <input type="checkbox" id="lvb_theme_inherit" name="lvb_theme_inherit" value="1"
                                <?php checked( 1, get_option( 'lvb_theme_inherit', 0 ) ); ?>>
-                        <label for="lvb_theme_inherit">Blend into the active page theme</label>
+                        <label for="lvb_theme_inherit">In das aktive Seiten-Theme einfügen</label>
                         <p class="description">
-                            When enabled, the widget drops its own background/text colors and inherits
-                            them from the surrounding page — only the accent color below is applied.
-                            Useful when embedding on a light theme. Can also be enabled per-instance
-                            via <code>[lvb_booking theme="inherit"]</code>.
+                            Wenn aktiviert, verzichtet das Widget auf eigene Hintergrund-/Textfarben und
+                            übernimmt sie von der umgebenden Seite — nur die Akzentfarbe unten wird angewendet.
+                            Nützlich bei Einbettung in ein helles Theme. Kann auch pro Instanz via
+                            <code>[lvb_booking theme="inherit"]</code> aktiviert werden.
                         </p>
                     </td>
                 </tr>
@@ -420,7 +420,7 @@ $disconnect_url = wp_nonce_url(
                         <input type="color" id="lvb_accent_color" name="lvb_accent_color"
                                value="<?php echo esc_attr( get_option( 'lvb_accent_color', '#00F5C4' ) ); ?>">
                         <code><?php echo esc_html( get_option( 'lvb_accent_color', '#00F5C4' ) ); ?></code>
-                        <p class="description">Default: <code>#00F5C4</code></p>
+                        <p class="description">Standard: <code>#00F5C4</code></p>
                     </td>
                 </tr>
                 <tr>
@@ -429,7 +429,7 @@ $disconnect_url = wp_nonce_url(
                         <input type="color" id="lvb_accent2_color" name="lvb_accent2_color"
                                value="<?php echo esc_attr( get_option( 'lvb_accent2_color', '#00C2FF' ) ); ?>">
                         <code><?php echo esc_html( get_option( 'lvb_accent2_color', '#00C2FF' ) ); ?></code>
-                        <p class="description">Default: <code>#00C2FF</code></p>
+                        <p class="description">Standard: <code>#00C2FF</code></p>
                     </td>
                 </tr>
                 <tr>
@@ -438,7 +438,7 @@ $disconnect_url = wp_nonce_url(
                         <input type="color" id="lvb_dark_color" name="lvb_dark_color"
                                value="<?php echo esc_attr( get_option( 'lvb_dark_color', '#1E1C19' ) ); ?>">
                         <code><?php echo esc_html( get_option( 'lvb_dark_color', '#1E1C19' ) ); ?></code>
-                        <p class="description">Used for email header background. Default: <code>#1E1C19</code></p>
+                        <p class="description">Hintergrundfarbe des E-Mail-Headers. Standard: <code>#1E1C19</code></p>
                     </td>
                 </tr>
                 <tr>
@@ -447,7 +447,7 @@ $disconnect_url = wp_nonce_url(
                         <input type="color" id="lvb_bg_color" name="lvb_bg_color"
                                value="<?php echo esc_attr( get_option( 'lvb_bg_color', '#FAF7F2' ) ); ?>">
                         <code><?php echo esc_html( get_option( 'lvb_bg_color', '#FAF7F2' ) ); ?></code>
-                        <p class="description">Used for email body background. Default: <code>#FAF7F2</code></p>
+                        <p class="description">Hintergrundfarbe des E-Mail-Bodys. Standard: <code>#FAF7F2</code></p>
                     </td>
                 </tr>
                 <tr>
@@ -456,7 +456,7 @@ $disconnect_url = wp_nonce_url(
                         <input type="color" id="lvb_footer_bg_color" name="lvb_footer_bg_color"
                                value="<?php echo esc_attr( get_option( 'lvb_footer_bg_color', '#F2EDE5' ) ); ?>">
                         <code><?php echo esc_html( get_option( 'lvb_footer_bg_color', '#F2EDE5' ) ); ?></code>
-                        <p class="description">Used for email footer background. Default: <code>#F2EDE5</code></p>
+                        <p class="description">Hintergrundfarbe des E-Mail-Footers. Standard: <code>#F2EDE5</code></p>
                     </td>
                 </tr>
                 <tr>
@@ -465,7 +465,7 @@ $disconnect_url = wp_nonce_url(
                         <input type="color" id="lvb_text_color" name="lvb_text_color"
                                value="<?php echo esc_attr( get_option( 'lvb_text_color', '#1A2332' ) ); ?>">
                         <code><?php echo esc_html( get_option( 'lvb_text_color', '#1A2332' ) ); ?></code>
-                        <p class="description">Used for email body text. Default: <code>#1A2332</code></p>
+                        <p class="description">Textfarbe im E-Mail-Body. Standard: <code>#1A2332</code></p>
                     </td>
                 </tr>
             </table>
