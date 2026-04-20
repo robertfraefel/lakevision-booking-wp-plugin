@@ -410,9 +410,7 @@
                   + '</button>';
         } );
         html += '</div>';
-        if ( bufferMin > 0 ) {
-            html += '<p class="lvb-buffer-note">Zwischen zwei Buchungen wird automatisch eine Bufferzeit von ' + bufferMin + ' Min. eingerechnet.</p>';
-        }
+
         $slotsContainer.html( html );
     }
 
