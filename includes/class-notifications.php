@@ -199,7 +199,7 @@ class LVB_Notifications {
             return;
         }
 
-        $start = new DateTime( $booking['start_datetime'] );
+        $start = new DateTime( $booking['start_datetime'], wp_timezone() );
         $start->setTimezone( wp_timezone() );
 
         $subject = sprintf( __( 'Buchung storniert – %s', 'lakevision-booking' ), get_bloginfo( 'name' ) );

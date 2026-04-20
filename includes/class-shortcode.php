@@ -466,7 +466,7 @@ class LVB_Shortcode {
 
         foreach ( $db_bookings as $db_b ) {
             // Extend end by buffer_time so the buffer window is also blocked
-            $end_obj = new DateTime( $db_b['end_datetime'] );
+            $end_obj = new DateTime( $db_b['end_datetime'], wp_timezone() );
             $end_obj->modify( '+' . (int) $db_b['buffer_time'] . ' minutes' );
             $booked[] = [
                 'title'      => '[Booking] DB',
@@ -644,11 +644,17 @@ class LVB_Shortcode {
     private static function split_availability_by_bookings( $windows, $booked, $min_minutes ) {
         if ( empty( $windows ) ) return [];
 
+        $tz = wp_timezone();
+
         // Normalise booked ranges to unix timestamps, merge overlaps.
         $ranges = [];
         foreach ( $booked as $b ) {
-            $s = strtotime( $b['start'] );
-            $e = strtotime( $b['end'] );
+            try {
+                $s = ( new DateTime( $b['start'], $tz ) )->getTimestamp();
+                $e = ( new DateTime( $b['end'],   $tz ) )->getTimestamp();
+            } catch ( Exception $ex ) {
+                continue;
+            }
             if ( $s && $e && $e > $s ) $ranges[] = [ $s, $e ];
         }
         usort( $ranges, function( $a, $b ) { return $a[0] - $b[0]; } );
@@ -662,12 +668,15 @@ class LVB_Shortcode {
         }
 
         $min_seconds = $min_minutes * 60;
-        $tz          = wp_timezone();
         $out         = [];
 
         foreach ( $windows as $w ) {
-            $ws = strtotime( $w['start'] );
-            $we = strtotime( $w['end'] );
+            try {
+                $ws = ( new DateTime( $w['start'], $tz ) )->getTimestamp();
+                $we = ( new DateTime( $w['end'],   $tz ) )->getTimestamp();
+            } catch ( Exception $ex ) {
+                continue;
+            }
             if ( ! $ws || ! $we || $we <= $ws ) continue;
 
             // Walk through merged booked ranges, cutting pieces between them.

@@ -388,7 +388,7 @@ class LVB_Calendar_API {
      */
     private static function iso_to_wp_tz( $iso ) {
         try {
-            $dt = new DateTime( $iso );
+            $dt = new DateTime( $iso, wp_timezone() );
             $dt->setTimezone( wp_timezone() );
             return $dt->format( 'Y-m-d H:i:s' );
         } catch ( Exception $e ) {

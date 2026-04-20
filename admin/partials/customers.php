@@ -89,7 +89,7 @@ $total_pages = max( 1, (int) ceil( $total / $per_page ) );
         </thead>
         <tbody>
         <?php foreach ( $customers as $c ) :
-            $joined = new DateTime( $c['created_at'] );
+            $joined = new DateTime( $c['created_at'], wp_timezone() );
             $joined->setTimezone( wp_timezone() );
         ?>
             <tr>

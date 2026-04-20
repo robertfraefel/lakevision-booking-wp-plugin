@@ -413,9 +413,9 @@ class LVB_Google_Calendar {
             }
 
             $tz    = wp_timezone();
-            $start = new DateTime( $event['start']['dateTime'] );
+            $start = new DateTime( $event["start"]["dateTime"], $tz );
             $start->setTimezone( $tz );
-            $end   = new DateTime( $event['end']['dateTime'] );
+            $end   = new DateTime( $event["end"]["dateTime"], $tz );
             $end->setTimezone( $tz );
 
             $slots[] = [
