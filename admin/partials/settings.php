@@ -327,6 +327,13 @@ $disconnect_url = wp_nonce_url(
                     </td>
                 </tr>
                 <tr>
+                    <th><label for="lvb_email_cancellation_note">Stornierungs-Hinweis</label></th>
+                    <td>
+                        <textarea id="lvb_email_cancellation_note" name="lvb_email_cancellation_note" class="large-text" rows="2"><?php echo esc_textarea( get_option( 'lvb_email_cancellation_note', 'Falls du absagen oder umbuchen möchtest, melde dich bitte so früh wie möglich bei uns.' ) ); ?></textarea>
+                        <p class="description">Hinweistext am Ende der Bestätigungs-Mail (Absagen/Umbuchen). Leer lassen, um den Hinweis nicht zu zeigen.</p>
+                    </td>
+                </tr>
+                <tr>
                     <th><label for="lvb_whatsapp_url">WhatsApp Gruppe URL</label></th>
                     <td>
                         <input type="url" id="lvb_whatsapp_url" name="lvb_whatsapp_url" class="large-text"

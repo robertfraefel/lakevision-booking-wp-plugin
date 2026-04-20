@@ -397,7 +397,8 @@ body { margin:0; padding:16px; background:#f0ede8; }
         $site         = esc_html( $vars['site_name'] );
         $logo_url     = self::get_email_logo_url();
         $staff_label  = get_option( 'lvb_staff_label', 'Begleiterin' );
-        $confirm_text = get_option( 'lvb_email_confirmation_text', 'Deine Buchung ist bestätigt. Wir freuen uns auf dich!' );
+        $confirm_text     = get_option( 'lvb_email_confirmation_text', 'Deine Buchung ist bestätigt. Wir freuen uns auf dich!' );
+        $cancellation_note = get_option( 'lvb_email_cancellation_note', 'Falls du absagen oder umbuchen möchtest, melde dich bitte so früh wie möglich bei uns.' );
         $logo         = '<img src="' . esc_url( $logo_url ) . '" alt="' . $site . '" width="320" style="display:block;margin:0 auto;max-width:320px;">';
 
         switch ( $template ) {
@@ -422,7 +423,7 @@ body { margin:0; padding:16px; background:#f0ede8; }
                         <table style="width:100%;border-collapse:collapse;">' . $rows . '</table>
                         ' . ( $vars['notes'] ? '<p><strong>Notiz:</strong> ' . esc_html( $vars['notes'] ) . '</p>' : '' ) . '
                         ' . self::intake_form_section( $vars, $btn_style ) . '
-                        <p style="margin-top:24px;">Falls du absagen oder umbuchen möchtest, melde dich bitte so früh wie möglich bei uns.</p>
+                        ' . ( $cancellation_note !== '' ? '<p style="margin-top:24px;">' . esc_html( $cancellation_note ) . '</p>' : '' ) . '
                     </div>
                     <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '. Alle Rechte vorbehalten.</div>
                 </div>', $bg );

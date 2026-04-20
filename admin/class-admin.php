@@ -391,6 +391,9 @@ class LVB_Admin {
         if ( isset( $_POST['lvb_email_confirmation_text'] ) ) {
             update_option( 'lvb_email_confirmation_text', sanitize_textarea_field( wp_unslash( $_POST['lvb_email_confirmation_text'] ) ) );
         }
+        if ( isset( $_POST['lvb_email_cancellation_note'] ) ) {
+            update_option( 'lvb_email_cancellation_note', sanitize_textarea_field( wp_unslash( $_POST['lvb_email_cancellation_note'] ) ) );
+        }
         // Textarea options – disclaimer text
         if ( isset( $_POST['lvb_disclaimer_text'] ) ) {
             update_option( 'lvb_disclaimer_text', sanitize_textarea_field( wp_unslash( $_POST['lvb_disclaimer_text'] ) ) );
