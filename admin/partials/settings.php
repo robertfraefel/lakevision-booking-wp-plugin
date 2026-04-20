@@ -322,7 +322,7 @@ $disconnect_url = wp_nonce_url(
                 <tr>
                     <th><label for="lvb_email_confirmation_text">Confirmation Email Text</label></th>
                     <td>
-                        <textarea id="lvb_email_confirmation_text" name="lvb_email_confirmation_text" class="large-text" rows="3"><?php echo esc_textarea( get_option( 'lvb_email_confirmation_text', 'Your booking is confirmed. We look forward to seeing you!' ) ); ?></textarea>
+                        <textarea id="lvb_email_confirmation_text" name="lvb_email_confirmation_text" class="large-text" rows="3"><?php echo esc_textarea( get_option( 'lvb_email_confirmation_text', 'Deine Buchung ist bestätigt. Wir freuen uns auf dich!' ) ); ?></textarea>
                         <p class="description">Body text in the customer confirmation email.</p>
                     </td>
                 </tr>
