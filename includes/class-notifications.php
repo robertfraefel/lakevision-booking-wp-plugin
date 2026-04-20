@@ -54,7 +54,7 @@ class LVB_Notifications {
         $end   = new DateTime( $booking['end_datetime'], $tz );
 
         $date_str  = wp_date( get_option( 'date_format' ), $start->getTimestamp() );
-        $time_str  = $start->format( get_option( 'time_format' ) ) . ' – ' . $end->format( get_option( 'time_format' ) );
+        $time_str  = $start->format( 'H:i' ) . ' – ' . $end->format( 'H:i' );
         $site_name = get_bloginfo( 'name' );
         $currency  = get_option( 'lvb_currency_symbol', '$' );
 
@@ -169,7 +169,7 @@ class LVB_Notifications {
             'customer_first_name' => $customer['first_name'],
             'service_name'  => $service['name'],
             'date'          => wp_date( get_option( 'date_format' ), $start->getTimestamp() ),
-            'time'          => $start->format( get_option( 'time_format' ) ) . ' – ' . $end->format( get_option( 'time_format' ) ),
+            'time'          => $start->format( 'H:i' ) . ' – ' . $end->format( 'H:i' ),
             'site_name'     => get_bloginfo( 'name' ),
         ] );
 
@@ -207,7 +207,7 @@ class LVB_Notifications {
             'customer_name' => trim( $customer['first_name'] . ' ' . $customer['last_name'] ),
             'service_name'  => $service['name'],
             'date'          => wp_date( get_option( 'date_format' ), $start->getTimestamp() ),
-            'time'          => $start->format( get_option( 'time_format' ) ),
+            'time'          => $start->format( 'H:i' ),
             'site_name'     => get_bloginfo( 'name' ),
         ] );
 
