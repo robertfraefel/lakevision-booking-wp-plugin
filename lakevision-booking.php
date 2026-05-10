@@ -3,7 +3,7 @@
  * Plugin Name: LakeVision Booking
  * Plugin URI:  https://github.com/robertfraefel/lakevision-booking-wp-plugin
  * Description: Flexible booking system with Google Calendar integration, time-slot management and email notifications.
- * Version:     1.7.0
+ * Version:     1.7.1
  * Author:      LakeVision
  * Author URI:  https://lakevision.ch
  * License:     GPL-2.0+
@@ -30,9 +30,6 @@
  *  - Notifications: HTML emails sent to both the customer and the admin on booking
  *    confirmation and cancellation.
  *
- *  - Water temperature widget: optional AJAX proxy that fetches and caches the
- *    current Bodensee water temperature from the Swiss federal BAFU API.
- *
  * Architecture
  * ------------
  * The plugin uses a simple singleton entry-point (LakeVision_Booking) that wires up
@@ -43,7 +40,6 @@
  *   LVB_Booking_Manager   – High-level booking/service/staff business logic.
  *   LVB_Notifications     – Email generation and delivery.
  *   LVB_Shortcode         – Frontend shortcode rendering and AJAX endpoints.
- *   LVB_Water_Temp        – Water-temperature fetch, cache, and AJAX proxy.
  *   LVB_Admin             – Admin menu registration, asset enqueue, form handling.
  */
 
@@ -65,7 +61,6 @@ require_once LVB_PLUGIN_DIR . 'includes/class-notifications.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-staff-schedule.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-shortcode.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-intake-form.php';
-require_once LVB_PLUGIN_DIR . 'includes/class-water-temp.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-calendar-api.php';
 require_once LVB_PLUGIN_DIR . 'admin/class-admin.php';
 
@@ -113,8 +108,8 @@ final class LakeVision_Booking {
      * Register all WordPress hooks required by the plugin.
      *
      * Covers activation/deactivation lifecycle hooks, frontend asset enqueue,
-     * AJAX handlers for the booking widget, the water-temperature proxy, the
-     * Google OAuth redirect handler, and the admin subsystem.
+     * AJAX handlers for the booking widget, the Google OAuth redirect handler,
+     * and the admin subsystem.
      *
      * @return void
      */
@@ -136,9 +131,6 @@ final class LakeVision_Booking {
         // Intake form AJAX handlers
         add_action( 'wp_ajax_lvb_submit_intake_form',        [ 'LVB_Intake_Form', 'ajax_submit' ] );
         add_action( 'wp_ajax_nopriv_lvb_submit_intake_form', [ 'LVB_Intake_Form', 'ajax_submit' ] );
-
-        // Water temperature proxy
-        LVB_Water_Temp::register();
 
         // Calendar REST API (admin calendar view)
         LVB_Calendar_API::register();

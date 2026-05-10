@@ -169,7 +169,6 @@ The intake form allows customers to fill out a pre-session questionnaire before 
 | `LVB_Notifications` | HTML email generation and delivery |
 | `LVB_Shortcode` | Frontend shortcode rendering and AJAX endpoints |
 | `LVB_Intake_Form` | Intake form shortcode, rendering, and AJAX submission |
-| `LVB_Water_Temp` | Water-temperature fetch, cache, and AJAX proxy |
 | `LVB_Admin` | Admin menu, asset enqueueing, form handling |
 
 ---
