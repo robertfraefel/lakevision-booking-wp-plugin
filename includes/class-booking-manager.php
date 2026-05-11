@@ -431,6 +431,11 @@ class LVB_Booking_Manager {
      *   - 'cancelled' → other: only updates the DB row; GCal event is NOT
      *     re-created (operator can manually re-create if needed).
      *
+     * Buffer events (separate GCal entries that block the reset time after a
+     * booking) are kept in sync: they shift to follow the new end time, and
+     * are deleted when the (possibly newly selected) service no longer
+     * configures any buffer. A missing buffer is NOT created retroactively.
+     *
      * Note: this method does NOT move events between Google Calendars when the
      * staff member changes. The event is patched in its existing calendar with
      * new times/title. To migrate calendars, cancel and re-create the booking.
@@ -557,6 +562,29 @@ class LVB_Booking_Manager {
                 $r = LVB_Google_Calendar::patch_event( $cal, $booking['google_event_id'], $patch_body );
                 if ( is_wp_error( $r ) ) {
                     $gcal_warning = $r->get_error_message();
+                }
+
+                // Sync buffer event too: shift to follow the new end time, or
+                // delete it when the (possibly newly selected) service has no
+                // buffer configured. We do NOT auto-create a buffer event if
+                // the previous booking lacked one — that would surprise the
+                // operator. To add a buffer retroactively, cancel + re-book.
+                if ( ! empty( $booking['buffer_event_id'] ) ) {
+                    $buffer_minutes = (int) $service['buffer_time'];
+                    if ( $buffer_minutes > 0 ) {
+                        $buf_end_dt = clone $end_dt;
+                        $buf_end_dt->modify( '+' . $buffer_minutes . ' minutes' );
+                        $buf_r = LVB_Google_Calendar::patch_event( $cal, $booking['buffer_event_id'], [
+                            'start' => [ 'dateTime' => $end_dt->format( DateTime::RFC3339 ),     'timeZone' => $tz_string ],
+                            'end'   => [ 'dateTime' => $buf_end_dt->format( DateTime::RFC3339 ), 'timeZone' => $tz_string ],
+                        ] );
+                        if ( is_wp_error( $buf_r ) && ! $gcal_warning ) {
+                            $gcal_warning = $buf_r->get_error_message();
+                        }
+                    } else {
+                        LVB_Google_Calendar::delete_event( $cal, $booking['buffer_event_id'] );
+                        LVB_Database::update( 'bookings', [ 'buffer_event_id' => '' ], [ 'id' => $id ] );
+                    }
                 }
             }
         }
