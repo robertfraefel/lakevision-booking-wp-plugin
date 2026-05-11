@@ -10,7 +10,7 @@
  *  - Handles all admin form submissions and GET-action URLs in a single
  *    `admin_init` callback:
  *      Settings save, Google OAuth disconnect, service/staff CRUD,
- *      service reordering, and booking cancellation.
+ *      service reordering, booking cancellation, and booking edit.
  *  - Displays admin notices based on URL parameters set after redirects.
  *  - Delegates actual page rendering to PHP partials in admin/partials/.
  *
@@ -313,6 +313,31 @@ class LVB_Admin {
             exit;
         }
 
+        // Booking save (edit existing booking from the admin list)
+        if ( isset( $_POST['lvb_save_booking'] ) ) {
+            $id = (int) ( $_POST['booking_id'] ?? 0 );
+            check_admin_referer( 'lvb_save_booking_' . $id );
+
+            $result = LVB_Booking_Manager::update_booking( $id, wp_unslash( $_POST ) );
+            $args   = [ 'page' => 'lvb-bookings' ];
+
+            if ( is_wp_error( $result ) ) {
+                $args['edit']      = $id; // stay in edit mode
+                $args['lvb_error'] = rawurlencode( $result->get_error_message() );
+            } else {
+                $args['lvb_saved'] = '1';
+                if ( ! empty( $_POST['lvb_send_notification'] ) ) {
+                    LVB_Notifications::send_booking_confirmation( $id, true );
+                    $args['lvb_notified'] = '1';
+                }
+                if ( ! empty( $result['gcal_warning'] ) ) {
+                    $args['lvb_gcal_error'] = rawurlencode( $result['gcal_warning'] );
+                }
+            }
+            wp_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
         // Booking cancel
         if ( isset( $_GET['lvb_action'] ) && $_GET['lvb_action'] === 'cancel_booking' ) {
             $id = (int) ( $_GET['id'] ?? 0 );
@@ -503,6 +528,9 @@ class LVB_Admin {
         }
         if ( isset( $_GET['lvb_cancelled'] ) ) {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Booking cancelled.', 'lakevision-booking' ) . '</p></div>';
+        }
+        if ( isset( $_GET['lvb_notified'] ) ) {
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Update-Email an Kunde gesendet.', 'lakevision-booking' ) . '</p></div>';
         }
         if ( isset( $_GET['lvb_gcal_error'] ) ) {
             $msg = sanitize_text_field( urldecode( wp_unslash( $_GET['lvb_gcal_error'] ) ) );

@@ -5,6 +5,13 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Unauthorised.' );
 
+// Edit mode: ?edit=<booking_id> shows the edit form instead of the list.
+$edit_id = isset( $_GET['edit'] ) ? (int) $_GET['edit'] : 0;
+if ( $edit_id > 0 ) {
+    include __DIR__ . '/booking-edit.php';
+    return;
+}
+
 // Query params
 $current_status = isset( $_GET['status'] )   ? sanitize_text_field( wp_unslash( $_GET['status'] ) )  : '';
 $search         = isset( $_GET['s'] )         ? sanitize_text_field( wp_unslash( $_GET['s'] ) )        : '';
@@ -157,12 +164,12 @@ $status_labels = [
                     <?php endif; ?>
                 </td>
                 <td>
+                    <?php $edit_url = add_query_arg( [ 'page' => 'lvb-bookings', 'edit' => $b['id'] ], admin_url( 'admin.php' ) ); ?>
+                    <a href="<?php echo esc_url( $edit_url ); ?>" class="button button-small">Edit</a>
                     <?php if ( $b['status'] !== 'cancelled' ) : ?>
                         <a href="<?php echo esc_url( $cancel_url ); ?>"
                            class="button button-small lvb-btn-danger"
                            onclick="return confirm('Cancel this booking?');">Cancel</a>
-                    <?php else : ?>
-                        <span class="lvb-muted">—</span>
                     <?php endif; ?>
                 </td>
             </tr>

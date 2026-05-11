@@ -285,6 +285,176 @@ class LVB_Booking_Manager {
         ];
     }
 
+    /**
+     * Update an existing booking with new data.
+     *
+     * Accepts a subset of booking fields and applies them to the existing row.
+     * The customer record is upserted (so name/phone/email changes propagate),
+     * the date/time conflict is re-checked against other confirmed bookings,
+     * and the linked Google Calendar event (if any) is patched with the new
+     * summary and start/end times.
+     *
+     * Status transitions:
+     *   - any → 'cancelled': removes GCal event(s) and unschedules the reminder.
+     *   - 'cancelled' → other: only updates the DB row; GCal event is NOT
+     *     re-created (operator can manually re-create if needed).
+     *
+     * Note: this method does NOT move events between Google Calendars when the
+     * staff member changes. The event is patched in its existing calendar with
+     * new times/title. To migrate calendars, cancel and re-create the booking.
+     *
+     * @param int   $id    Existing booking ID.
+     * @param array $data  Raw form data (will be sanitised internally).
+     * @return array|WP_Error  { id:int, gcal_warning:string|null } on success.
+     */
+    public static function update_booking( $id, $data ) {
+        $booking = LVB_Database::get_by_id( 'bookings', $id );
+        if ( ! $booking ) {
+            return new WP_Error( 'not_found', __( 'Booking not found.', 'lakevision-booking' ) );
+        }
+
+        // 1. Upsert customer (so first/last/email/phone edits propagate).
+        $customer_id = self::upsert_customer( [
+            'first_name' => sanitize_text_field( $data['first_name'] ?? '' ),
+            'last_name'  => sanitize_text_field( $data['last_name']  ?? '' ),
+            'email'      => sanitize_email( $data['email']           ?? '' ),
+            'phone'      => sanitize_text_field( $data['phone']      ?? '' ),
+        ] );
+        if ( ! $customer_id ) {
+            return new WP_Error( 'customer_fail', __( 'Could not save customer details.', 'lakevision-booking' ) );
+        }
+
+        // 2. Load (new) service.
+        $service = LVB_Database::get_by_id( 'services', (int) ( $data['service_id'] ?? 0 ) );
+        if ( ! $service ) {
+            return new WP_Error( 'invalid_service', __( 'Invalid service.', 'lakevision-booking' ) );
+        }
+
+        // 3. Parse new start/end.
+        $tz = wp_timezone();
+        try {
+            $start_dt = new DateTime( $data['start_datetime'] ?? '', $tz );
+            $end_dt   = new DateTime( $data['end_datetime']   ?? '', $tz );
+        } catch ( Exception $e ) {
+            return new WP_Error( 'bad_range', __( 'Invalid date/time.', 'lakevision-booking' ) );
+        }
+        if ( $end_dt <= $start_dt ) {
+            return new WP_Error( 'bad_range', __( 'End time must be after start time.', 'lakevision-booking' ) );
+        }
+        $start_str = $start_dt->format( 'Y-m-d H:i:s' );
+        $end_str   = $end_dt->format( 'Y-m-d H:i:s' );
+
+        // 4. Resolve new staff and status.
+        $new_staff_id = ! empty( $data['staff_id'] ) ? (int) $data['staff_id'] : null;
+        $new_status   = in_array( $data['status'] ?? '', [ 'pending', 'confirmed', 'cancelled' ], true )
+            ? $data['status']
+            : $booking['status'];
+
+        // 5. Conflict check (only against other confirmed bookings on the same staff).
+        if ( $new_status === 'confirmed' ) {
+            global $wpdb;
+            $conflict = (int) $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}lvb_bookings
+                 WHERE id != %d
+                   AND status = 'confirmed'
+                   AND staff_id <=> %s
+                   AND start_datetime < %s
+                   AND end_datetime > %s",
+                $id, $new_staff_id, $end_str, $start_str
+            ) );
+            if ( $conflict > 0 ) {
+                return new WP_Error( 'conflict', __( 'Zeitslot überlappt mit einer anderen Buchung.', 'lakevision-booking' ) );
+            }
+        }
+
+        // 6. Persist row.
+        $price = isset( $data['price'] ) && $data['price'] !== ''
+            ? round( (float) $data['price'], 2 )
+            : (float) $booking['price'];
+        LVB_Database::update( 'bookings', [
+            'service_id'     => (int) $service['id'],
+            'staff_id'       => $new_staff_id,
+            'customer_id'    => (int) $customer_id,
+            'start_datetime' => $start_str,
+            'end_datetime'   => $end_str,
+            'status'         => $new_status,
+            'price'          => $price,
+            'notes'          => sanitize_textarea_field( $data['notes'] ?? '' ),
+        ], [ 'id' => $id ] );
+
+        // 7. GCal sync.
+        $gcal_warning = null;
+        if ( $new_status === 'cancelled' && $booking['status'] !== 'cancelled' ) {
+            // Cancellation: remove event(s) + unschedule reminder.
+            if ( ! empty( $booking['google_event_id'] ) || ! empty( $booking['buffer_event_id'] ) ) {
+                $cal = self::resolve_calendar_id_for( $booking );
+                if ( $cal && LVB_Google_Calendar::is_connected() ) {
+                    if ( ! empty( $booking['google_event_id'] ) ) {
+                        LVB_Google_Calendar::delete_event( $cal, $booking['google_event_id'] );
+                    }
+                    if ( ! empty( $booking['buffer_event_id'] ) ) {
+                        LVB_Google_Calendar::delete_event( $cal, $booking['buffer_event_id'] );
+                    }
+                    LVB_Database::update( 'bookings', [
+                        'google_event_id' => '',
+                        'buffer_event_id' => '',
+                    ], [ 'id' => $id ] );
+                }
+            }
+            $ts = wp_next_scheduled( 'lvb_send_reminder', [ (int) $id ] );
+            if ( $ts ) {
+                wp_unschedule_event( $ts, 'lvb_send_reminder', [ (int) $id ] );
+            }
+        } elseif ( $new_status === 'confirmed' && ! empty( $booking['google_event_id'] ) && LVB_Google_Calendar::is_connected() ) {
+            // Patch event title + times in its existing calendar.
+            $cal = self::resolve_calendar_id_for( array_merge( $booking, [ 'staff_id' => $new_staff_id ] ) );
+            if ( $cal ) {
+                $tz_string = wp_timezone_string();
+                $staff_obj = $new_staff_id ? LVB_Database::get_by_id( 'staff', $new_staff_id ) : null;
+                $customer  = LVB_Database::get_by_id( 'customers', $customer_id );
+                $summary   = sprintf( '%s – %s', $service['name'], trim( $customer['first_name'] . ' ' . $customer['last_name'] ) );
+
+                $patch_body = [
+                    'summary' => $summary,
+                    'start'   => [ 'dateTime' => $start_dt->format( DateTime::RFC3339 ), 'timeZone' => $tz_string ],
+                    'end'     => [ 'dateTime' => $end_dt->format( DateTime::RFC3339 ),   'timeZone' => $tz_string ],
+                ];
+                if ( $staff_obj && ! empty( $staff_obj['color_id'] ) ) {
+                    $patch_body['colorId'] = (string) (int) $staff_obj['color_id'];
+                }
+                $r = LVB_Google_Calendar::patch_event( $cal, $booking['google_event_id'], $patch_body );
+                if ( is_wp_error( $r ) ) {
+                    $gcal_warning = $r->get_error_message();
+                }
+            }
+        }
+
+        return [ 'id' => (int) $id, 'gcal_warning' => $gcal_warning ];
+    }
+
+    /**
+     * Resolve which Google Calendar a booking lives in.
+     *
+     * Mirrors the create_booking() logic: prefer the staff member's own
+     * calendar_id, fall back to the plugin default option.
+     *
+     * @param array $booking  Row from wp_lvb_bookings (must contain staff_id).
+     * @return string  Calendar ID, or '' when no calendar is configured.
+     */
+    private static function resolve_calendar_id_for( $booking ) {
+        if ( ! empty( $booking['staff_id'] ) ) {
+            $staff = LVB_Database::get_by_id( 'staff', $booking['staff_id'] );
+            if ( $staff && ! empty( $staff['calendar_id'] ) ) {
+                return $staff['calendar_id'];
+            }
+        }
+        $cal = get_option( 'lvb_google_default_calendar_id', '' );
+        if ( ! $cal ) {
+            $cal = get_option( 'lvb_google_calendar_id', '' );
+        }
+        return $cal;
+    }
+
     // -----------------------------------------------------------------------
     // Service CRUD
     // -----------------------------------------------------------------------

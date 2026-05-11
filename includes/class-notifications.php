@@ -33,9 +33,12 @@ class LVB_Notifications {
     /**
      * Send confirmation email to the customer and alert to the admin.
      *
-     * @param int $booking_id
+     * @param int  $booking_id
+     * @param bool $is_update   When true, prefix subject lines with "[Aktualisiert]"
+     *                          so the customer can tell the mail apart from the
+     *                          original confirmation. Body is identical.
      */
-    public static function send_booking_confirmation( $booking_id ) {
+    public static function send_booking_confirmation( $booking_id, $is_update = false ) {
         $booking = LVB_Database::get_by_id( 'bookings', $booking_id );
         if ( ! $booking ) {
             return;
@@ -65,6 +68,9 @@ class LVB_Notifications {
         // ---- Customer email ----
         $customer_name    = trim( $customer['first_name'] . ' ' . $customer['last_name'] );
         $customer_subject = sprintf( __( 'Deine Buchungsbestätigung – %s', 'lakevision-booking' ), $site_name );
+        if ( $is_update ) {
+            $customer_subject = '[Aktualisiert] ' . $customer_subject;
+        }
         $customer_body    = self::customer_email_body( [
             'customer_name'       => $customer_name,
             'customer_first_name' => $customer['first_name'],
@@ -92,7 +98,9 @@ class LVB_Notifications {
 
         // ---- Admin email ----
         $admin_email   = get_option( 'lvb_admin_notification_email', get_option( 'admin_email' ) );
-        $admin_subject = sprintf( __( '[Neue Buchung] %s – %s', 'lakevision-booking' ), $service['name'], $customer_name );
+        $admin_subject = $is_update
+            ? sprintf( __( '[Buchung aktualisiert] %s – %s', 'lakevision-booking' ), $service['name'], $customer_name )
+            : sprintf( __( '[Neue Buchung] %s – %s', 'lakevision-booking' ), $service['name'], $customer_name );
         $admin_body    = self::admin_email_body( [
             'customer_name'  => $customer_name,
             'customer_email' => $customer_email,
