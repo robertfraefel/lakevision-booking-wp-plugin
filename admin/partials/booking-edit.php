@@ -72,11 +72,9 @@ $nonce_id = $is_new ? 0 : (int) $booking['id'];
                 <td>
                     <input type="email" id="lvb_email" name="email"
                            value="<?php echo esc_attr( $customer['email'] ?? '' ); ?>"
-                           class="regular-text" <?php echo $is_new ? 'required' : ''; ?>>
+                           class="regular-text" required>
                     <?php if ( $is_new ) : ?>
                         <p class="description">Existiert ein Kunde mit dieser Email schon, wird sein Datensatz aktualisiert — kein Duplikat.</p>
-                    <?php else : ?>
-                        <p class="description">Leer lassen, um die bisherige Email beizubehalten.</p>
                     <?php endif; ?>
                 </td>
             </tr>
