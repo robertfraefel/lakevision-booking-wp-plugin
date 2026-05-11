@@ -1,39 +1,57 @@
 <?php
 /**
- * Admin partial – Edit existing booking.
+ * Admin partial – Booking form (create + edit).
  *
- * Included from bookings.php when ?edit=<id> is present. Renders a form with
- * all editable fields (customer, service, staff, datetime, price, status,
- * notes) plus a checkbox to optionally re-send the confirmation email.
+ * Included from bookings.php when:
+ *   - ?edit=<id> is present → edit existing booking, prefilled from DB.
+ *   - ?new=1   is present  → create a new booking, empty defaults.
+ *
+ * On submit, the form posts back to ?page=lvb-bookings with `lvb_save_booking`.
+ * The hidden `booking_id` field distinguishes create (0) from edit (>0); the
+ * admin handler routes to the matching LVB_Booking_Manager method.
  */
 if ( ! defined( 'ABSPATH' ) ) exit;
 if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Unauthorised.' );
 
-$edit_id = (int) ( $_GET['edit'] ?? 0 );
-$booking = $edit_id > 0 ? LVB_Database::get_by_id( 'bookings', $edit_id ) : null;
-if ( ! $booking ) {
+$edit_id = isset( $_GET['edit'] ) ? (int) $_GET['edit'] : 0;
+$is_new  = isset( $_GET['new'] ) || $edit_id === 0;
+
+$booking  = $edit_id > 0 ? LVB_Database::get_by_id( 'bookings', $edit_id ) : null;
+if ( $edit_id > 0 && ! $booking ) {
     echo '<div class="wrap lvb-wrap"><h1>Booking not found.</h1><p><a href="'
         . esc_url( admin_url( 'admin.php?page=lvb-bookings' ) ) . '">&larr; Back to bookings</a></p></div>';
     return;
 }
 
-$customer = LVB_Database::get_by_id( 'customers', $booking['customer_id'] );
-$services = LVB_Database::get_all( 'services', [], 'sort_order ASC, name ASC' );
-$staff    = LVB_Database::get_all( 'staff',    [], 'name ASC' );
+$customer = $booking ? LVB_Database::get_by_id( 'customers', $booking['customer_id'] ) : null;
+$services = LVB_Database::get_all( 'services', [ 'status' => 'active' ], 'sort_order ASC, name ASC' );
+$staff    = LVB_Database::get_all( 'staff',    [ 'status' => 'active' ], 'name ASC' );
 
-$tz       = wp_timezone();
-$start_dt = new DateTime( $booking['start_datetime'], $tz );
-$end_dt   = new DateTime( $booking['end_datetime'],   $tz );
+$tz = wp_timezone();
+if ( $booking ) {
+    $start_dt = new DateTime( $booking['start_datetime'], $tz );
+    $end_dt   = new DateTime( $booking['end_datetime'],   $tz );
+} else {
+    // Default new booking to "next full hour" / "+1 hour later" so the form has
+    // sensible placeholder values the operator can quickly adjust.
+    $start_dt = new DateTime( 'now', $tz );
+    $start_dt->setTime( (int) $start_dt->format( 'H' ) + 1, 0 );
+    $end_dt = clone $start_dt;
+    $end_dt->modify( '+1 hour' );
+}
+
 $back_url = admin_url( 'admin.php?page=lvb-bookings' );
+$heading  = $is_new ? 'Neue Buchung' : sprintf( 'Buchung #%d bearbeiten', (int) $booking['id'] );
+$nonce_id = $is_new ? 0 : (int) $booking['id'];
 ?>
 <div class="wrap lvb-wrap">
-    <h1 class="wp-heading-inline">Buchung #<?php echo (int) $booking['id']; ?> bearbeiten</h1>
+    <h1 class="wp-heading-inline"><?php echo esc_html( $heading ); ?></h1>
     <a href="<?php echo esc_url( $back_url ); ?>" class="page-title-action">&larr; Zurück zur Liste</a>
     <hr class="wp-header-end">
 
     <form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=lvb-bookings' ) ); ?>" class="lvb-card" style="max-width:760px;padding:1.5rem;">
-        <?php wp_nonce_field( 'lvb_save_booking_' . $booking['id'] ); ?>
-        <input type="hidden" name="booking_id" value="<?php echo (int) $booking['id']; ?>">
+        <?php wp_nonce_field( 'lvb_save_booking_' . $nonce_id ); ?>
+        <input type="hidden" name="booking_id" value="<?php echo (int) $nonce_id; ?>">
 
         <h2 style="margin-top:0;">Kunde</h2>
         <table class="form-table" role="presentation">
@@ -51,9 +69,14 @@ $back_url = admin_url( 'admin.php?page=lvb-bookings' );
             </tr>
             <tr>
                 <th scope="row"><label for="lvb_email">Email</label></th>
-                <td><input type="email" id="lvb_email" name="email"
+                <td>
+                    <input type="email" id="lvb_email" name="email"
                            value="<?php echo esc_attr( $customer['email'] ?? '' ); ?>"
-                           class="regular-text" required></td>
+                           class="regular-text" required>
+                    <?php if ( $is_new ) : ?>
+                        <p class="description">Existiert ein Kunde mit dieser Email schon, wird sein Datensatz aktualisiert — kein Duplikat.</p>
+                    <?php endif; ?>
+                </td>
             </tr>
             <tr>
                 <th scope="row"><label for="lvb_phone">Telefon</label></th>
@@ -69,9 +92,12 @@ $back_url = admin_url( 'admin.php?page=lvb-bookings' );
                 <th scope="row"><label for="lvb_service_id">Service</label></th>
                 <td>
                     <select id="lvb_service_id" name="service_id" required>
+                        <?php if ( $is_new ) : ?>
+                            <option value="">— Wählen —</option>
+                        <?php endif; ?>
                         <?php foreach ( $services as $svc ) : ?>
                             <option value="<?php echo (int) $svc['id']; ?>"
-                                <?php selected( (int) $booking['service_id'], (int) $svc['id'] ); ?>>
+                                <?php selected( (int) ( $booking['service_id'] ?? 0 ), (int) $svc['id'] ); ?>>
                                 <?php echo esc_html( $svc['name'] ); ?>
                                 (<?php echo (int) $svc['duration']; ?> min,
                                 <?php echo esc_html( get_option( 'lvb_currency_symbol', '$' ) . number_format( (float) $svc['price'], 2 ) ); ?>)
@@ -107,30 +133,47 @@ $back_url = admin_url( 'admin.php?page=lvb-bookings' );
                 <td>
                     <input type="datetime-local" id="lvb_end_datetime" name="end_datetime"
                            value="<?php echo esc_attr( $end_dt->format( 'Y-m-d\TH:i' ) ); ?>"
-                           required>
+                           <?php echo $is_new ? '' : 'required'; ?>>
+                    <?php if ( $is_new ) : ?>
+                        <p class="description">Leer lassen, um die Dauer vom Service zu übernehmen.</p>
+                    <?php endif; ?>
                 </td>
             </tr>
             <tr>
                 <th scope="row"><label for="lvb_price">Preis (<?php echo esc_html( get_option( 'lvb_currency_symbol', '$' ) ); ?>)</label></th>
                 <td>
                     <input type="number" id="lvb_price" name="price" step="0.01" min="0"
-                           value="<?php echo esc_attr( number_format( (float) $booking['price'], 2, '.', '' ) ); ?>"
+                           value="<?php echo esc_attr( $booking ? number_format( (float) $booking['price'], 2, '.', '' ) : '' ); ?>"
                            class="small-text">
-                    <p class="description">Wird beim Service-Wechsel <strong>nicht</strong> automatisch übernommen — manuell anpassen, falls gewünscht.</p>
+                    <p class="description">
+                        <?php if ( $is_new ) : ?>
+                            Leer lassen, um den Standardpreis vom Service zu übernehmen.
+                        <?php else : ?>
+                            Wird beim Service-Wechsel <strong>nicht</strong> automatisch übernommen — manuell anpassen, falls gewünscht.
+                        <?php endif; ?>
+                    </p>
                 </td>
             </tr>
             <tr>
                 <th scope="row"><label for="lvb_status">Status</label></th>
                 <td>
                     <select id="lvb_status" name="status">
-                        <?php foreach ( [ 'pending' => 'Pending', 'confirmed' => 'Confirmed', 'cancelled' => 'Cancelled' ] as $val => $label ) : ?>
+                        <?php
+                        $status_options = $is_new
+                            ? [ 'confirmed' => 'Confirmed', 'pending' => 'Pending' ]
+                            : [ 'pending' => 'Pending', 'confirmed' => 'Confirmed', 'cancelled' => 'Cancelled' ];
+                        $current = $booking['status'] ?? 'confirmed';
+                        foreach ( $status_options as $val => $label ) :
+                        ?>
                             <option value="<?php echo esc_attr( $val ); ?>"
-                                <?php selected( $booking['status'], $val ); ?>>
+                                <?php selected( $current, $val ); ?>>
                                 <?php echo esc_html( $label ); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <p class="description">Wechsel auf <em>Cancelled</em> löscht das Google-Calendar-Event und entfernt geplante Reminder.</p>
+                    <?php if ( ! $is_new ) : ?>
+                        <p class="description">Wechsel auf <em>Cancelled</em> löscht das Google-Calendar-Event und entfernt geplante Reminder.</p>
+                    <?php endif; ?>
                 </td>
             </tr>
             <tr>
@@ -144,14 +187,20 @@ $back_url = admin_url( 'admin.php?page=lvb-bookings' );
         <h2>Benachrichtigung</h2>
         <p>
             <label>
-                <input type="checkbox" name="lvb_send_notification" value="1">
-                Kunde per Email über die Änderungen informieren
-                (mit neuem ICS-Anhang, Betreff <code>[Aktualisiert]</code>)
+                <input type="checkbox" name="lvb_send_notification" value="1" <?php checked( $is_new ); ?>>
+                <?php if ( $is_new ) : ?>
+                    Kunde per Email bestätigen (mit ICS-Anhang)
+                <?php else : ?>
+                    Kunde per Email über die Änderungen informieren
+                    (mit neuem ICS-Anhang, Betreff <code>[Aktualisiert]</code>)
+                <?php endif; ?>
             </label>
         </p>
 
         <p class="submit">
-            <button type="submit" name="lvb_save_booking" value="1" class="button button-primary">Speichern</button>
+            <button type="submit" name="lvb_save_booking" value="1" class="button button-primary">
+                <?php echo $is_new ? 'Buchung anlegen' : 'Speichern'; ?>
+            </button>
             <a href="<?php echo esc_url( $back_url ); ?>" class="button">Abbrechen</a>
         </p>
     </form>

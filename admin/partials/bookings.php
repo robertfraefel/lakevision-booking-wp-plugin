@@ -5,9 +5,10 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Unauthorised.' );
 
-// Edit mode: ?edit=<booking_id> shows the edit form instead of the list.
-$edit_id = isset( $_GET['edit'] ) ? (int) $_GET['edit'] : 0;
-if ( $edit_id > 0 ) {
+// Form mode: ?edit=<booking_id> edits an existing booking, ?new=1 creates one.
+$edit_id   = isset( $_GET['edit'] ) ? (int) $_GET['edit'] : 0;
+$is_new    = isset( $_GET['new'] );
+if ( $edit_id > 0 || $is_new ) {
     include __DIR__ . '/booking-edit.php';
     return;
 }
@@ -52,6 +53,8 @@ $status_labels = [
 ?>
 <div class="wrap lvb-wrap">
     <h1 class="wp-heading-inline">LakeVision Booking – Bookings</h1>
+    <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'lvb-bookings', 'new' => '1' ], admin_url( 'admin.php' ) ) ); ?>"
+       class="page-title-action">Neue Buchung</a>
     <hr class="wp-header-end">
 
     <!-- Filter bar -->

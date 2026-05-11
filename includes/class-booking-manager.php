@@ -286,6 +286,138 @@ class LVB_Booking_Manager {
     }
 
     /**
+     * Create a booking manually from the admin area.
+     *
+     * Distinct from {@see create_booking()}, which is driven by the public
+     * frontend widget and enforces the availability-window check
+     * (`slot_win_end`). Admin-created bookings skip that gate — operators may
+     * legitimately want to place a booking outside the published windows
+     * (e.g. private sessions, walk-ins) — but the same staff-overlap conflict
+     * check still applies for confirmed bookings.
+     *
+     * End time may be supplied explicitly (`end_datetime` in $data); when
+     * absent, it is derived from the service's `duration`.
+     *
+     * @param array $data  Raw form data (will be sanitised internally).
+     * @return array|WP_Error  { id:int, gcal_warning:string|null } on success.
+     */
+    public static function create_booking_admin( $data ) {
+        // 1. Upsert customer.
+        $customer_id = self::upsert_customer( [
+            'first_name' => sanitize_text_field( $data['first_name'] ?? '' ),
+            'last_name'  => sanitize_text_field( $data['last_name']  ?? '' ),
+            'email'      => sanitize_email( $data['email']           ?? '' ),
+            'phone'      => sanitize_text_field( $data['phone']      ?? '' ),
+        ] );
+        if ( ! $customer_id ) {
+            return new WP_Error( 'customer_fail', __( 'Could not save customer details.', 'lakevision-booking' ) );
+        }
+
+        // 2. Load service.
+        $service = LVB_Database::get_by_id( 'services', (int) ( $data['service_id'] ?? 0 ) );
+        if ( ! $service ) {
+            return new WP_Error( 'invalid_service', __( 'Invalid service.', 'lakevision-booking' ) );
+        }
+
+        // 3. Parse start/end (end optional → derived from service duration).
+        $tz = wp_timezone();
+        try {
+            $start_dt = new DateTime( $data['start_datetime'] ?? '', $tz );
+        } catch ( Exception $e ) {
+            return new WP_Error( 'bad_range', __( 'Invalid start time.', 'lakevision-booking' ) );
+        }
+        if ( ! empty( $data['end_datetime'] ) ) {
+            try {
+                $end_dt = new DateTime( $data['end_datetime'], $tz );
+            } catch ( Exception $e ) {
+                return new WP_Error( 'bad_range', __( 'Invalid end time.', 'lakevision-booking' ) );
+            }
+        } else {
+            $end_dt = clone $start_dt;
+            $end_dt->modify( '+' . (int) $service['duration'] . ' minutes' );
+        }
+        if ( $end_dt <= $start_dt ) {
+            return new WP_Error( 'bad_range', __( 'End time must be after start time.', 'lakevision-booking' ) );
+        }
+        $start_str = $start_dt->format( 'Y-m-d H:i:s' );
+        $end_str   = $end_dt->format( 'Y-m-d H:i:s' );
+
+        // 4. Resolve staff + status.
+        $staff_id = ! empty( $data['staff_id'] ) ? (int) $data['staff_id'] : null;
+        $status   = in_array( $data['status'] ?? 'confirmed', [ 'pending', 'confirmed' ], true )
+            ? $data['status']
+            : 'confirmed';
+        $staff    = $staff_id ? LVB_Database::get_by_id( 'staff', $staff_id ) : null;
+
+        // 5. Conflict check (only against other confirmed bookings, same staff).
+        if ( $status === 'confirmed' ) {
+            global $wpdb;
+            $conflict = (int) $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}lvb_bookings
+                 WHERE status = 'confirmed'
+                   AND staff_id <=> %s
+                   AND start_datetime < %s
+                   AND end_datetime > %s",
+                $staff_id, $end_str, $start_str
+            ) );
+            if ( $conflict > 0 ) {
+                return new WP_Error( 'conflict', __( 'Zeitslot überlappt mit einer anderen Buchung.', 'lakevision-booking' ) );
+            }
+        }
+
+        // 6. GCal event (only for confirmed).
+        $gcal_warning    = null;
+        $google_event_id = '';
+        $calendar_id     = ( $staff && ! empty( $staff['calendar_id'] ) )
+            ? $staff['calendar_id']
+            : get_option( 'lvb_google_calendar_id', '' );
+
+        if ( $status === 'confirmed' && $calendar_id && LVB_Google_Calendar::is_connected() ) {
+            $gc = LVB_Google_Calendar::create_booking_event( $calendar_id, [
+                'service_name'  => $service['name'],
+                'staff_name'    => $staff ? $staff['name'] : '',
+                'customer_name' => trim( ( $data['first_name'] ?? '' ) . ' ' . ( $data['last_name'] ?? '' ) ),
+                'start'         => $start_str,
+                'end'           => $end_str,
+                'notes'         => $data['notes'] ?? '',
+                'color_id'      => ( $staff && ! empty( $staff['color_id'] ) ) ? (int) $staff['color_id'] : null,
+            ] );
+            if ( is_wp_error( $gc ) ) {
+                $gcal_warning = $gc->get_error_message();
+            } else {
+                $google_event_id = $gc;
+            }
+        }
+
+        // 7. Insert.
+        $price = isset( $data['price'] ) && $data['price'] !== ''
+            ? round( (float) $data['price'], 2 )
+            : (float) $service['price'];
+        $booking_id = LVB_Database::insert( 'bookings', [
+            'service_id'      => (int) $service['id'],
+            'staff_id'        => $staff_id,
+            'customer_id'     => (int) $customer_id,
+            'start_datetime'  => $start_str,
+            'end_datetime'    => $end_str,
+            'status'          => $status,
+            'google_event_id' => $google_event_id,
+            'price'           => $price,
+            'notes'           => sanitize_textarea_field( $data['notes'] ?? '' ),
+            'created_at'      => current_time( 'mysql' ),
+        ] );
+        if ( ! $booking_id ) {
+            return new WP_Error( 'db_insert_fail', __( 'Could not save booking to database.', 'lakevision-booking' ) );
+        }
+
+        // 8. Schedule reminder for confirmed bookings.
+        if ( $status === 'confirmed' ) {
+            LVB_Notifications::schedule_reminder( $booking_id, $start_dt );
+        }
+
+        return [ 'id' => (int) $booking_id, 'gcal_warning' => $gcal_warning ];
+    }
+
+    /**
      * Update an existing booking with new data.
      *
      * Accepts a subset of booking fields and applies them to the existing row.

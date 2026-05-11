@@ -313,21 +313,32 @@ class LVB_Admin {
             exit;
         }
 
-        // Booking save (edit existing booking from the admin list)
+        // Booking save (create or edit, depending on booking_id)
         if ( isset( $_POST['lvb_save_booking'] ) ) {
             $id = (int) ( $_POST['booking_id'] ?? 0 );
             check_admin_referer( 'lvb_save_booking_' . $id );
 
-            $result = LVB_Booking_Manager::update_booking( $id, wp_unslash( $_POST ) );
-            $args   = [ 'page' => 'lvb-bookings' ];
+            $data    = wp_unslash( $_POST );
+            $is_new  = $id === 0;
+            $result  = $is_new
+                ? LVB_Booking_Manager::create_booking_admin( $data )
+                : LVB_Booking_Manager::update_booking( $id, $data );
+
+            $args = [ 'page' => 'lvb-bookings' ];
 
             if ( is_wp_error( $result ) ) {
-                $args['edit']      = $id; // stay in edit mode
+                // Stay in form mode so the operator can fix and retry.
+                if ( $is_new ) {
+                    $args['new'] = '1';
+                } else {
+                    $args['edit'] = $id;
+                }
                 $args['lvb_error'] = rawurlencode( $result->get_error_message() );
             } else {
-                $args['lvb_saved'] = '1';
+                $new_id = (int) ( $result['id'] ?? $id );
+                $args['lvb_saved'] = $is_new ? 'new' : '1';
                 if ( ! empty( $_POST['lvb_send_notification'] ) ) {
-                    LVB_Notifications::send_booking_confirmation( $id, true );
+                    LVB_Notifications::send_booking_confirmation( $new_id, ! $is_new );
                     $args['lvb_notified'] = '1';
                 }
                 if ( ! empty( $result['gcal_warning'] ) ) {
@@ -521,7 +532,10 @@ class LVB_Admin {
      */
     public function show_notices() {
         if ( isset( $_GET['lvb_saved'] ) ) {
-            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Settings saved.', 'lakevision-booking' ) . '</p></div>';
+            $msg = ( $_GET['lvb_saved'] === 'new' )
+                ? __( 'Buchung angelegt.', 'lakevision-booking' )
+                : __( 'Settings saved.', 'lakevision-booking' );
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $msg ) . '</p></div>';
         }
         if ( isset( $_GET['lvb_deleted'] ) ) {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Item deleted.', 'lakevision-booking' ) . '</p></div>';
