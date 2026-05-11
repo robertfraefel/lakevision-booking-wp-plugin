@@ -450,15 +450,35 @@ class LVB_Booking_Manager {
             return new WP_Error( 'not_found', __( 'Booking not found.', 'lakevision-booking' ) );
         }
 
-        // 1. Upsert customer (so first/last/email/phone edits propagate).
-        $customer_id = self::upsert_customer( [
-            'first_name' => sanitize_text_field( $data['first_name'] ?? '' ),
-            'last_name'  => sanitize_text_field( $data['last_name']  ?? '' ),
-            'email'      => sanitize_email( $data['email']           ?? '' ),
-            'phone'      => sanitize_text_field( $data['phone']      ?? '' ),
-        ] );
-        if ( ! $customer_id ) {
-            return new WP_Error( 'customer_fail', __( 'Could not save customer details.', 'lakevision-booking' ) );
+        // 1. Update or upsert customer.
+        //
+        // When the operator submitted an email, treat it as the unique key and
+        // upsert (this also handles re-pointing the booking to a different
+        // customer if the email changed). When the email field is left blank
+        // in the edit form, keep the booking's existing customer and just
+        // patch the name/phone fields in place — that's how operators can
+        // amend a phone-only walk-in record without forcing a placeholder
+        // email value.
+        $email = sanitize_email( $data['email'] ?? '' );
+        if ( $email ) {
+            $customer_id = self::upsert_customer( [
+                'first_name' => sanitize_text_field( $data['first_name'] ?? '' ),
+                'last_name'  => sanitize_text_field( $data['last_name']  ?? '' ),
+                'email'      => $email,
+                'phone'      => sanitize_text_field( $data['phone']      ?? '' ),
+            ] );
+            if ( ! $customer_id ) {
+                return new WP_Error( 'customer_fail', __( 'Could not save customer details.', 'lakevision-booking' ) );
+            }
+        } else {
+            $customer_id = (int) $booking['customer_id'];
+            if ( $customer_id ) {
+                LVB_Database::update( 'customers', [
+                    'first_name' => sanitize_text_field( $data['first_name'] ?? '' ),
+                    'last_name'  => sanitize_text_field( $data['last_name']  ?? '' ),
+                    'phone'      => sanitize_text_field( $data['phone']      ?? '' ),
+                ], [ 'id' => $customer_id ] );
+            }
         }
 
         // 2. Load (new) service.
