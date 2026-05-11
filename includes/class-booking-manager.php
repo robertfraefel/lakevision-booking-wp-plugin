@@ -209,6 +209,85 @@ class LVB_Booking_Manager {
         return LVB_Database::insert( 'customers', $data );
     }
 
+    /**
+     * Create or update a customer record from the admin Customers screen.
+     *
+     * Email is enforced as a unique key by the DB schema. When creating a new
+     * customer with an email that already exists, the existing record is
+     * updated and its ID returned — this matches the upsert_customer()
+     * behaviour used by the public booking widget and prevents the operator
+     * from accidentally creating duplicate customer rows.
+     *
+     * @param array $data  Raw form data (will be sanitised internally).
+     * @param int   $id    Existing customer ID, or 0 to create a new record.
+     * @return int|WP_Error  Customer ID on success.
+     */
+    public static function save_customer( $data, $id = 0 ) {
+        $email = sanitize_email( $data['email'] ?? '' );
+        if ( ! $email ) {
+            return new WP_Error( 'missing_email', __( 'Email is required.', 'lakevision-booking' ) );
+        }
+
+        $clean = [
+            'first_name' => sanitize_text_field( $data['first_name'] ?? '' ),
+            'last_name'  => sanitize_text_field( $data['last_name']  ?? '' ),
+            'email'      => $email,
+            'phone'      => sanitize_text_field( $data['phone']      ?? '' ),
+            'birthday'   => self::sanitize_date( $data['birthday']   ?? '' ),
+            'notes'      => sanitize_textarea_field( $data['notes']  ?? '' ),
+        ];
+
+        global $wpdb;
+
+        if ( $id > 0 ) {
+            // Check for conflict if the email changed (another customer already uses it).
+            $existing = $wpdb->get_var( $wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}lvb_customers WHERE email = %s AND id != %d",
+                $email, $id
+            ) );
+            if ( $existing ) {
+                return new WP_Error( 'email_conflict', __( 'Ein anderer Kunde verwendet diese Email bereits.', 'lakevision-booking' ) );
+            }
+            LVB_Database::update( 'customers', $clean, [ 'id' => $id ] );
+            return (int) $id;
+        }
+
+        // New customer: collapse onto an existing row if the email matches.
+        $existing = $wpdb->get_var( $wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}lvb_customers WHERE email = %s",
+            $email
+        ) );
+        if ( $existing ) {
+            LVB_Database::update( 'customers', $clean, [ 'id' => (int) $existing ] );
+            return (int) $existing;
+        }
+
+        $clean['created_at'] = current_time( 'mysql' );
+        return (int) LVB_Database::insert( 'customers', $clean );
+    }
+
+    /**
+     * Normalise a date input to "YYYY-MM-DD" or null for empty/invalid values.
+     *
+     * Accepts native HTML5 date input format and validates with DateTime so
+     * malformed strings don't break the DB column.
+     *
+     * @param string $value
+     * @return string|null
+     */
+    private static function sanitize_date( $value ) {
+        $value = is_string( $value ) ? trim( $value ) : '';
+        if ( $value === '' ) {
+            return null;
+        }
+        try {
+            $dt = new DateTime( $value );
+            return $dt->format( 'Y-m-d' );
+        } catch ( Exception $e ) {
+            return null;
+        }
+    }
+
     // -----------------------------------------------------------------------
     // Booking status updates
     // -----------------------------------------------------------------------

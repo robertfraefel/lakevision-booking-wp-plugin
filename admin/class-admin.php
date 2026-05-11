@@ -288,6 +288,28 @@ class LVB_Admin {
             exit;
         }
 
+        // Customer save (create or edit)
+        if ( isset( $_POST['lvb_save_customer'] ) ) {
+            $id = (int) ( $_POST['customer_id'] ?? 0 );
+            check_admin_referer( 'lvb_save_customer_' . $id );
+
+            $result = LVB_Booking_Manager::save_customer( wp_unslash( $_POST ), $id );
+            $args   = [ 'page' => 'lvb-customers' ];
+
+            if ( is_wp_error( $result ) ) {
+                if ( $id > 0 ) {
+                    $args['edit'] = $id;
+                } else {
+                    $args['new'] = '1';
+                }
+                $args['lvb_error'] = rawurlencode( $result->get_error_message() );
+            } else {
+                $args['lvb_saved'] = $id > 0 ? '1' : 'new_customer';
+            }
+            wp_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
         // Customer delete
         if ( isset( $_GET['lvb_action'] ) && $_GET['lvb_action'] === 'delete_customer' ) {
             $id = (int) ( $_GET['id'] ?? 0 );
@@ -532,9 +554,11 @@ class LVB_Admin {
      */
     public function show_notices() {
         if ( isset( $_GET['lvb_saved'] ) ) {
-            $msg = ( $_GET['lvb_saved'] === 'new' )
-                ? __( 'Buchung angelegt.', 'lakevision-booking' )
-                : __( 'Settings saved.', 'lakevision-booking' );
+            switch ( $_GET['lvb_saved'] ) {
+                case 'new':           $msg = __( 'Buchung angelegt.',  'lakevision-booking' ); break;
+                case 'new_customer':  $msg = __( 'Kunde angelegt.',    'lakevision-booking' ); break;
+                default:              $msg = __( 'Settings saved.',    'lakevision-booking' ); break;
+            }
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $msg ) . '</p></div>';
         }
         if ( isset( $_GET['lvb_deleted'] ) ) {

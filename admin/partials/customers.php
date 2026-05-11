@@ -5,6 +5,14 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Unauthorised.' );
 
+// Form mode: ?edit=<id> or ?new=1 shows the customer form instead of the list.
+$edit_id = isset( $_GET['edit'] ) ? (int) $_GET['edit'] : 0;
+$is_new  = isset( $_GET['new'] );
+if ( $edit_id > 0 || $is_new ) {
+    include __DIR__ . '/customer-edit.php';
+    return;
+}
+
 global $wpdb;
 
 $search   = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
@@ -54,6 +62,8 @@ $total_pages = max( 1, (int) ceil( $total / $per_page ) );
 ?>
 <div class="wrap lvb-wrap">
     <h1 class="wp-heading-inline">LakeVision Booking – Customers</h1>
+    <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'lvb-customers', 'new' => '1' ], admin_url( 'admin.php' ) ) ); ?>"
+       class="page-title-action">Neuer Kunde</a>
     <hr class="wp-header-end">
 
     <form method="get" class="lvb-filter-form">
@@ -113,6 +123,8 @@ $total_pages = max( 1, (int) ceil( $total / $per_page ) );
                     <?php else : ?>—<?php endif; ?>
                 </td>
                 <td>
+                    <?php $edit_url = add_query_arg( [ 'page' => 'lvb-customers', 'edit' => $c['id'] ], admin_url( 'admin.php' ) ); ?>
+                    <a href="<?php echo esc_url( $edit_url ); ?>" class="button button-small">Edit</a>
                     <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( [ 'page' => 'lvb-customers', 'lvb_action' => 'delete_customer', 'id' => $c['id'] ], admin_url( 'admin.php' ) ), 'lvb_delete_customer_' . $c['id'] ) ); ?>"
                        class="button button-small lvb-btn-danger"
                        onclick="return confirm('Diesen Kunden und alle zugehörigen Daten wirklich löschen?');">Löschen</a>
