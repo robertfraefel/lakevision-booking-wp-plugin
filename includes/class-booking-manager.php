@@ -700,6 +700,58 @@ class LVB_Booking_Manager {
         return $cal;
     }
 
+    /**
+     * Permanently delete a booking.
+     *
+     * Unlike {@see cancel_booking()}, which keeps the row for audit purposes
+     * and just flips its status to 'cancelled', this method removes the row
+     * entirely. Linked Google Calendar events (main + buffer) are deleted
+     * first; any pending reminder cron entry is unscheduled.
+     *
+     * @param int $booking_id
+     * @return array|false  False when not found, otherwise:
+     *                      { rows:int, gcal_status:'deleted'|'failed'|'skipped', gcal_error:string }.
+     */
+    public static function delete_booking( $booking_id ) {
+        $booking = LVB_Database::get_by_id( 'bookings', $booking_id );
+        if ( ! $booking ) {
+            return false;
+        }
+
+        $gcal_status = 'skipped';
+        $gcal_error  = '';
+        if ( ! empty( $booking['google_event_id'] ) || ! empty( $booking['buffer_event_id'] ) ) {
+            $cal = self::resolve_calendar_id_for( $booking );
+            if ( $cal && LVB_Google_Calendar::is_connected() ) {
+                if ( ! empty( $booking['google_event_id'] ) ) {
+                    $r = LVB_Google_Calendar::delete_event( $cal, $booking['google_event_id'] );
+                    if ( is_wp_error( $r ) ) {
+                        $gcal_status = 'failed';
+                        $gcal_error  = $r->get_error_message();
+                    } else {
+                        $gcal_status = 'deleted';
+                    }
+                }
+                if ( ! empty( $booking['buffer_event_id'] ) ) {
+                    LVB_Google_Calendar::delete_event( $cal, $booking['buffer_event_id'] );
+                }
+            }
+        }
+
+        $ts = wp_next_scheduled( 'lvb_send_reminder', [ (int) $booking_id ] );
+        if ( $ts ) {
+            wp_unschedule_event( $ts, 'lvb_send_reminder', [ (int) $booking_id ] );
+        }
+
+        $rows = LVB_Database::delete( 'bookings', [ 'id' => (int) $booking_id ] );
+
+        return [
+            'rows'        => $rows,
+            'gcal_status' => $gcal_status,
+            'gcal_error'  => $gcal_error,
+        ];
+    }
+
     // -----------------------------------------------------------------------
     // Service CRUD
     // -----------------------------------------------------------------------

@@ -371,6 +371,19 @@ class LVB_Admin {
             exit;
         }
 
+        // Booking delete (permanent, distinct from cancel)
+        if ( isset( $_GET['lvb_action'] ) && $_GET['lvb_action'] === 'delete_booking' ) {
+            $id = (int) ( $_GET['id'] ?? 0 );
+            check_admin_referer( 'lvb_delete_booking_' . $id );
+            $result = LVB_Booking_Manager::delete_booking( $id );
+            $args   = [ 'page' => 'lvb-bookings', 'lvb_deleted' => '1' ];
+            if ( is_array( $result ) && $result['gcal_status'] === 'failed' ) {
+                $args['lvb_gcal_error'] = rawurlencode( $result['gcal_error'] );
+            }
+            wp_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) );
+            exit;
+        }
+
         // Booking cancel
         if ( isset( $_GET['lvb_action'] ) && $_GET['lvb_action'] === 'cancel_booking' ) {
             $id = (int) ( $_GET['id'] ?? 0 );

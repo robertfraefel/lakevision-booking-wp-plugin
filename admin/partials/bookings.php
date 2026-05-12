@@ -167,13 +167,22 @@ $status_labels = [
                     <?php endif; ?>
                 </td>
                 <td>
-                    <?php $edit_url = add_query_arg( [ 'page' => 'lvb-bookings', 'edit' => $b['id'] ], admin_url( 'admin.php' ) ); ?>
+                    <?php
+                    $edit_url = add_query_arg( [ 'page' => 'lvb-bookings', 'edit' => $b['id'] ], admin_url( 'admin.php' ) );
+                    $delete_url = wp_nonce_url(
+                        add_query_arg( [ 'page' => 'lvb-bookings', 'lvb_action' => 'delete_booking', 'id' => $b['id'] ], admin_url( 'admin.php' ) ),
+                        'lvb_delete_booking_' . $b['id']
+                    );
+                    ?>
                     <a href="<?php echo esc_url( $edit_url ); ?>" class="button button-small">Edit</a>
                     <?php if ( $b['status'] !== 'cancelled' ) : ?>
                         <a href="<?php echo esc_url( $cancel_url ); ?>"
-                           class="button button-small lvb-btn-danger"
+                           class="button button-small"
                            onclick="return confirm('Cancel this booking?');">Cancel</a>
                     <?php endif; ?>
+                    <a href="<?php echo esc_url( $delete_url ); ?>"
+                       class="button button-small lvb-btn-danger"
+                       onclick="return confirm('Buchung wirklich endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.');">Löschen</a>
                 </td>
             </tr>
         <?php endforeach; ?>
