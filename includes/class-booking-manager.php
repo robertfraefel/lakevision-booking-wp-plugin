@@ -684,20 +684,50 @@ class LVB_Booking_Manager {
                 }
 
                 // Sync buffer event (only when the main event is alive).
-                if ( ! $needs_create && ! empty( $booking['buffer_event_id'] ) ) {
-                    $buffer_minutes = (int) $service['buffer_time'];
+                if ( ! $needs_create ) {
+                    $buffer_minutes   = (int) $service['buffer_time'];
+                    // After a recreate, buffer_event_id was cleared in DB;
+                    // use the in-memory value only for patch attempts on the
+                    // original event. Re-read from DB to get the cleared value.
+                    $current_buf_id   = LVB_Database::get_by_id( 'bookings', $id )['buffer_event_id'] ?? '';
+
                     if ( $buffer_minutes > 0 ) {
                         $buf_end_dt = clone $end_dt;
                         $buf_end_dt->modify( '+' . $buffer_minutes . ' minutes' );
-                        $buf_r = LVB_Google_Calendar::patch_event( $cal, $booking['buffer_event_id'], [
-                            'start' => [ 'dateTime' => $end_dt->format( DateTime::RFC3339 ),     'timeZone' => $tz_string ],
-                            'end'   => [ 'dateTime' => $buf_end_dt->format( DateTime::RFC3339 ), 'timeZone' => $tz_string ],
-                        ] );
-                        if ( is_wp_error( $buf_r ) && ! $gcal_warning ) {
-                            $gcal_warning = $buf_r->get_error_message();
+
+                        if ( ! empty( $current_buf_id ) ) {
+                            // Try to patch existing buffer; recreate if cancelled/missing.
+                            $buf_r = LVB_Google_Calendar::patch_event( $cal, $current_buf_id, [
+                                'start' => [ 'dateTime' => $end_dt->format( DateTime::RFC3339 ),     'timeZone' => $tz_string ],
+                                'end'   => [ 'dateTime' => $buf_end_dt->format( DateTime::RFC3339 ), 'timeZone' => $tz_string ],
+                            ] );
+                            $buf_patch_failed = is_wp_error( $buf_r )
+                                || ( is_array( $buf_r ) && ( $buf_r['status'] ?? '' ) === 'cancelled' );
+                            if ( $buf_patch_failed ) {
+                                $current_buf_id = ''; // Fall through to create below.
+                                LVB_Database::update( 'bookings', [ 'buffer_event_id' => '' ], [ 'id' => $id ] );
+                            }
                         }
-                    } else {
-                        LVB_Google_Calendar::delete_event( $cal, $booking['buffer_event_id'] );
+
+                        if ( empty( $current_buf_id ) ) {
+                            // Create a fresh buffer event (new booking or after recreation).
+                            $buf_result = LVB_Google_Calendar::create_buffer_event( $cal, [
+                                'service_name'  => $service['name'],
+                                'customer_name' => trim( ( $customer['first_name'] ?? '' ) . ' ' . ( $customer['last_name'] ?? '' ) ),
+                                'start'         => $end_dt->format( 'Y-m-d H:i:s' ),
+                                'end'           => $buf_end_dt->format( 'Y-m-d H:i:s' ),
+                            ] );
+                            if ( is_wp_error( $buf_result ) ) {
+                                if ( ! $gcal_warning ) {
+                                    $gcal_warning = $buf_result->get_error_message();
+                                }
+                            } else {
+                                LVB_Database::update( 'bookings', [ 'buffer_event_id' => $buf_result ], [ 'id' => $id ] );
+                            }
+                        }
+                    } elseif ( ! empty( $current_buf_id ) ) {
+                        // Service no longer has buffer time — remove the old event.
+                        LVB_Google_Calendar::delete_event( $cal, $current_buf_id );
                         LVB_Database::update( 'bookings', [ 'buffer_event_id' => '' ], [ 'id' => $id ] );
                     }
                 }
