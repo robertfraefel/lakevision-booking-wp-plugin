@@ -507,8 +507,9 @@ class LVB_Booking_Manager {
      *
      * Status transitions:
      *   - any → 'cancelled': removes GCal event(s) and unschedules the reminder.
-     *   - 'cancelled' → other: only updates the DB row; GCal event is NOT
-     *     re-created (operator can manually re-create if needed).
+     *   - any → 'confirmed': patches the existing GCal event; if the event is
+     *     missing or was deleted in GCal (e.g. after a cancel/re-confirm cycle),
+     *     a new event is created automatically.
      *
      * Buffer events (separate GCal entries that block the reset time after a
      * booking) are kept in sync: they shift to follow the new end time, and
@@ -627,34 +628,60 @@ class LVB_Booking_Manager {
             if ( $ts ) {
                 wp_unschedule_event( $ts, 'lvb_send_reminder', [ (int) $id ] );
             }
-        } elseif ( $new_status === 'confirmed' && ! empty( $booking['google_event_id'] ) && LVB_Google_Calendar::is_connected() ) {
-            // Patch event title + times in its existing calendar.
-            $cal = self::resolve_calendar_id_for( array_merge( $booking, [ 'staff_id' => $new_staff_id ] ) );
+        } elseif ( $new_status === 'confirmed' && LVB_Google_Calendar::is_connected() ) {
+            $cal       = self::resolve_calendar_id_for( array_merge( $booking, [ 'staff_id' => $new_staff_id ] ) );
+            $staff_obj = $new_staff_id ? LVB_Database::get_by_id( 'staff', $new_staff_id ) : null;
+            $customer  = LVB_Database::get_by_id( 'customers', $customer_id );
+            $summary   = sprintf( '%s – %s', $service['name'], trim( $customer['first_name'] . ' ' . $customer['last_name'] ) );
+            $tz_string = wp_timezone_string();
+
             if ( $cal ) {
-                $tz_string = wp_timezone_string();
-                $staff_obj = $new_staff_id ? LVB_Database::get_by_id( 'staff', $new_staff_id ) : null;
-                $customer  = LVB_Database::get_by_id( 'customers', $customer_id );
-                $summary   = sprintf( '%s – %s', $service['name'], trim( $customer['first_name'] . ' ' . $customer['last_name'] ) );
+                // Determine whether the existing GCal event is still alive.
+                // A cancelled/missing google_event_id means we must create fresh.
+                $existing_event_id = $booking['google_event_id'] ?? '';
+                $needs_create      = empty( $existing_event_id );
 
-                $patch_body = [
-                    'summary' => $summary,
-                    'start'   => [ 'dateTime' => $start_dt->format( DateTime::RFC3339 ), 'timeZone' => $tz_string ],
-                    'end'     => [ 'dateTime' => $end_dt->format( DateTime::RFC3339 ),   'timeZone' => $tz_string ],
-                ];
-                if ( $staff_obj && ! empty( $staff_obj['color_id'] ) ) {
-                    $patch_body['colorId'] = (string) (int) $staff_obj['color_id'];
-                }
-                $r = LVB_Google_Calendar::patch_event( $cal, $booking['google_event_id'], $patch_body );
-                if ( is_wp_error( $r ) ) {
-                    $gcal_warning = $r->get_error_message();
+                if ( ! $needs_create ) {
+                    // Try to patch; if GCal returns a 404 or the event is
+                    // already cancelled, fall through to create a new event.
+                    $patch_body = [
+                        'summary' => $summary,
+                        'start'   => [ 'dateTime' => $start_dt->format( DateTime::RFC3339 ), 'timeZone' => $tz_string ],
+                        'end'     => [ 'dateTime' => $end_dt->format( DateTime::RFC3339 ),   'timeZone' => $tz_string ],
+                    ];
+                    if ( $staff_obj && ! empty( $staff_obj['color_id'] ) ) {
+                        $patch_body['colorId'] = (string) (int) $staff_obj['color_id'];
+                    }
+                    $r = LVB_Google_Calendar::patch_event( $cal, $existing_event_id, $patch_body );
+                    if ( is_wp_error( $r ) ) {
+                        // Patch failed (e.g. event was deleted/cancelled in GCal) — recreate.
+                        $needs_create = true;
+                        LVB_Database::update( 'bookings', [ 'google_event_id' => '', 'buffer_event_id' => '' ], [ 'id' => $id ] );
+                    }
                 }
 
-                // Sync buffer event too: shift to follow the new end time, or
-                // delete it when the (possibly newly selected) service has no
-                // buffer configured. We do NOT auto-create a buffer event if
-                // the previous booking lacked one — that would surprise the
-                // operator. To add a buffer retroactively, cancel + re-book.
-                if ( ! empty( $booking['buffer_event_id'] ) ) {
+                if ( $needs_create ) {
+                    // Create a fresh GCal event (re-activation or first-time confirm).
+                    $event_data = [
+                        'start'    => $start_dt->format( DateTime::RFC3339 ),
+                        'end'      => $end_dt->format( DateTime::RFC3339 ),
+                        'timezone' => $tz_string,
+                        'summary'  => $summary,
+                        'notes'    => sanitize_textarea_field( $data['notes'] ?? '' ),
+                        'color_id' => $staff_obj['color_id'] ?? '',
+                    ];
+                    $gc_result = LVB_Google_Calendar::create_booking_event( $cal, $event_data );
+                    if ( is_wp_error( $gc_result ) ) {
+                        $gcal_warning = $gc_result->get_error_message();
+                    } else {
+                        LVB_Database::update( 'bookings', [ 'google_event_id' => $gc_result ], [ 'id' => $id ] );
+                        $existing_event_id = $gc_result;
+                        $needs_create      = false;
+                    }
+                }
+
+                // Sync buffer event (only when the main event is alive).
+                if ( ! $needs_create && ! empty( $booking['buffer_event_id'] ) ) {
                     $buffer_minutes = (int) $service['buffer_time'];
                     if ( $buffer_minutes > 0 ) {
                         $buf_end_dt = clone $end_dt;
