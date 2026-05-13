@@ -315,7 +315,16 @@ class LVB_Admin {
             $id = (int) ( $_GET['id'] ?? 0 );
             check_admin_referer( 'lvb_delete_customer_' . $id );
             global $wpdb;
-            // Get customer email before deleting, to clean up related intake forms
+            // Block deletion if the customer still has bookings.
+            $booking_count = (int) $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}lvb_bookings WHERE customer_id = %d",
+                $id
+            ) );
+            if ( $booking_count > 0 ) {
+                wp_redirect( add_query_arg( [ 'page' => 'lvb-customers', 'lvb_error' => 'has_bookings' ], admin_url( 'admin.php' ) ) );
+                exit;
+            }
+            // Get customer email before deleting, to clean up related intake forms.
             $customer = $wpdb->get_row( $wpdb->prepare( "SELECT email FROM {$wpdb->prefix}lvb_customers WHERE id = %d", $id ), ARRAY_A );
             $wpdb->delete( $wpdb->prefix . 'lvb_customers', [ 'id' => $id ], [ '%d' ] );
             if ( $customer && ! empty( $customer['email'] ) ) {
@@ -588,6 +597,9 @@ class LVB_Admin {
         }
         if ( isset( $_GET['lvb_error'] ) && $_GET['lvb_error'] === 'not_cancelled' ) {
             echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Buchung kann nur gelöscht werden, wenn sie zuerst storniert wurde.', 'lakevision-booking' ) . '</p></div>';
+        }
+        if ( isset( $_GET['lvb_error'] ) && $_GET['lvb_error'] === 'has_bookings' ) {
+            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Kunde kann nicht gelöscht werden, solange noch Buchungen vorhanden sind.', 'lakevision-booking' ) . '</p></div>';
         }
         if ( isset( $_GET['lvb_notified'] ) ) {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Update-Email an Kunde gesendet.', 'lakevision-booking' ) . '</p></div>';

@@ -123,11 +123,21 @@ $total_pages = max( 1, (int) ceil( $total / $per_page ) );
                     <?php else : ?>—<?php endif; ?>
                 </td>
                 <td>
-                    <?php $edit_url = add_query_arg( [ 'page' => 'lvb-customers', 'edit' => $c['id'] ], admin_url( 'admin.php' ) ); ?>
+                    <?php
+                    $edit_url      = add_query_arg( [ 'page' => 'lvb-customers', 'edit' => $c['id'] ], admin_url( 'admin.php' ) );
+                    $booking_count = (int) $wpdb->get_var( $wpdb->prepare(
+                        "SELECT COUNT(*) FROM {$wpdb->prefix}lvb_bookings WHERE customer_id = %d",
+                        $c['id']
+                    ) );
+                    ?>
                     <a href="<?php echo esc_url( $edit_url ); ?>" class="button button-small">Edit</a>
-                    <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( [ 'page' => 'lvb-customers', 'lvb_action' => 'delete_customer', 'id' => $c['id'] ], admin_url( 'admin.php' ) ), 'lvb_delete_customer_' . $c['id'] ) ); ?>"
-                       class="button button-small lvb-btn-danger"
-                       onclick="return confirm('Diesen Kunden und alle zugehörigen Daten wirklich löschen?');">Löschen</a>
+                    <?php if ( $booking_count === 0 ) : ?>
+                        <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( [ 'page' => 'lvb-customers', 'lvb_action' => 'delete_customer', 'id' => $c['id'] ], admin_url( 'admin.php' ) ), 'lvb_delete_customer_' . $c['id'] ) ); ?>"
+                           class="button button-small lvb-btn-danger"
+                           onclick="return confirm('Diesen Kunden und alle zugehörigen Daten wirklich löschen?');">Löschen</a>
+                    <?php else : ?>
+                        <span class="button button-small" style="opacity:0.4;cursor:not-allowed;" title="Kunde hat noch <?php echo $booking_count; ?> Buchung(en) — zuerst löschen">Löschen</span>
+                    <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>
