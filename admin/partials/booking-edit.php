@@ -32,12 +32,14 @@ if ( $booking ) {
     $start_dt = new DateTime( $booking['start_datetime'], $tz );
     $end_dt   = new DateTime( $booking['end_datetime'],   $tz );
 } else {
-    // Default new booking to "next full hour" / "+1 hour later" so the form has
-    // sensible placeholder values the operator can quickly adjust.
+    // Pre-fill the start with "next full hour" so the operator only needs
+    // one click to adjust. End stays blank — the description below the
+    // field promises "leer lassen, um die Dauer vom Service zu übernehmen"
+    // and the backend honours that by deriving end from the service
+    // duration. Pre-filling end here would contradict that contract.
     $start_dt = new DateTime( 'now', $tz );
     $start_dt->setTime( (int) $start_dt->format( 'H' ) + 1, 0 );
-    $end_dt = clone $start_dt;
-    $end_dt->modify( '+1 hour' );
+    $end_dt = null;
 }
 
 $back_url = admin_url( 'admin.php?page=lvb-bookings' );
@@ -132,7 +134,7 @@ $nonce_id = $is_new ? 0 : (int) $booking['id'];
                 <th scope="row"><label for="lvb_end_datetime">Ende</label></th>
                 <td>
                     <input type="datetime-local" id="lvb_end_datetime" name="end_datetime"
-                           value="<?php echo esc_attr( $end_dt->format( 'Y-m-d\TH:i' ) ); ?>"
+                           value="<?php echo $end_dt ? esc_attr( $end_dt->format( 'Y-m-d\TH:i' ) ) : ''; ?>"
                            <?php echo $is_new ? '' : 'required'; ?>>
                     <?php if ( $is_new ) : ?>
                         <p class="description">Leer lassen, um die Dauer vom Service zu übernehmen.</p>
