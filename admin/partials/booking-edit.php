@@ -205,3 +205,83 @@ $nonce_id = $is_new ? 0 : (int) $booking['id'];
         </p>
     </form>
 </div>
+<script>
+(function () {
+    var startInput   = document.getElementById('lvb_start_datetime');
+    var endInput     = document.getElementById('lvb_end_datetime');
+    var serviceSelect = document.getElementById('lvb_service_id');
+
+    if (!startInput || !endInput) return;
+
+    // Returns minutes extracted from option label text like "60 min" or "(60 min, …)"
+    function durationFromServiceOption(option) {
+        if (!option) return null;
+        var m = option.textContent.match(/\(?\s*(\d+)\s*min/i);
+        return m ? parseInt(m[1], 10) : null;
+    }
+
+    // Parse a datetime-local string to a Date object (treats it as local time)
+    function parseLocal(val) {
+        if (!val) return null;
+        // datetime-local format: YYYY-MM-DDTHH:MM
+        var parts = val.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+        if (!parts) return null;
+        return new Date(+parts[1], +parts[2]-1, +parts[3], +parts[4], +parts[5]);
+    }
+
+    // Format a Date as datetime-local value YYYY-MM-DDTHH:MM
+    function formatLocal(d) {
+        var pad = function(n){ return n < 10 ? '0'+n : ''+n; };
+        return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate())
+            + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+
+    // Stored duration in minutes (kept in sync with end-start or service duration)
+    var durationMinutes = null;
+
+    function computeInitialDuration() {
+        var s = parseLocal(startInput.value);
+        var e = parseLocal(endInput.value);
+        if (s && e && e > s) {
+            durationMinutes = Math.round((e - s) / 60000);
+        } else if (serviceSelect) {
+            durationMinutes = durationFromServiceOption(serviceSelect.options[serviceSelect.selectedIndex]);
+        }
+    }
+
+    computeInitialDuration();
+
+    // When end is manually changed → recalculate duration
+    endInput.addEventListener('change', function () {
+        var s = parseLocal(startInput.value);
+        var e = parseLocal(endInput.value);
+        if (s && e && e > s) {
+            durationMinutes = Math.round((e - s) / 60000);
+        }
+    });
+
+    // When start changes → shift end by the same duration
+    startInput.addEventListener('change', function () {
+        if (durationMinutes === null || durationMinutes <= 0) return;
+        var s = parseLocal(startInput.value);
+        if (!s) return;
+        var newEnd = new Date(s.getTime() + durationMinutes * 60000);
+        endInput.value = formatLocal(newEnd);
+    });
+
+    // For new bookings: when service changes → update duration from service option
+    if (serviceSelect) {
+        serviceSelect.addEventListener('change', function () {
+            var mins = durationFromServiceOption(serviceSelect.options[serviceSelect.selectedIndex]);
+            if (mins && mins > 0) {
+                durationMinutes = mins;
+                // Also update end if start is set
+                var s = parseLocal(startInput.value);
+                if (s) {
+                    endInput.value = formatLocal(new Date(s.getTime() + durationMinutes * 60000));
+                }
+            }
+        });
+    }
+})();
+</script>
