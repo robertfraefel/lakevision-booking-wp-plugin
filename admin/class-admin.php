@@ -376,7 +376,7 @@ class LVB_Admin {
             $id = (int) ( $_GET['id'] ?? 0 );
             check_admin_referer( 'lvb_delete_booking_' . $id );
             // Only allow deletion of cancelled bookings.
-            $booking = LVB_Booking_Manager::get_booking( $id );
+            $booking = LVB_Database::get_by_id( 'bookings', $id );
             if ( ! $booking || $booking['status'] !== 'cancelled' ) {
                 wp_redirect( add_query_arg( [ 'page' => 'lvb-bookings', 'lvb_error' => 'not_cancelled' ], admin_url( 'admin.php' ) ) );
                 exit;
