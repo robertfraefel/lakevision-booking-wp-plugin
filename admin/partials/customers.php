@@ -79,6 +79,10 @@ $total_pages = max( 1, (int) ceil( $total / $per_page ) );
 
     <p class="lvb-total-count"><?php echo esc_html( sprintf( '%d customers total', $total ) ); ?></p>
 
+    <div class="notice notice-info inline" style="margin:8px 0 16px;"><p>
+        <?php esc_html_e( 'Kunden können nur gelöscht werden, wenn keine Buchungen mehr vorhanden sind. Bitte zuerst alle Buchungen des Kunden stornieren und löschen.', 'lakevision-booking' ); ?>
+    </p></div>
+
     <?php if ( empty( $customers ) ) : ?>
         <p class="lvb-empty">No customers found.</p>
     <?php else : ?>
