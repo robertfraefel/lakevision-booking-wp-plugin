@@ -642,8 +642,9 @@ class LVB_Booking_Manager {
                 $needs_create      = empty( $existing_event_id );
 
                 if ( ! $needs_create ) {
-                    // Try to patch; if GCal returns a 404 or the event is
-                    // already cancelled, fall through to create a new event.
+                    // Try to patch; if GCal returns an error OR the event is
+                    // already cancelled (GCal returns 200 with status=cancelled
+                    // for deleted events), fall through to create a new event.
                     $patch_body = [
                         'summary' => $summary,
                         'start'   => [ 'dateTime' => $start_dt->format( DateTime::RFC3339 ), 'timeZone' => $tz_string ],
@@ -653,8 +654,10 @@ class LVB_Booking_Manager {
                         $patch_body['colorId'] = (string) (int) $staff_obj['color_id'];
                     }
                     $r = LVB_Google_Calendar::patch_event( $cal, $existing_event_id, $patch_body );
-                    if ( is_wp_error( $r ) ) {
-                        // Patch failed (e.g. event was deleted/cancelled in GCal) — recreate.
+                    $patch_failed = is_wp_error( $r )
+                        || ( is_array( $r ) && ( $r['status'] ?? '' ) === 'cancelled' );
+                    if ( $patch_failed ) {
+                        // Patch failed or event is cancelled in GCal — recreate.
                         $needs_create = true;
                         LVB_Database::update( 'bookings', [ 'google_event_id' => '', 'buffer_event_id' => '' ], [ 'id' => $id ] );
                     }
