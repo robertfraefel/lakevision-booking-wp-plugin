@@ -375,6 +375,12 @@ class LVB_Admin {
         if ( isset( $_GET['lvb_action'] ) && $_GET['lvb_action'] === 'delete_booking' ) {
             $id = (int) ( $_GET['id'] ?? 0 );
             check_admin_referer( 'lvb_delete_booking_' . $id );
+            // Only allow deletion of cancelled bookings.
+            $booking = LVB_Booking_Manager::get_booking( $id );
+            if ( ! $booking || $booking['status'] !== 'cancelled' ) {
+                wp_redirect( add_query_arg( [ 'page' => 'lvb-bookings', 'lvb_error' => 'not_cancelled' ], admin_url( 'admin.php' ) ) );
+                exit;
+            }
             $result = LVB_Booking_Manager::delete_booking( $id );
             $args   = [ 'page' => 'lvb-bookings', 'lvb_deleted' => '1' ];
             if ( is_array( $result ) && $result['gcal_status'] === 'failed' ) {
@@ -579,6 +585,9 @@ class LVB_Admin {
         }
         if ( isset( $_GET['lvb_cancelled'] ) ) {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Booking cancelled.', 'lakevision-booking' ) . '</p></div>';
+        }
+        if ( isset( $_GET['lvb_error'] ) && $_GET['lvb_error'] === 'not_cancelled' ) {
+            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Buchung kann nur gelöscht werden, wenn sie zuerst storniert wurde.', 'lakevision-booking' ) . '</p></div>';
         }
         if ( isset( $_GET['lvb_notified'] ) ) {
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Update-Email an Kunde gesendet.', 'lakevision-booking' ) . '</p></div>';

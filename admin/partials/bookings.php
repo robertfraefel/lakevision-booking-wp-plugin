@@ -179,10 +179,11 @@ $status_labels = [
                         <a href="<?php echo esc_url( $cancel_url ); ?>"
                            class="button button-small"
                            onclick="return confirm('Cancel this booking?');">Cancel</a>
+                    <?php else : ?>
+                        <a href="<?php echo esc_url( $delete_url ); ?>"
+                           class="button button-small lvb-btn-danger"
+                           onclick="return confirm('Buchung wirklich endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.');">Löschen</a>
                     <?php endif; ?>
-                    <a href="<?php echo esc_url( $delete_url ); ?>"
-                       class="button button-small lvb-btn-danger"
-                       onclick="return confirm('Buchung wirklich endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.');">Löschen</a>
                 </td>
             </tr>
         <?php endforeach; ?>
