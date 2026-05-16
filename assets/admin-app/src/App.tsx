@@ -9,9 +9,11 @@ import { BookingsPage } from './pages/BookingsPage';
 import { CustomersPage } from './pages/CustomersPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { StaffPage } from './pages/StaffPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { IntakeFormsPage } from './pages/IntakeFormsPage';
+import { FormBuilderPage } from './pages/FormBuilderPage';
 import { PermissionsPage } from './pages/PermissionsPage';
 import { NoAccess } from './pages/NoAccess';
-import { Placeholder } from './pages/Placeholder';
 
 export function App() {
   const [user, setUser] = useState<CurrentUser | null>(null);
@@ -74,11 +76,15 @@ export function App() {
             />
             <Route
               path="settings"
-              element={
-                hasCap('lvb_manage_settings')
-                  ? <Placeholder title="Einstellungen" hint="Phase 4." />
-                  : <NoAccess />
-              }
+              element={hasCap('lvb_manage_settings') ? <SettingsPage /> : <NoAccess />}
+            />
+            <Route
+              path="intake-forms"
+              element={hasCap('lvb_manage_intake_forms') ? <IntakeFormsPage /> : <NoAccess />}
+            />
+            <Route
+              path="intake-forms/builder"
+              element={hasCap('lvb_manage_intake_forms') ? <FormBuilderPage /> : <NoAccess />}
             />
             <Route
               path="permissions"
@@ -98,13 +104,14 @@ export function App() {
  */
 function pickLanding(caps: string[]): string {
   const order: Array<[Capability, string]> = [
-    ['lvb_view_calendar',      '/calendar'],
-    ['lvb_edit_all_bookings',  '/bookings'],
-    ['lvb_manage_customers',   '/customers'],
-    ['lvb_manage_services',    '/services'],
-    ['lvb_manage_staff',       '/staff'],
-    ['lvb_manage_settings',    '/settings'],
-    ['lvb_manage_permissions', '/permissions'],
+    ['lvb_view_calendar',       '/calendar'],
+    ['lvb_edit_all_bookings',   '/bookings'],
+    ['lvb_manage_customers',    '/customers'],
+    ['lvb_manage_services',     '/services'],
+    ['lvb_manage_staff',        '/staff'],
+    ['lvb_manage_intake_forms', '/intake-forms'],
+    ['lvb_manage_settings',     '/settings'],
+    ['lvb_manage_permissions',  '/permissions'],
   ];
   for (const [cap, path] of order) {
     if (caps.includes(cap)) return path;

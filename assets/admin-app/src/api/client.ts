@@ -148,6 +148,49 @@ export const api = {
 
   meta: () => request<CalendarMeta>('GET', 'admin/meta'),
 
+  // Settings
+  getSettings: () =>
+    request<{ values: Record<string, string | number> }>('GET', 'admin/settings'),
+  putSettings: (values: Record<string, string | number | boolean>) =>
+    request<{ values: Record<string, string | number> }>('PUT', 'admin/settings', values),
+
+  // Google OAuth
+  googleStatus: () =>
+    request<{ connected: boolean; callback_url: string; default_calendar_id: string }>(
+      'GET',
+      'admin/settings/google/status'
+    ),
+  googleAuthUrl: () => request<{ url: string }>('GET', 'admin/settings/google/auth-url'),
+  googleDisconnect: () =>
+    request<{ ok: true; connected: false }>('POST', 'admin/settings/google/disconnect'),
+
+  // Intake forms
+  listIntakeForms: () =>
+    request<{ items: Array<Record<string, unknown> & { id: number; created_at: string }> }>(
+      'GET',
+      'admin/intake-forms'
+    ),
+  getIntakeForm: (id: number) =>
+    request<Record<string, unknown> & { id: number }>('GET', `admin/intake-forms/${id}`),
+  deleteIntakeForm: (id: number) =>
+    request<{ ok: true; id: number }>('DELETE', `admin/intake-forms/${id}`),
+  getIntakeConfig: () =>
+    request<{
+      fields: Array<Record<string, unknown> & { id: string; type: string; label: string }>;
+      enabled: 0 | 1;
+      disclaimer: string;
+    }>('GET', 'admin/intake-forms/config'),
+  putIntakeConfig: (body: {
+    fields: Array<Record<string, unknown>>;
+    enabled?: 0 | 1 | boolean;
+    disclaimer?: string;
+  }) =>
+    request<{
+      fields: Array<Record<string, unknown> & { id: string; type: string; label: string }>;
+      enabled: 0 | 1;
+      disclaimer: string;
+    }>('PUT', 'admin/intake-forms/config', body),
+
   // Calendar events (proxies to LVB_Calendar_API — unchanged)
   calendarEvents: (q: { from: string; to: string; staff_id?: number }) =>
     request<CalendarEvent[]>('GET', 'calendar/events' + qs(q)),

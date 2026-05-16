@@ -10,13 +10,14 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { to: '/calendar',    label: 'Kalender',          cap: 'lvb_view_calendar',       icon: '📅' },
-  { to: '/bookings',    label: 'Buchungen',         cap: 'lvb_edit_all_bookings',   icon: '📋' },
-  { to: '/customers',   label: 'Kunden',            cap: 'lvb_manage_customers',    icon: '👥' },
-  { to: '/services',    label: 'Services',          cap: 'lvb_manage_services',     icon: '🧾' },
-  { to: '/staff',       label: 'Mitarbeiter',       cap: 'lvb_manage_staff',        icon: '🧑‍💼' },
-  { to: '/settings',    label: 'Einstellungen',     cap: 'lvb_manage_settings',     icon: '⚙️' },
-  { to: '/permissions', label: 'Berechtigungen',    cap: 'lvb_manage_permissions',  icon: '🔐' },
+  { to: '/calendar',     label: 'Kalender',            cap: 'lvb_view_calendar',       icon: '📅' },
+  { to: '/bookings',     label: 'Buchungen',           cap: 'lvb_edit_all_bookings',   icon: '📋' },
+  { to: '/customers',    label: 'Kunden',              cap: 'lvb_manage_customers',    icon: '👥' },
+  { to: '/services',     label: 'Services',            cap: 'lvb_manage_services',     icon: '🧾' },
+  { to: '/staff',        label: 'Mitarbeiter',         cap: 'lvb_manage_staff',        icon: '🧑‍💼' },
+  { to: '/intake-forms', label: 'Anmeldeformulare',    cap: 'lvb_manage_intake_forms', icon: '📝' },
+  { to: '/settings',     label: 'Einstellungen',       cap: 'lvb_manage_settings',     icon: '⚙️' },
+  { to: '/permissions',  label: 'Berechtigungen',      cap: 'lvb_manage_permissions',  icon: '🔐' },
 ];
 
 export function AppShell() {
