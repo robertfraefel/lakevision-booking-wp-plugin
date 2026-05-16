@@ -377,23 +377,41 @@ class LVB_Admin {
                 if ( ! empty( $_POST['lvb_send_notification'] ) ) {
                     if ( $is_new ) {
                         LVB_Notifications::send_booking_confirmation( $new_id, false );
+                        $args['lvb_notified'] = '1';
                     } else {
                         $updated = LVB_Database::get_by_id( 'bookings', $new_id );
+
                         $time_changed = $existing_booking && $updated && (
                             $existing_booking['start_datetime'] !== $updated['start_datetime'] ||
                             $existing_booking['end_datetime']   !== $updated['end_datetime']
                         );
+                        // Detect any non-time change so we know whether a generic
+                        // "[Aktualisiert]" mail is warranted. If neither the time
+                        // nor any other field actually changed (e.g. accidental
+                        // duplicate form submit), we send nothing — that avoids
+                        // the customer getting both a reschedule mail and a
+                        // redundant update confirmation in the same minute.
+                        $other_changed = $existing_booking && $updated && (
+                            (int) $existing_booking['service_id']  !== (int) $updated['service_id']  ||
+                            (int) $existing_booking['staff_id']    !== (int) $updated['staff_id']    ||
+                            (int) $existing_booking['customer_id'] !== (int) $updated['customer_id'] ||
+                            $existing_booking['status']            !== $updated['status']            ||
+                            (float) $existing_booking['price']     !== (float) $updated['price']     ||
+                            (string) $existing_booking['notes']    !== (string) $updated['notes']
+                        );
+
                         if ( $time_changed ) {
                             LVB_Notifications::send_booking_reschedule(
                                 $new_id,
                                 $existing_booking['start_datetime'],
                                 $existing_booking['end_datetime']
                             );
-                        } else {
+                            $args['lvb_notified'] = '1';
+                        } elseif ( $other_changed ) {
                             LVB_Notifications::send_booking_confirmation( $new_id, true );
+                            $args['lvb_notified'] = '1';
                         }
                     }
-                    $args['lvb_notified'] = '1';
                 }
                 if ( ! empty( $result['gcal_warning'] ) ) {
                     $args['lvb_gcal_error'] = rawurlencode( $result['gcal_warning'] );
