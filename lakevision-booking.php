@@ -3,7 +3,7 @@
  * Plugin Name: LakeVision Booking
  * Plugin URI:  https://github.com/robertfraefel/lakevision-booking-wp-plugin
  * Description: Flexible booking system with Google Calendar integration, time-slot management and email notifications.
- * Version:     1.12.2
+ * Version:     2.0.0-alpha.1
  * Author:      LakeVision
  * Author URI:  https://lakevision.ch
  * License:     GPL-2.0+
@@ -48,7 +48,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Plugin constants
-define( 'LVB_VERSION',     '1.12.2' );
+define( 'LVB_VERSION',     '2.0.0-alpha.1' );
 define( 'LVB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LVB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'LVB_PLUGIN_FILE', __FILE__ );
@@ -63,6 +63,9 @@ require_once LVB_PLUGIN_DIR . 'includes/class-shortcode.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-intake-form.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-calendar-api.php';
 require_once LVB_PLUGIN_DIR . 'includes/class-updater.php';
+require_once LVB_PLUGIN_DIR . 'includes/class-capabilities.php';
+require_once LVB_PLUGIN_DIR . 'includes/class-admin-api.php';
+require_once LVB_PLUGIN_DIR . 'includes/class-admin-shortcode.php';
 require_once LVB_PLUGIN_DIR . 'admin/class-admin.php';
 
 /**
@@ -116,6 +119,8 @@ final class LakeVision_Booking {
      */
     private function init_hooks() {
         register_activation_hook( LVB_PLUGIN_FILE, [ 'LVB_Database', 'install' ] );
+        register_activation_hook( LVB_PLUGIN_FILE, [ 'LVB_Capabilities', 'on_activation' ] );
+        register_activation_hook( LVB_PLUGIN_FILE, [ 'LVB_Admin_Shortcode', 'on_activation' ] );
         register_deactivation_hook( LVB_PLUGIN_FILE, [ __CLASS__, 'deactivate' ] );
 
         add_action( 'init', [ $this, 'init' ] );
@@ -133,8 +138,13 @@ final class LakeVision_Booking {
         add_action( 'wp_ajax_lvb_submit_intake_form',        [ 'LVB_Intake_Form', 'ajax_submit' ] );
         add_action( 'wp_ajax_nopriv_lvb_submit_intake_form', [ 'LVB_Intake_Form', 'ajax_submit' ] );
 
-        // Calendar REST API (admin calendar view)
+        // Calendar REST API (legacy admin calendar drag/resize)
         LVB_Calendar_API::register();
+
+        // v2.0: capability layer + extended REST API + [lvb_admin] shortcode
+        LVB_Capabilities::register();
+        LVB_Admin_API::register();
+        LVB_Admin_Shortcode::register();
 
         // Self-update via GitHub Releases / tags
         LVB_Updater::register();

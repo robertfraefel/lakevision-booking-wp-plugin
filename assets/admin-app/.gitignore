@@ -1,0 +1,7 @@
+node_modules/
+.vite/
+*.tsbuildinfo
+.DS_Store
+# NOTE: dist/ is intentionally NOT ignored — the React bundle is shipped
+# inside the plugin so the Self-Updater (which downloads the GitHub zipball)
+# pulls a ready-to-run build. Re-run `npm run build` before tagging.
