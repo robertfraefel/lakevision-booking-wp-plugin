@@ -102,12 +102,20 @@ class LVB_Admin_API {
             ],
         ] );
 
+        // Customer search (for booking-edit's customer-picker — needs only
+        // booking-edit permission, not full customer management).
+        register_rest_route( self::NAMESPACE_BASE, '/admin/customers/search', [
+            'methods'             => 'GET',
+            'callback'            => [ __CLASS__, 'search_customers' ],
+            'permission_callback' => self::cap( 'lvb_edit_all_bookings' ),
+        ] );
+
         // -- Services ----------------------------------------------------------
         register_rest_route( self::NAMESPACE_BASE, '/admin/services', [
             [
                 'methods'             => 'GET',
                 'callback'            => [ __CLASS__, 'list_services' ],
-                'permission_callback' => self::cap( 'lvb_manage_services' ),
+                'permission_callback' => [ __CLASS__, 'can_read_services' ],
             ],
         ] );
 
@@ -116,8 +124,22 @@ class LVB_Admin_API {
             [
                 'methods'             => 'GET',
                 'callback'            => [ __CLASS__, 'list_staff' ],
-                'permission_callback' => self::cap( 'lvb_manage_staff' ),
+                'permission_callback' => [ __CLASS__, 'can_read_staff' ],
             ],
+        ] );
+
+        // Combined meta for the new-booking modal (services + staff + mapping)
+        register_rest_route( self::NAMESPACE_BASE, '/admin/meta', [
+            'methods'             => 'GET',
+            'callback'            => [ __CLASS__, 'meta' ],
+            'permission_callback' => self::cap( 'lvb_view_calendar' ),
+        ] );
+
+        // -- Booking cancel (soft) ---------------------------------------------
+        register_rest_route( self::NAMESPACE_BASE, '/admin/bookings/(?P<id>\d+)/cancel', [
+            'methods'             => 'POST',
+            'callback'            => [ __CLASS__, 'cancel_booking' ],
+            'permission_callback' => self::cap( 'lvb_edit_all_bookings' ),
         ] );
 
         // -- Permissions (user → caps mapping) ---------------------------------
@@ -150,6 +172,27 @@ class LVB_Admin_API {
 
     public static function is_logged_in() {
         return is_user_logged_in();
+    }
+
+    /**
+     * Services + Staff lists are needed by every booking-related screen,
+     * not just the dedicated CRUD modules. Anyone who can view the calendar
+     * or manage bookings/services/staff should be able to read them.
+     */
+    public static function can_read_services() {
+        return is_user_logged_in() && (
+            current_user_can( 'lvb_manage_services' ) ||
+            current_user_can( 'lvb_view_calendar' )   ||
+            current_user_can( 'lvb_edit_all_bookings' )
+        );
+    }
+
+    public static function can_read_staff() {
+        return is_user_logged_in() && (
+            current_user_can( 'lvb_manage_staff' )    ||
+            current_user_can( 'lvb_view_calendar' )   ||
+            current_user_can( 'lvb_edit_all_bookings' )
+        );
     }
 
     // ------------------------------------------------------------------------
@@ -258,6 +301,16 @@ class LVB_Admin_API {
         return rest_ensure_response( [ 'ok' => true, 'id' => $id ] );
     }
 
+    public static function cancel_booking( WP_REST_Request $req ) {
+        $id     = (int) $req['id'];
+        $result = LVB_Booking_Manager::cancel_booking( $id );
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+        LVB_Notifications::send_cancellation( $id );
+        return rest_ensure_response( [ 'ok' => true, 'id' => $id ] );
+    }
+
     // ------------------------------------------------------------------------
     // Customers
     // ------------------------------------------------------------------------
@@ -265,6 +318,32 @@ class LVB_Admin_API {
     public static function list_customers( WP_REST_Request $req ) {
         $rows = LVB_Database::get_all( 'customers', [], 'last_name ASC, first_name ASC' );
         return rest_ensure_response( [ 'items' => $rows, 'total' => count( $rows ) ] );
+    }
+
+    /**
+     * Lightweight search used by the booking-edit customer-picker.
+     * Matches against first_name, last_name, email, phone (LIKE).
+     * Limited to 20 results to keep the typeahead snappy.
+     */
+    public static function search_customers( WP_REST_Request $req ) {
+        global $wpdb;
+        $q = trim( sanitize_text_field( $req->get_param( 'q' ) ?? '' ) );
+        if ( $q === '' ) {
+            return rest_ensure_response( [ 'items' => [] ] );
+        }
+        $like = '%' . $wpdb->esc_like( $q ) . '%';
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT id, first_name, last_name, email, phone
+             FROM {$wpdb->prefix}lvb_customers
+             WHERE first_name LIKE %s
+                OR last_name  LIKE %s
+                OR email      LIKE %s
+                OR phone      LIKE %s
+             ORDER BY last_name, first_name
+             LIMIT 20",
+            $like, $like, $like, $like
+        ), ARRAY_A );
+        return rest_ensure_response( [ 'items' => $rows ?: [] ] );
     }
 
     public static function create_customer( WP_REST_Request $req ) {
@@ -317,6 +396,34 @@ class LVB_Admin_API {
     public static function list_staff( WP_REST_Request $req ) {
         $rows = LVB_Database::get_all( 'staff', [], 'name ASC' );
         return rest_ensure_response( [ 'items' => $rows, 'total' => count( $rows ) ] );
+    }
+
+    /**
+     * One-shot fetch for screens that need the full booking-context: services
+     * + staff + which staff are assigned to which service. Mirrors the
+     * /calendar/meta endpoint in LVB_Calendar_API but lives under the new
+     * admin namespace so the React app only needs one base URL.
+     */
+    public static function meta( WP_REST_Request $req ) {
+        $services = LVB_Database::get_all( 'services', [ 'status' => 'active' ], 'sort_order ASC, name ASC' );
+        $staff    = LVB_Database::get_all( 'staff',    [ 'status' => 'active' ], 'name ASC' );
+
+        $service_staff = [];
+        foreach ( $services as $svc ) {
+            $ids = [];
+            foreach ( LVB_Database::get_staff_for_service( (int) $svc['id'] ) as $s ) {
+                $ids[] = (int) $s['id'];
+            }
+            $service_staff[ (int) $svc['id'] ] = $ids;
+        }
+
+        return rest_ensure_response( [
+            'services'      => $services,
+            'staff'         => $staff,
+            'service_staff' => $service_staff,
+            'staff_label'   => get_option( 'lvb_staff_label',   'Begleiterin' ),
+            'service_label' => get_option( 'lvb_service_label', 'Sitzung' ),
+        ] );
     }
 
     // ------------------------------------------------------------------------
