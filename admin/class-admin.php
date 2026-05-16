@@ -351,6 +351,12 @@ class LVB_Admin {
 
             $data    = wp_unslash( $_POST );
             $is_new  = $id === 0;
+
+            // Snapshot the pre-update booking so we can detect a date/time
+            // change after the row has been written and pick the right
+            // notification (reschedule vs. generic update confirmation).
+            $existing_booking = $is_new ? null : LVB_Database::get_by_id( 'bookings', $id );
+
             $result  = $is_new
                 ? LVB_Booking_Manager::create_booking_admin( $data )
                 : LVB_Booking_Manager::update_booking( $id, $data );
@@ -369,7 +375,24 @@ class LVB_Admin {
                 $new_id = (int) ( $result['id'] ?? $id );
                 $args['lvb_saved'] = $is_new ? 'new' : '1';
                 if ( ! empty( $_POST['lvb_send_notification'] ) ) {
-                    LVB_Notifications::send_booking_confirmation( $new_id, ! $is_new );
+                    if ( $is_new ) {
+                        LVB_Notifications::send_booking_confirmation( $new_id, false );
+                    } else {
+                        $updated = LVB_Database::get_by_id( 'bookings', $new_id );
+                        $time_changed = $existing_booking && $updated && (
+                            $existing_booking['start_datetime'] !== $updated['start_datetime'] ||
+                            $existing_booking['end_datetime']   !== $updated['end_datetime']
+                        );
+                        if ( $time_changed ) {
+                            LVB_Notifications::send_booking_reschedule(
+                                $new_id,
+                                $existing_booking['start_datetime'],
+                                $existing_booking['end_datetime']
+                            );
+                        } else {
+                            LVB_Notifications::send_booking_confirmation( $new_id, true );
+                        }
+                    }
                     $args['lvb_notified'] = '1';
                 }
                 if ( ! empty( $result['gcal_warning'] ) ) {
@@ -476,6 +499,9 @@ class LVB_Admin {
         // Textarea options
         if ( isset( $_POST['lvb_email_confirmation_text'] ) ) {
             update_option( 'lvb_email_confirmation_text', sanitize_textarea_field( wp_unslash( $_POST['lvb_email_confirmation_text'] ) ) );
+        }
+        if ( isset( $_POST['lvb_email_reschedule_text'] ) ) {
+            update_option( 'lvb_email_reschedule_text', sanitize_textarea_field( wp_unslash( $_POST['lvb_email_reschedule_text'] ) ) );
         }
         if ( isset( $_POST['lvb_email_cancellation_note'] ) ) {
             update_option( 'lvb_email_cancellation_note', sanitize_textarea_field( wp_unslash( $_POST['lvb_email_cancellation_note'] ) ) );

@@ -327,6 +327,13 @@ $disconnect_url = wp_nonce_url(
                     </td>
                 </tr>
                 <tr>
+                    <th><label for="lvb_email_reschedule_text">Umbuchungs-Text</label></th>
+                    <td>
+                        <textarea id="lvb_email_reschedule_text" name="lvb_email_reschedule_text" class="large-text" rows="3"><?php echo esc_textarea( get_option( 'lvb_email_reschedule_text', 'Dein Termin wurde verschoben. Hier sind die neuen Details:' ) ); ?></textarea>
+                        <p class="description">Haupttext in der Umbuchungs-E-Mail (wird gesendet, wenn ein Admin Datum/Zeit einer bestehenden Buchung ändert).</p>
+                    </td>
+                </tr>
+                <tr>
                     <th><label for="lvb_email_cancellation_note">Stornierungs-Hinweis</label></th>
                     <td>
                         <textarea id="lvb_email_cancellation_note" name="lvb_email_cancellation_note" class="large-text" rows="2"><?php echo esc_textarea( get_option( 'lvb_email_cancellation_note', 'Falls du absagen oder umbuchen möchtest, melde dich bitte so früh wie möglich bei uns.' ) ); ?></textarea>

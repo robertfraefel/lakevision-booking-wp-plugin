@@ -120,6 +120,96 @@ class LVB_Notifications {
     }
 
     /**
+     * Send a reschedule notice to the customer and admin when an admin
+     * changes the date/time of an existing booking. Shows old vs. new
+     * times side-by-side and attaches a fresh ICS with the updated slot.
+     *
+     * @param int    $booking_id
+     * @param string $old_start  Previous start_datetime (Y-m-d H:i:s in WP timezone).
+     * @param string $old_end    Previous end_datetime   (Y-m-d H:i:s in WP timezone).
+     */
+    public static function send_booking_reschedule( $booking_id, $old_start, $old_end ) {
+        $booking = LVB_Database::get_by_id( 'bookings', $booking_id );
+        if ( ! $booking ) {
+            return;
+        }
+
+        $service  = LVB_Database::get_by_id( 'services',  $booking['service_id'] );
+        $customer = LVB_Database::get_by_id( 'customers', $booking['customer_id'] );
+        $staff    = $booking['staff_id'] ? LVB_Database::get_by_id( 'staff', $booking['staff_id'] ) : null;
+
+        if ( ! $service || ! $customer ) {
+            return;
+        }
+
+        $tz           = wp_timezone();
+        $new_start_dt = new DateTime( $booking['start_datetime'], $tz );
+        $new_end_dt   = new DateTime( $booking['end_datetime'],   $tz );
+        $old_start_dt = new DateTime( $old_start, $tz );
+        $old_end_dt   = new DateTime( $old_end,   $tz );
+
+        $date_format  = get_option( 'date_format' );
+        $new_date_str = wp_date( $date_format, $new_start_dt->getTimestamp() );
+        $new_time_str = $new_start_dt->format( 'H:i' ) . ' – ' . $new_end_dt->format( 'H:i' );
+        $old_date_str = wp_date( $date_format, $old_start_dt->getTimestamp() );
+        $old_time_str = $old_start_dt->format( 'H:i' ) . ' – ' . $old_end_dt->format( 'H:i' );
+
+        $site_name      = get_bloginfo( 'name' );
+        $currency       = get_option( 'lvb_currency_symbol', '$' );
+        $customer_name  = trim( $customer['first_name'] . ' ' . $customer['last_name'] );
+        $customer_email = $customer['email'];
+
+        // ---- Customer email ----
+        $customer_subject = sprintf( __( 'Dein Termin wurde verschoben – %s', 'lakevision-booking' ), $site_name );
+        $customer_body    = self::render( 'customer_reschedule', [
+            'customer_name'       => $customer_name,
+            'customer_first_name' => $customer['first_name'],
+            'customer_email'      => $customer_email,
+            'service_name'        => $service['name'],
+            'staff_name'          => $staff ? $staff['name'] : '',
+            'old_date'            => $old_date_str,
+            'old_time'            => $old_time_str,
+            'date'                => $new_date_str,
+            'time'                => $new_time_str,
+            'price'               => $currency . number_format( (float) $booking['price'], 2 ),
+            'notes'               => $booking['notes'],
+            'booking_id'          => $booking_id,
+            'site_name'           => $site_name,
+        ] );
+
+        // ---- ICS attachment with NEW times ----
+        $ics_content = self::generate_ics( $booking_id, $new_start_dt, $new_end_dt, $service['name'], $site_name, $booking['notes'] );
+        $ics_file    = wp_tempnam( 'lvb-booking-' . $booking_id );
+        file_put_contents( $ics_file, $ics_content );
+        rename( $ics_file, $ics_file . '.ics' );
+        $ics_file .= '.ics';
+
+        self::send( $customer_email, $customer_subject, $customer_body, [ $ics_file ] );
+        @unlink( $ics_file );
+
+        // ---- Admin email ----
+        $admin_email   = get_option( 'lvb_admin_notification_email', get_option( 'admin_email' ) );
+        $admin_subject = sprintf( __( '[Termin verschoben] %s – %s', 'lakevision-booking' ), $service['name'], $customer_name );
+        $admin_body    = self::render( 'admin_reschedule', [
+            'customer_name'  => $customer_name,
+            'customer_email' => $customer_email,
+            'customer_phone' => $customer['phone'],
+            'service_name'   => $service['name'],
+            'staff_name'     => $staff ? $staff['name'] : '',
+            'old_date'       => $old_date_str,
+            'old_time'       => $old_time_str,
+            'date'           => $new_date_str,
+            'time'           => $new_time_str,
+            'price'          => $currency . number_format( (float) $booking['price'], 2 ),
+            'notes'          => $booking['notes'],
+            'booking_id'     => $booking_id,
+            'site_name'      => $site_name,
+        ] );
+
+        self::send( $admin_email, $admin_subject, $admin_body );
+    }
+
+    /**
      * Schedule a reminder email for a booking via WordPress Cron.
      *
      * @param int      $booking_id
@@ -480,6 +570,76 @@ body { margin:0; padding:16px; background:#f0ede8; }
                         <p style="margin-top:24px;">Bei Fragen oder falls du absagen möchtest, melde dich bitte so früh wie möglich bei uns.</p>
                     </div>
                     <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '. Alle Rechte vorbehalten.</div>
+                </div>', $bg );
+
+            case 'customer_reschedule':
+                $reschedule_text = get_option(
+                    'lvb_email_reschedule_text',
+                    'Dein Termin wurde verschoben. Hier sind die neuen Details:'
+                );
+                $first_name = esc_html( $vars['customer_first_name'] ?? $vars['customer_name'] );
+
+                $compare_table = '<table role="presentation" style="width:100%;border-collapse:separate;border-spacing:8px 0;margin:16px 0;">
+                    <tr>
+                        <td style="width:50%;vertical-align:top;padding:16px;background:#F2EDE5;border-radius:8px;">
+                            <div style="font-size:11px;color:#7A756C;text-transform:uppercase;letter-spacing:1px;">Bisher</div>
+                            <div style="font-size:14px;color:#999;margin-top:6px;text-decoration:line-through;">' . esc_html( $vars['old_date'] ) . '</div>
+                            <div style="font-size:14px;color:#999;text-decoration:line-through;">' . esc_html( $vars['old_time'] ) . '</div>
+                        </td>
+                        <td style="width:50%;vertical-align:top;padding:16px;background:' . $primary . ';border-radius:8px;color:#fff;">
+                            <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:bold;">Neu</div>
+                            <div style="font-size:16px;font-weight:bold;margin-top:6px;">' . esc_html( $vars['date'] ) . '</div>
+                            <div style="font-size:16px;font-weight:bold;">' . esc_html( $vars['time'] ) . '</div>
+                        </td>
+                    </tr>
+                </table>';
+
+                $detail_rows = self::detail_rows( [
+                    'Sitzung'    => esc_html( $vars['service_name'] ),
+                    $staff_label => esc_html( $vars['staff_name'] ?: 'Noch offen' ),
+                    'Preis'      => esc_html( $vars['price'] ),
+                    'Buchung #'  => esc_html( $vars['booking_id'] ),
+                ], $row_style );
+
+                return self::html_shell( '<div style="' . $wrap_style . '">
+                    <div style="' . $header_style . '">' . $logo . '</div>
+                    <div style="' . $body_style . '">
+                        <h2 style="' . $h2_style . '">Termin verschoben</h2>
+                        <p>Hi ' . $first_name . ',</p>
+                        <p>' . esc_html( $reschedule_text ) . '</p>
+                        ' . $compare_table . '
+                        <table style="width:100%;border-collapse:collapse;">' . $detail_rows . '</table>
+                        ' . ( $vars['notes'] ? '<p><strong>Notiz:</strong> ' . esc_html( $vars['notes'] ) . '</p>' : '' ) . '
+                        <p style="margin-top:16px;font-size:13px;color:#7A756C;">Eine aktualisierte Kalender-Einladung (.ics) hängt dieser E-Mail an.</p>
+                        ' . ( $cancellation_note !== '' ? '<p style="margin-top:24px;">' . esc_html( $cancellation_note ) . '</p>' : '' ) . '
+                    </div>
+                    <div style="' . $footer_style . '">&copy; ' . gmdate( 'Y' ) . ' ' . $site . '. Alle Rechte vorbehalten.</div>
+                </div>', $bg );
+
+            case 'admin_reschedule':
+                $admin_rows = self::detail_rows( [
+                    'Sitzung'    => esc_html( $vars['service_name'] ),
+                    $staff_label => esc_html( $vars['staff_name'] ?: 'Nicht zugewiesen' ),
+                    'Bisher'     => '<span style="color:#999;text-decoration:line-through;">' . esc_html( $vars['old_date'] ) . ' · ' . esc_html( $vars['old_time'] ) . '</span>',
+                    'Neu'        => '<strong>' . esc_html( $vars['date'] ) . ' · ' . esc_html( $vars['time'] ) . '</strong>',
+                    'Preis'      => esc_html( $vars['price'] ),
+                    'Kundin'     => esc_html( $vars['customer_name'] ),
+                    'E-Mail'     => esc_html( $vars['customer_email'] ),
+                    'Telefon'    => esc_html( $vars['customer_phone'] ),
+                    'Bemerkungen'=> esc_html( $vars['notes'] ),
+                    'Buchung #'  => esc_html( $vars['booking_id'] ),
+                ], $row_style );
+
+                $admin_url = admin_url( 'admin.php?page=lvb-bookings' );
+
+                return self::html_shell( '<div style="' . $wrap_style . '">
+                    <div style="' . $header_style . '">' . $logo . '</div>
+                    <div style="' . $body_style . '">
+                        <h2 style="' . $h2_style . '">Termin verschoben</h2>
+                        <table style="width:100%;border-collapse:collapse;">' . $admin_rows . '</table>
+                        <a href="' . esc_url( $admin_url ) . '" style="' . $btn_style . '">Im Dashboard ansehen</a>
+                    </div>
+                    <div style="' . $footer_style . '">' . $site . ' Admin</div>
                 </div>', $bg );
 
             case 'intake_form_notification':
