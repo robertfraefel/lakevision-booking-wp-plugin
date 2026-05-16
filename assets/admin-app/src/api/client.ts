@@ -124,9 +124,28 @@ export const api = {
   deleteCustomer: (id: number) =>
     request<{ ok: true; id: number }>('DELETE', `admin/customers/${id}`),
 
-  // Services / Staff (read-only for Phase 2)
+  // Services CRUD
   services: () => request<{ items: Service[]; total: number }>('GET', 'admin/services'),
+  createService: (data: Partial<Service>) =>
+    request<{ ok: true; id: number }>('POST', 'admin/services', data),
+  updateService: (id: number, data: Partial<Service>) =>
+    request<{ ok: true; id: number }>('PATCH', `admin/services/${id}`, data),
+  deleteService: (id: number) =>
+    request<{ ok: true; id: number }>('DELETE', `admin/services/${id}`),
+  reorderServices: (ids: number[]) =>
+    request<{ ok: true }>('POST', 'admin/services/reorder', { ids }),
+
+  // Staff CRUD
   staff: () => request<{ items: Staff[]; total: number }>('GET', 'admin/staff'),
+  getStaff: (id: number) =>
+    request<Staff & { service_ids: number[] }>('GET', `admin/staff/${id}`),
+  createStaff: (data: Record<string, unknown>) =>
+    request<{ ok: true; id: number }>('POST', 'admin/staff', data),
+  updateStaff: (id: number, data: Record<string, unknown>) =>
+    request<{ ok: true; id: number }>('PATCH', `admin/staff/${id}`, data),
+  deleteStaff: (id: number) =>
+    request<{ ok: true; id: number }>('DELETE', `admin/staff/${id}`),
+
   meta: () => request<CalendarMeta>('GET', 'admin/meta'),
 
   // Calendar events (proxies to LVB_Calendar_API — unchanged)

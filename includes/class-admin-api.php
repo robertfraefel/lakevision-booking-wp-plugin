@@ -117,6 +117,28 @@ class LVB_Admin_API {
                 'callback'            => [ __CLASS__, 'list_services' ],
                 'permission_callback' => [ __CLASS__, 'can_read_services' ],
             ],
+            [
+                'methods'             => 'POST',
+                'callback'            => [ __CLASS__, 'create_service' ],
+                'permission_callback' => self::cap( 'lvb_manage_services' ),
+            ],
+        ] );
+        register_rest_route( self::NAMESPACE_BASE, '/admin/services/(?P<id>\d+)', [
+            [
+                'methods'             => 'PATCH',
+                'callback'            => [ __CLASS__, 'update_service' ],
+                'permission_callback' => self::cap( 'lvb_manage_services' ),
+            ],
+            [
+                'methods'             => 'DELETE',
+                'callback'            => [ __CLASS__, 'delete_service' ],
+                'permission_callback' => self::cap( 'lvb_manage_services' ),
+            ],
+        ] );
+        register_rest_route( self::NAMESPACE_BASE, '/admin/services/reorder', [
+            'methods'             => 'POST',
+            'callback'            => [ __CLASS__, 'reorder_services' ],
+            'permission_callback' => self::cap( 'lvb_manage_services' ),
         ] );
 
         // -- Staff -------------------------------------------------------------
@@ -125,6 +147,28 @@ class LVB_Admin_API {
                 'methods'             => 'GET',
                 'callback'            => [ __CLASS__, 'list_staff' ],
                 'permission_callback' => [ __CLASS__, 'can_read_staff' ],
+            ],
+            [
+                'methods'             => 'POST',
+                'callback'            => [ __CLASS__, 'create_staff' ],
+                'permission_callback' => self::cap( 'lvb_manage_staff' ),
+            ],
+        ] );
+        register_rest_route( self::NAMESPACE_BASE, '/admin/staff/(?P<id>\d+)', [
+            [
+                'methods'             => 'GET',
+                'callback'            => [ __CLASS__, 'get_staff' ],
+                'permission_callback' => self::cap( 'lvb_manage_staff' ),
+            ],
+            [
+                'methods'             => 'PATCH',
+                'callback'            => [ __CLASS__, 'update_staff' ],
+                'permission_callback' => self::cap( 'lvb_manage_staff' ),
+            ],
+            [
+                'methods'             => 'DELETE',
+                'callback'            => [ __CLASS__, 'delete_staff' ],
+                'permission_callback' => self::cap( 'lvb_manage_staff' ),
             ],
         ] );
 
@@ -393,9 +437,88 @@ class LVB_Admin_API {
         return rest_ensure_response( [ 'items' => $rows, 'total' => count( $rows ) ] );
     }
 
+    public static function create_service( WP_REST_Request $req ) {
+        $id = LVB_Booking_Manager::save_service( $req->get_json_params() ?: [], 0 );
+        if ( is_wp_error( $id ) ) return $id;
+        return rest_ensure_response( [ 'ok' => true, 'id' => (int) $id ] );
+    }
+
+    public static function update_service( WP_REST_Request $req ) {
+        $id     = (int) $req['id'];
+        $result = LVB_Booking_Manager::save_service( $req->get_json_params() ?: [], $id );
+        if ( is_wp_error( $result ) ) return $result;
+        return rest_ensure_response( [ 'ok' => true, 'id' => $id ] );
+    }
+
+    public static function delete_service( WP_REST_Request $req ) {
+        $id = (int) $req['id'];
+        $r  = LVB_Booking_Manager::delete_service( $id );
+        if ( is_wp_error( $r ) ) return $r;
+        return rest_ensure_response( [ 'ok' => true, 'id' => $id ] );
+    }
+
+    /**
+     * Bulk sort_order update for drag-reorder. Body: { ids: [3, 1, 2, …] }.
+     * Position in the array becomes the new sort_order (1-based).
+     */
+    public static function reorder_services( WP_REST_Request $req ) {
+        global $wpdb;
+        $body = $req->get_json_params() ?: [];
+        $ids  = is_array( $body['ids'] ?? null ) ? array_map( 'intval', $body['ids'] ) : [];
+        if ( empty( $ids ) ) {
+            return new WP_Error( 'lvb_bad_request', 'ids required', [ 'status' => 400 ] );
+        }
+        foreach ( $ids as $position => $service_id ) {
+            $wpdb->update(
+                $wpdb->prefix . 'lvb_services',
+                [ 'sort_order' => $position + 1 ],
+                [ 'id' => $service_id ],
+                [ '%d' ],
+                [ '%d' ]
+            );
+        }
+        return rest_ensure_response( [ 'ok' => true ] );
+    }
+
     public static function list_staff( WP_REST_Request $req ) {
         $rows = LVB_Database::get_all( 'staff', [], 'name ASC' );
         return rest_ensure_response( [ 'items' => $rows, 'total' => count( $rows ) ] );
+    }
+
+    public static function get_staff( WP_REST_Request $req ) {
+        $id    = (int) $req['id'];
+        $staff = LVB_Database::get_by_id( 'staff', $id );
+        if ( ! $staff ) {
+            return new WP_Error( 'lvb_not_found', 'Staff not found', [ 'status' => 404 ] );
+        }
+        // Augment with the linked service ids so the React form can hydrate
+        // its multi-select without a second request.
+        $service_ids = [];
+        foreach ( LVB_Database::get_services_for_staff( $id ) as $svc ) {
+            $service_ids[] = (int) $svc['id'];
+        }
+        $staff['service_ids'] = $service_ids;
+        return rest_ensure_response( $staff );
+    }
+
+    public static function create_staff( WP_REST_Request $req ) {
+        $id = LVB_Booking_Manager::save_staff( $req->get_json_params() ?: [], 0 );
+        if ( is_wp_error( $id ) ) return $id;
+        return rest_ensure_response( [ 'ok' => true, 'id' => (int) $id ] );
+    }
+
+    public static function update_staff( WP_REST_Request $req ) {
+        $id     = (int) $req['id'];
+        $result = LVB_Booking_Manager::save_staff( $req->get_json_params() ?: [], $id );
+        if ( is_wp_error( $result ) ) return $result;
+        return rest_ensure_response( [ 'ok' => true, 'id' => $id ] );
+    }
+
+    public static function delete_staff( WP_REST_Request $req ) {
+        $id = (int) $req['id'];
+        $r  = LVB_Booking_Manager::delete_staff( $id );
+        if ( is_wp_error( $r ) ) return $r;
+        return rest_ensure_response( [ 'ok' => true, 'id' => $id ] );
     }
 
     /**

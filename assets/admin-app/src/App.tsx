@@ -7,6 +7,8 @@ import { AppShell } from './components/AppShell';
 import { CalendarPage } from './pages/CalendarPage';
 import { BookingsPage } from './pages/BookingsPage';
 import { CustomersPage } from './pages/CustomersPage';
+import { ServicesPage } from './pages/ServicesPage';
+import { StaffPage } from './pages/StaffPage';
 import { PermissionsPage } from './pages/PermissionsPage';
 import { NoAccess } from './pages/NoAccess';
 import { Placeholder } from './pages/Placeholder';
@@ -64,19 +66,11 @@ export function App() {
             />
             <Route
               path="services"
-              element={
-                hasCap('lvb_manage_services')
-                  ? <Placeholder title="Services" hint="Phase 3 — kommt als nächstes." />
-                  : <NoAccess />
-              }
+              element={hasCap('lvb_manage_services') ? <ServicesPage /> : <NoAccess />}
             />
             <Route
               path="staff"
-              element={
-                hasCap('lvb_manage_staff')
-                  ? <Placeholder title="Mitarbeiter" hint="Phase 3 — kommt als nächstes." />
-                  : <NoAccess />
-              }
+              element={hasCap('lvb_manage_staff') ? <StaffPage /> : <NoAccess />}
             />
             <Route
               path="settings"
