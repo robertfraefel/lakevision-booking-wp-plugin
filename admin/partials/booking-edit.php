@@ -200,7 +200,8 @@ $nonce_id = $is_new ? 0 : (int) $booking['id'];
         </p>
 
         <p class="submit">
-            <button type="submit" name="lvb_save_booking" value="1" class="button button-primary lvb-save-booking-btn"
+            <input type="hidden" name="lvb_save_booking" value="1">
+            <button type="submit" class="button button-primary lvb-save-booking-btn"
                     data-label="<?php echo $is_new ? 'Buchung anlegen' : 'Speichern'; ?>"
                     data-busy="<?php echo $is_new ? 'Wird angelegt…' : 'Wird gespeichert…'; ?>">
                 <?php echo $is_new ? 'Buchung anlegen' : 'Speichern'; ?>
@@ -211,11 +212,10 @@ $nonce_id = $is_new ? 0 : (int) $booking['id'];
 </div>
 <script>
 (function () {
-    // Guard against accidental double-submit: a second click would otherwise
-    // send a second POST that finds the booking already updated → produces a
-    // redundant "[Aktualisiert] Buchungsbestätigung" mail right after the
-    // reschedule mail. Server-side we now skip the notification when nothing
-    // has actually changed, but disabling the button is the cleaner UX.
+    // Guard against accidental double-submit. Note: the lvb_save_booking
+    // trigger lives in a hidden input above (NOT on the button), because
+    // disabling a submit button drops its name/value from the POST body —
+    // which previously broke saves entirely.
     var form = document.querySelector('form.lvb-card');
     var btn  = form ? form.querySelector('.lvb-save-booking-btn') : null;
     if (!form || !btn) return;
