@@ -156,16 +156,25 @@ class LVB_Admin_Shortcode {
      * On plugin activation, make sure a private page with the [lvb_admin]
      * shortcode exists. If the site owner deletes or trashes it, this
      * doesn't recreate it — only adds it the first time.
+     *
+     * If a page with the slug already exists (e.g. created by a theme
+     * generator), adopt it but make sure the shortcode is present in
+     * the content — otherwise the page would render blank.
      */
     public static function on_activation() {
-        $existing = get_option( 'lvb_admin_page_id', 0 );
-        if ( $existing && get_post( $existing ) ) {
-            return;
+        $existing_id = (int) get_option( 'lvb_admin_page_id', 0 );
+        if ( $existing_id ) {
+            $post = get_post( $existing_id );
+            if ( $post ) {
+                self::ensure_shortcode_in_post( $post );
+                return;
+            }
         }
         // Don't accidentally double-create if a previous slug is around.
         $by_slug = get_page_by_path( self::DEFAULT_SLUG, OBJECT, 'page' );
         if ( $by_slug ) {
             update_option( 'lvb_admin_page_id', (int) $by_slug->ID );
+            self::ensure_shortcode_in_post( $by_slug );
             return;
         }
         $page_id = wp_insert_post( [
@@ -178,5 +187,23 @@ class LVB_Admin_Shortcode {
         if ( $page_id && ! is_wp_error( $page_id ) ) {
             update_option( 'lvb_admin_page_id', (int) $page_id );
         }
+    }
+
+    /**
+     * Make sure the given page actually contains the [lvb_admin] shortcode.
+     * If it doesn't, append it so the React app has somewhere to mount.
+     * We preserve any other content the user (or a theme generator) added.
+     */
+    private static function ensure_shortcode_in_post( WP_Post $post ) {
+        if ( has_shortcode( $post->post_content, self::SHORTCODE ) ) {
+            return;
+        }
+        $new_content = trim( $post->post_content ) === ''
+            ? '[' . self::SHORTCODE . ']'
+            : $post->post_content . "\n\n[" . self::SHORTCODE . ']';
+        wp_update_post( [
+            'ID'           => $post->ID,
+            'post_content' => $new_content,
+        ] );
     }
 }
