@@ -43,6 +43,16 @@ class LVB_Admin_API {
             'permission_callback' => [ __CLASS__, 'is_logged_in' ],
         ] );
 
+        // -- Public diagnostic for reverse-proxy header inspection -------------
+        // Exposes only the HTTP_X_FORWARDED_* family and is_ssl() — no
+        // session cookies, no admin data. Useful when /wp-admin loops behind
+        // a proxy that uses an unusual header name. Safe to leave in place.
+        register_rest_route( self::NAMESPACE_BASE, '/debug/proxy', [
+            'methods'             => 'GET',
+            'callback'            => [ __CLASS__, 'debug_proxy' ],
+            'permission_callback' => '__return_true',
+        ] );
+
         // -- Bookings ----------------------------------------------------------
         register_rest_route( self::NAMESPACE_BASE, '/admin/bookings', [
             [
@@ -308,6 +318,29 @@ class LVB_Admin_API {
      * have. The frontend uses this to drive its routing and hide modules
      * the user can't access.
      */
+    /**
+     * Public diagnostic — surfaces the headers WordPress sees so we can tell
+     * how the reverse proxy is talking to PHP. Strictly information from the
+     * request itself; no credentials.
+     */
+    public static function debug_proxy( WP_REST_Request $req ) {
+        $forwarded = [];
+        foreach ( $_SERVER as $key => $value ) {
+            if ( strpos( $key, 'HTTP_X_FORWARDED' ) === 0
+                 || in_array( $key, [ 'HTTPS', 'SERVER_PORT', 'HTTP_HOST', 'REQUEST_SCHEME', 'HTTP_CF_VISITOR' ], true ) ) {
+                $forwarded[ $key ] = is_scalar( $value ) ? (string) $value : '';
+            }
+        }
+        return rest_ensure_response( [
+            'is_ssl'             => is_ssl(),
+            'siteurl'            => get_option( 'siteurl', '' ),
+            'home'               => get_option( 'home', '' ),
+            'force_ssl_admin'    => defined( 'FORCE_SSL_ADMIN' ) ? (bool) FORCE_SSL_ADMIN : false,
+            'lvb_version'        => defined( 'LVB_VERSION' ) ? LVB_VERSION : 'unknown',
+            'relevant_headers'   => $forwarded,
+        ] );
+    }
+
     public static function me( WP_REST_Request $req ) {
         $user = wp_get_current_user();
         $caps = [];
