@@ -3,7 +3,7 @@
  * Plugin Name: LakeVision Booking
  * Plugin URI:  https://github.com/robertfraefel/lakevision-booking-wp-plugin
  * Description: Flexible booking system with Google Calendar integration, time-slot management and email notifications.
- * Version:     2.0.0-alpha.13
+ * Version:     2.0.0-alpha.14
  * Author:      LakeVision
  * Author URI:  https://lakevision.ch
  * License:     GPL-2.0+
@@ -76,7 +76,7 @@ if ( $lvb_is_https ) {
 unset( $lvb_is_https, $lvb_cf );
 
 // Plugin constants
-define( 'LVB_VERSION',     '2.0.0-alpha.13' );
+define( 'LVB_VERSION',     '2.0.0-alpha.14' );
 define( 'LVB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LVB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'LVB_PLUGIN_FILE', __FILE__ );
@@ -149,6 +149,7 @@ final class LakeVision_Booking {
     private function init_hooks() {
         register_activation_hook( LVB_PLUGIN_FILE, [ 'LVB_Database', 'install' ] );
         register_activation_hook( LVB_PLUGIN_FILE, [ 'LVB_Capabilities', 'on_activation' ] );
+        register_activation_hook( LVB_PLUGIN_FILE, [ 'LVB_Shortcode', 'on_activation' ] );
         register_activation_hook( LVB_PLUGIN_FILE, [ 'LVB_Admin_Shortcode', 'on_activation' ] );
         register_activation_hook( LVB_PLUGIN_FILE, [ 'LVB_Login_Shortcode', 'on_activation' ] );
         register_deactivation_hook( LVB_PLUGIN_FILE, [ __CLASS__, 'deactivate' ] );
@@ -217,6 +218,9 @@ final class LakeVision_Booking {
             LVB_Database::install();
             if ( class_exists( 'LVB_Capabilities' ) ) {
                 LVB_Capabilities::on_activation();
+            }
+            if ( method_exists( 'LVB_Shortcode', 'on_activation' ) ) {
+                LVB_Shortcode::on_activation();
             }
             if ( class_exists( 'LVB_Admin_Shortcode' ) ) {
                 LVB_Admin_Shortcode::on_activation();

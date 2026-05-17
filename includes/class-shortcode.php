@@ -42,8 +42,58 @@ class LVB_Shortcode {
      *
      * @return void
      */
+    const BOOKING_SHORTCODE   = 'lvb_booking';
+    const BOOKING_PAGE_OPTION = 'lvb_booking_page_id';
+    const BOOKING_PAGE_SLUG   = 'buchen';
+    const BOOKING_PAGE_TITLE  = 'Termin buchen';
+
     public static function register() {
-        add_shortcode( 'lvb_booking', [ __CLASS__, 'render' ] );
+        add_shortcode( self::BOOKING_SHORTCODE, [ __CLASS__, 'render' ] );
+    }
+
+    /**
+     * Activation-time setup: make sure there's a public page that hosts
+     * the [lvb_booking] widget so end users have a URL to send customers
+     * to. Mirrors the LVB_Admin_Shortcode / LVB_Login_Shortcode pattern.
+     */
+    public static function on_activation() {
+        $existing_id = (int) get_option( self::BOOKING_PAGE_OPTION, 0 );
+        if ( $existing_id ) {
+            $post = get_post( $existing_id );
+            if ( $post ) {
+                self::ensure_shortcode_in_post( $post );
+                return;
+            }
+        }
+        $by_slug = get_page_by_path( self::BOOKING_PAGE_SLUG, OBJECT, 'page' );
+        if ( $by_slug ) {
+            update_option( self::BOOKING_PAGE_OPTION, (int) $by_slug->ID );
+            self::ensure_shortcode_in_post( $by_slug );
+            return;
+        }
+        $page_id = wp_insert_post( [
+            'post_title'   => self::BOOKING_PAGE_TITLE,
+            'post_name'    => self::BOOKING_PAGE_SLUG,
+            'post_status'  => 'publish',
+            'post_type'    => 'page',
+            'post_content' => '[' . self::BOOKING_SHORTCODE . ']',
+        ] );
+        if ( $page_id && ! is_wp_error( $page_id ) ) {
+            update_option( self::BOOKING_PAGE_OPTION, (int) $page_id );
+        }
+    }
+
+    private static function ensure_shortcode_in_post( WP_Post $post ) {
+        if ( has_shortcode( (string) $post->post_content, self::BOOKING_SHORTCODE ) ) {
+            return;
+        }
+        $new_content = trim( (string) $post->post_content ) === ''
+            ? '[' . self::BOOKING_SHORTCODE . ']'
+            : $post->post_content . "\n\n[" . self::BOOKING_SHORTCODE . ']';
+        wp_update_post( [
+            'ID'           => $post->ID,
+            'post_content' => $new_content,
+        ] );
     }
 
     // -----------------------------------------------------------------------
