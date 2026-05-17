@@ -3,7 +3,7 @@
  * Plugin Name: LakeVision Booking
  * Plugin URI:  https://github.com/robertfraefel/lakevision-booking-wp-plugin
  * Description: Flexible booking system with Google Calendar integration, time-slot management and email notifications.
- * Version:     2.0.0-alpha.14
+ * Version:     2.0.0-alpha.15
  * Author:      LakeVision
  * Author URI:  https://lakevision.ch
  * License:     GPL-2.0+
@@ -76,7 +76,7 @@ if ( $lvb_is_https ) {
 unset( $lvb_is_https, $lvb_cf );
 
 // Plugin constants
-define( 'LVB_VERSION',     '2.0.0-alpha.14' );
+define( 'LVB_VERSION',     '2.0.0-alpha.15' );
 define( 'LVB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LVB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'LVB_PLUGIN_FILE', __FILE__ );

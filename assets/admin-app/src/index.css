@@ -42,3 +42,19 @@ body:has(#lvb-admin-root) .page-eyebrow,
 body:has(#lvb-admin-root) .entry-title {
   display: none !important;
 }
+
+/* Suppress decorative theme overlays that interfere with admin readability.
+ * Common offenders: full-viewport scanline/film-grain pseudo-elements
+ * (websitestudio's "Cyberpunk" themes use body::before for this), heavy
+ * dark backgrounds, and ambient glow gradients. Replace with a neutral
+ * light surface so card UI sits on a calm canvas. */
+body:has(#lvb-admin-root)::before,
+body:has(#lvb-admin-root)::after {
+  display: none !important;
+}
+
+body:has(#lvb-admin-root) {
+  background: #f3f4f6 !important;
+  background-image: none !important;
+  color: #111827 !important;
+}
