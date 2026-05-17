@@ -3,7 +3,7 @@
  * Plugin Name: LakeVision Booking
  * Plugin URI:  https://github.com/robertfraefel/lakevision-booking-wp-plugin
  * Description: Flexible booking system with Google Calendar integration, time-slot management and email notifications.
- * Version:     2.0.0-alpha.12
+ * Version:     2.0.0-alpha.13
  * Author:      LakeVision
  * Author URI:  https://lakevision.ch
  * License:     GPL-2.0+
@@ -76,7 +76,7 @@ if ( $lvb_is_https ) {
 unset( $lvb_is_https, $lvb_cf );
 
 // Plugin constants
-define( 'LVB_VERSION',     '2.0.0-alpha.12' );
+define( 'LVB_VERSION',     '2.0.0-alpha.13' );
 define( 'LVB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LVB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'LVB_PLUGIN_FILE', __FILE__ );
@@ -208,9 +208,23 @@ final class LakeVision_Booking {
     public function init() {
         load_plugin_textdomain( 'lakevision-booking', false, dirname( plugin_basename( LVB_PLUGIN_FILE ) ) . '/languages' );
 
-        // Run DB migration if version changed (e.g. new tables added).
+        // Run version-keyed bootstrap once per release. Mirrors the
+        // register_activation_hook callbacks for sites where the plugin
+        // gets *updated* (not re-activated) and the activation hook never
+        // re-fires — which is the common case after `wp plugin install
+        // --force --activate` or the self-updater.
         if ( get_option( 'lvb_db_version' ) !== LVB_VERSION ) {
             LVB_Database::install();
+            if ( class_exists( 'LVB_Capabilities' ) ) {
+                LVB_Capabilities::on_activation();
+            }
+            if ( class_exists( 'LVB_Admin_Shortcode' ) ) {
+                LVB_Admin_Shortcode::on_activation();
+            }
+            if ( class_exists( 'LVB_Login_Shortcode' ) ) {
+                LVB_Login_Shortcode::on_activation();
+            }
+            update_option( 'lvb_db_version', LVB_VERSION );
         }
 
         LVB_Shortcode::register();
