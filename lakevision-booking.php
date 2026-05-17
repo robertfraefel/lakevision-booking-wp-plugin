@@ -3,7 +3,7 @@
  * Plugin Name: LakeVision Booking
  * Plugin URI:  https://github.com/robertfraefel/lakevision-booking-wp-plugin
  * Description: Flexible booking system with Google Calendar integration, time-slot management and email notifications.
- * Version:     2.0.0-alpha.6
+ * Version:     2.0.0-alpha.7
  * Author:      LakeVision
  * Author URI:  https://lakevision.ch
  * License:     GPL-2.0+
@@ -47,8 +47,20 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+// Honour the X-Forwarded-Proto header set by reverse proxies (Coolify/Traefik,
+// Cloudflare with Full SSL, etc.). Without this, WordPress sees a plain HTTP
+// request even when the browser is on HTTPS, force_ssl_admin() kicks in, and
+// /wp-admin/ ends up in a redirect loop. Cheap to evaluate on every request;
+// no-op when the header is absent. Runs before plugin constants so it's
+// effective during the wp-settings.php plugin-loading phase, well before
+// auth_redirect() runs in /wp-admin/admin.php.
+if ( ! empty( $_SERVER['HTTP_X_FORWARDED_PROTO'] )
+     && strtolower( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) === 'https' ) {
+    $_SERVER['HTTPS'] = 'on';
+}
+
 // Plugin constants
-define( 'LVB_VERSION',     '2.0.0-alpha.6' );
+define( 'LVB_VERSION',     '2.0.0-alpha.7' );
 define( 'LVB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LVB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'LVB_PLUGIN_FILE', __FILE__ );
