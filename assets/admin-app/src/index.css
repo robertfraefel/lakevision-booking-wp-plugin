@@ -6,8 +6,39 @@
 #lvb-admin-root {
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color: #1f2937;
+  width: 100%;
+  max-width: none;
 }
 
 #lvb-admin-root * {
   box-sizing: border-box;
+}
+
+/* Break out of restrictive theme wrappers — the admin app needs full page
+ * width to be usable. Uses :has() to scope the override to pages that
+ * actually contain the React mount. Widely supported (Chrome 105+, Safari
+ * 15.4+, Firefox 121+); on older browsers the JS fallback in main.tsx
+ * walks the ancestor chain and clears max-width inline. */
+body:has(#lvb-admin-root) main,
+body:has(#lvb-admin-root) article,
+body:has(#lvb-admin-root) .container,
+body:has(#lvb-admin-root) .container--narrow,
+body:has(#lvb-admin-root) .container--wide,
+body:has(#lvb-admin-root) .page-wrap,
+body:has(#lvb-admin-root) .page-body,
+body:has(#lvb-admin-root) .entry-content,
+body:has(#lvb-admin-root) .site-content,
+body:has(#lvb-admin-root) .content-area {
+  max-width: none !important;
+  width: 100% !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+/* Hide the theme-rendered page title / eyebrow when our app takes over the
+ * page — our own AppShell has its own header. */
+body:has(#lvb-admin-root) .page-title,
+body:has(#lvb-admin-root) .page-eyebrow,
+body:has(#lvb-admin-root) .entry-title {
+  display: none !important;
 }
