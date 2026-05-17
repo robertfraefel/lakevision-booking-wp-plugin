@@ -52,18 +52,49 @@ class LVB_Admin_Shortcode {
 
     /**
      * If the requested page contains the [lvb_admin] shortcode and the
-     * visitor is not logged in, send them to wp-login.php with a redirect
-     * back to the page. Avoids the React app even loading for guests.
+     * visitor is not logged in, send them to the branded login page
+     * (/anmelden) so they never see wp-login.php. Avoids the React app
+     * even loading for guests.
+     *
+     * Note: WordPress 404s private posts for anonymous visitors before
+     * any post-content guard can run. We therefore also catch the case
+     * where the request URL matches our admin page slug but get_post()
+     * returned nothing — happens when the admin page is set to private
+     * (the default) and the visitor isn't logged in.
      */
     public static function guard_anonymous() {
         if ( is_user_logged_in() || is_admin() ) {
             return;
         }
+
+        $admin_page_id = (int) get_option( 'lvb_admin_page_id', 0 );
+        $admin_url     = $admin_page_id ? get_permalink( $admin_page_id ) : '';
+
+        // Case 1: the post resolved and contains our shortcode.
         $post = get_post();
-        if ( ! $post || ! has_shortcode( $post->post_content, self::SHORTCODE ) ) {
-            return;
+        if ( $post && has_shortcode( (string) $post->post_content, self::SHORTCODE ) ) {
+            self::redirect_to_login( get_permalink( $post ) );
         }
-        wp_safe_redirect( wp_login_url( get_permalink( $post ) ) );
+
+        // Case 2: WP couldn't resolve the post (likely is_404() because the
+        // admin page is private). If the request URL still matches the
+        // admin page slug, redirect to login instead of letting the theme
+        // render its 404 template.
+        if ( $admin_url && is_404() ) {
+            $request_path = wp_parse_url( home_url( $_SERVER['REQUEST_URI'] ?? '/' ), PHP_URL_PATH );
+            $admin_path   = wp_parse_url( $admin_url, PHP_URL_PATH );
+            if ( $request_path && $admin_path
+                 && rtrim( (string) $request_path, '/' ) === rtrim( (string) $admin_path, '/' ) ) {
+                self::redirect_to_login( $admin_url );
+            }
+        }
+    }
+
+    private static function redirect_to_login( $redirect_to ) {
+        $url = class_exists( 'LVB_Login_Shortcode' )
+            ? LVB_Login_Shortcode::login_url( $redirect_to )
+            : wp_login_url( $redirect_to );
+        wp_safe_redirect( $url );
         exit;
     }
 
