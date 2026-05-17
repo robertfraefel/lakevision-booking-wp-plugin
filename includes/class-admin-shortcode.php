@@ -35,6 +35,19 @@ class LVB_Admin_Shortcode {
     public static function register() {
         add_shortcode( self::SHORTCODE, [ __CLASS__, 'render' ] );
         add_action( 'template_redirect', [ __CLASS__, 'guard_anonymous' ] );
+
+        // The Vite-built bundle is ESM (top-level `export`, dynamic `import()`
+        // for lazy chunks). WordPress's wp_enqueue_script renders a classic
+        // <script> by default, which silently fails to execute ES module code.
+        // Promote the entry tag to `type="module"`.
+        add_filter( 'script_loader_tag', [ __CLASS__, 'mark_module' ], 10, 2 );
+    }
+
+    public static function mark_module( $tag, $handle ) {
+        if ( $handle === self::HANDLE_JS && strpos( $tag, ' type=' ) === false ) {
+            $tag = str_replace( '<script ', '<script type="module" ', $tag );
+        }
+        return $tag;
     }
 
     /**
