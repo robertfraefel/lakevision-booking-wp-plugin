@@ -1,19 +1,37 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { api, ApiError, type Capability, type CurrentUser } from './api/client';
 import { AuthContext } from './lib/auth';
 import { AppShell } from './components/AppShell';
-import { CalendarPage } from './pages/CalendarPage';
-import { BookingsPage } from './pages/BookingsPage';
-import { CustomersPage } from './pages/CustomersPage';
-import { ServicesPage } from './pages/ServicesPage';
-import { StaffPage } from './pages/StaffPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { IntakeFormsPage } from './pages/IntakeFormsPage';
-import { FormBuilderPage } from './pages/FormBuilderPage';
-import { PermissionsPage } from './pages/PermissionsPage';
 import { NoAccess } from './pages/NoAccess';
+
+// Lazy-loaded pages — each becomes its own chunk so the initial bundle
+// stays small. The biggest wins are CalendarPage (FullCalendar ~200 KB)
+// and the form-builder/services pages (dnd-kit ~30 KB).
+const CalendarPage     = lazy(() => import('./pages/CalendarPage').then((m) => ({ default: m.CalendarPage })));
+const BookingsPage     = lazy(() => import('./pages/BookingsPage').then((m) => ({ default: m.BookingsPage })));
+const CustomersPage    = lazy(() => import('./pages/CustomersPage').then((m) => ({ default: m.CustomersPage })));
+const ServicesPage     = lazy(() => import('./pages/ServicesPage').then((m) => ({ default: m.ServicesPage })));
+const StaffPage        = lazy(() => import('./pages/StaffPage').then((m) => ({ default: m.StaffPage })));
+const SettingsPage     = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const IntakeFormsPage  = lazy(() => import('./pages/IntakeFormsPage').then((m) => ({ default: m.IntakeFormsPage })));
+const FormBuilderPage  = lazy(() => import('./pages/FormBuilderPage').then((m) => ({ default: m.FormBuilderPage })));
+const PermissionsPage  = lazy(() => import('./pages/PermissionsPage').then((m) => ({ default: m.PermissionsPage })));
+
+function RouteSuspense({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-400 text-sm">
+          Lade Modul…
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
 
 export function App() {
   const [user, setUser] = useState<CurrentUser | null>(null);
@@ -56,39 +74,39 @@ export function App() {
             <Route index element={<Navigate to={landing} replace />} />
             <Route
               path="calendar"
-              element={hasCap('lvb_view_calendar') ? <CalendarPage /> : <NoAccess />}
+              element={hasCap('lvb_view_calendar') ? <RouteSuspense><CalendarPage /></RouteSuspense> : <NoAccess />}
             />
             <Route
               path="bookings"
-              element={hasCap('lvb_edit_all_bookings') ? <BookingsPage /> : <NoAccess />}
+              element={hasCap('lvb_edit_all_bookings') ? <RouteSuspense><BookingsPage /></RouteSuspense> : <NoAccess />}
             />
             <Route
               path="customers"
-              element={hasCap('lvb_manage_customers') ? <CustomersPage /> : <NoAccess />}
+              element={hasCap('lvb_manage_customers') ? <RouteSuspense><CustomersPage /></RouteSuspense> : <NoAccess />}
             />
             <Route
               path="services"
-              element={hasCap('lvb_manage_services') ? <ServicesPage /> : <NoAccess />}
+              element={hasCap('lvb_manage_services') ? <RouteSuspense><ServicesPage /></RouteSuspense> : <NoAccess />}
             />
             <Route
               path="staff"
-              element={hasCap('lvb_manage_staff') ? <StaffPage /> : <NoAccess />}
+              element={hasCap('lvb_manage_staff') ? <RouteSuspense><StaffPage /></RouteSuspense> : <NoAccess />}
             />
             <Route
               path="settings"
-              element={hasCap('lvb_manage_settings') ? <SettingsPage /> : <NoAccess />}
+              element={hasCap('lvb_manage_settings') ? <RouteSuspense><SettingsPage /></RouteSuspense> : <NoAccess />}
             />
             <Route
               path="intake-forms"
-              element={hasCap('lvb_manage_intake_forms') ? <IntakeFormsPage /> : <NoAccess />}
+              element={hasCap('lvb_manage_intake_forms') ? <RouteSuspense><IntakeFormsPage /></RouteSuspense> : <NoAccess />}
             />
             <Route
               path="intake-forms/builder"
-              element={hasCap('lvb_manage_intake_forms') ? <FormBuilderPage /> : <NoAccess />}
+              element={hasCap('lvb_manage_intake_forms') ? <RouteSuspense><FormBuilderPage /></RouteSuspense> : <NoAccess />}
             />
             <Route
               path="permissions"
-              element={hasCap('lvb_manage_permissions') ? <PermissionsPage /> : <NoAccess />}
+              element={hasCap('lvb_manage_permissions') ? <RouteSuspense><PermissionsPage /></RouteSuspense> : <NoAccess />}
             />
             <Route path="*" element={<NoAccess />} />
           </Route>
