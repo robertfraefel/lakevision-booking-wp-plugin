@@ -3,7 +3,7 @@
  * Plugin Name: LakeVision Booking
  * Plugin URI:  https://github.com/robertfraefel/lakevision-booking-wp-plugin
  * Description: Flexible booking system with Google Calendar integration, time-slot management and email notifications.
- * Version:     2.0.0-alpha.8
+ * Version:     2.0.0-alpha.9
  * Author:      LakeVision
  * Author URI:  https://lakevision.ch
  * License:     GPL-2.0+
@@ -47,20 +47,36 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// Honour the X-Forwarded-Proto header set by reverse proxies (Coolify/Traefik,
-// Cloudflare with Full SSL, etc.). Without this, WordPress sees a plain HTTP
-// request even when the browser is on HTTPS, force_ssl_admin() kicks in, and
-// /wp-admin/ ends up in a redirect loop. Cheap to evaluate on every request;
-// no-op when the header is absent. Runs before plugin constants so it's
-// effective during the wp-settings.php plugin-loading phase, well before
-// auth_redirect() runs in /wp-admin/admin.php.
+// Honour reverse-proxy SSL signals so WordPress sees HTTPS through Coolify,
+// Cloudflare Flexible SSL, etc. Without this, force_ssl_admin() loops
+// /wp-admin/ because $_SERVER['HTTPS'] is unset. We check two signals:
+//
+//   1. X-Forwarded-Proto: https — standard reverse-proxy header
+//   2. CF-Visitor: {"scheme":"https"} — set by Cloudflare; the only signal
+//      available when CF is in "Flexible SSL" mode (CF→origin is plain HTTP,
+//      so Coolify itself reports X-Forwarded-Proto: http).
+//
+// Cheap on every request; no-op when both signals are absent. Runs before
+// plugin constants so it's effective during wp-settings.php plugin loading,
+// before /wp-admin/admin.php's auth_redirect().
+$lvb_is_https = false;
 if ( ! empty( $_SERVER['HTTP_X_FORWARDED_PROTO'] )
      && strtolower( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) === 'https' ) {
-    $_SERVER['HTTPS'] = 'on';
+    $lvb_is_https = true;
+} elseif ( ! empty( $_SERVER['HTTP_CF_VISITOR'] ) ) {
+    $lvb_cf = json_decode( $_SERVER['HTTP_CF_VISITOR'], true );
+    if ( is_array( $lvb_cf ) && isset( $lvb_cf['scheme'] ) && $lvb_cf['scheme'] === 'https' ) {
+        $lvb_is_https = true;
+    }
 }
+if ( $lvb_is_https ) {
+    $_SERVER['HTTPS']       = 'on';
+    $_SERVER['SERVER_PORT'] = 443;
+}
+unset( $lvb_is_https, $lvb_cf );
 
 // Plugin constants
-define( 'LVB_VERSION',     '2.0.0-alpha.8' );
+define( 'LVB_VERSION',     '2.0.0-alpha.9' );
 define( 'LVB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LVB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'LVB_PLUGIN_FILE', __FILE__ );
